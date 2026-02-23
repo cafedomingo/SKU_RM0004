@@ -149,6 +149,8 @@ extern void lcd_display_ram(void);
 extern void lcd_display_temp(void);
 extern void lcd_display_disk(void);
 extern void lcd_display_percentage(uint8_t val, uint16_t color);
+extern void lcd_display_mini_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val, uint16_t color);
+extern void lcd_display_all(void);
 #ifdef __cplusplus
 }
 #endif

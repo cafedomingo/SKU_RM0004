@@ -10,8 +10,8 @@ Demo for ssd1306 i2c driver for  Raspberry Pi
 
 int main(void) 
 {
-	uint8_t symbol = 0;
-	
+	uint8_t symbol = 4;
+
 	if(lcd_begin())      //LCD Screen initialization
 	{
 		return 0;
@@ -20,13 +20,7 @@ int main(void)
 	while(1)
 	{
 		lcd_display(symbol);
-		sleep(1);
-        sleep(1);
-		symbol++;
-		if(symbol==4)
-        {
-          symbol=0;
-        }
+		sleep(5);
 	}
 	return 0;
 }
