@@ -265,3 +265,30 @@ char* get_hostname(void)
     hostname[sizeof(hostname) - 1] = '\0';
     return hostname;
 }
+
+/*
+* Get DietPi core update status
+* Returns: 0 = not DietPi, 1 = up to date, 2 = update available
+*/
+int get_dietpi_update_status(void)
+{
+    if (access("/run/dietpi", F_OK) != 0)
+        return 0;
+    if (access("/run/dietpi/.update_available", F_OK) == 0)
+        return 2;
+    return 1;
+}
+
+/*
+* Get APT upgradable package count from DietPi cache
+* Returns: -1 if file missing, otherwise the count
+*/
+int get_apt_update_count(void)
+{
+    int count = 0;
+    FILE *fp = fopen("/run/dietpi/.apt_updates", "r");
+    if (!fp) return -1;
+    fscanf(fp, "%d", &count);
+    fclose(fp);
+    return count;
+}
