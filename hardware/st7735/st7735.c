@@ -40,25 +40,22 @@ void lcd_set_address_window(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1)
  */
 void lcd_write_char(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color, uint16_t bgcolor)
 {
-    uint32_t i, b, j;
-
-    lcd_set_address_window(x, y, x + font.width - 1, y + font.height - 1);
+    uint8_t buff[16 * 26 * 2]; /* max font size: 16x26 */
+    uint32_t i, b, j, idx;
 
     for (i = 0; i < font.height; i++)
     {
         b = font.data[(ch - 32) * font.height + i];
         for (j = 0; j < font.width; j++)
         {
-            if ((b << j) & 0x8000)
-            {
-                i2c_write_data(color >> 8, color & 0xFF);
-            }
-            else
-            {
-                i2c_write_data(bgcolor >> 8, bgcolor & 0xFF);
-            }
+            idx = (i * font.width + j) * 2;
+            uint16_t c = ((b << j) & 0x8000) ? color : bgcolor;
+            buff[idx]     = c >> 8;
+            buff[idx + 1] = c & 0xFF;
         }
     }
+
+    lcd_draw_image(x, y, font.width, font.height, buff);
 }
 
 void lcd_write_ch(uint16_t x, uint16_t y, char ch, FontType font, uint16_t color, uint16_t bgcolor)
@@ -106,7 +103,6 @@ void lcd_write_string(uint16_t x, uint16_t y, char *str, FontDef font, uint16_t 
         }
 
         lcd_write_char(x, y, *str, font, color, bgcolor);
-        i2c_write_command(SYNC_REG, 0x00, 0x01);
         x += font.width;
         str++;
     }
@@ -141,9 +137,9 @@ void lcd_fill_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t
     // clipping
     if ((x >= ST7735_WIDTH) || (y >= ST7735_HEIGHT))
         return;
-    if ((x + w - 1) >= ST7735_WIDTH)
+    if ((x + w) >= ST7735_WIDTH)
         w = ST7735_WIDTH - x;
-    if ((y + h - 1) >= ST7735_HEIGHT)
+    if ((y + h) >= ST7735_HEIGHT)
         h = ST7735_HEIGHT - y;
     lcd_set_address_window(x, y, x + w - 1, y + h - 1);
 
@@ -170,10 +166,8 @@ void lcd_fill_screen(uint16_t color)
 
 void lcd_draw_image(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t *data)
 {
-    uint16_t col = h - y;
-    uint16_t row = w - x;
     lcd_set_address_window(x, y, x + w - 1, y + h - 1);
-    i2c_burst_transfer(data, sizeof(uint16_t) * col * row);
+    i2c_burst_transfer(data, sizeof(uint16_t) * w * h);
 }
 
 uint8_t lcd_begin(void)
@@ -305,13 +299,13 @@ void lcd_display_cpuLoad(void)
 void lcd_display_ram(void)
 {
     float Totalram = 0.0;
-    float freeram = 0.0;
+    float availram = 0.0;
     uint8_t residue = 0;
     uint8_t Total[10] = {0};
     uint8_t free[10] = {0};
     uint8_t residueStr[10] = {0};
-    get_cpu_memory(&Totalram, &freeram);
-    residue = (Totalram - freeram) / Totalram * 100;
+    get_cpu_memory(&Totalram, &availram);
+    residue = (Totalram - availram) / Totalram * 100;
     sprintf(residueStr, "%d", residue);
     lcd_fill_rectangle(0, 35, ST7735_WIDTH, 20, ST7735_BLACK);
     lcd_write_string(36, 35, "RAM:", Font_11x18, ST7735_WHITE, ST7735_BLACK);
@@ -407,7 +401,7 @@ void lcd_display_all(void)
     static int header_drawn = 0;
     char buf[24];
     uint8_t cpuLoad;
-    float totalRam = 0.0, freeRam = 0.0;
+    float totalRam = 0.0, availRam = 0.0;
     uint8_t ramPercent;
     uint16_t temp;
     uint32_t sdMemSize = 0, sdUseMemSize = 0;
@@ -418,8 +412,8 @@ void lcd_display_all(void)
 
     /* Gather all data */
     cpuLoad = get_cpu_message();
-    get_cpu_memory(&totalRam, &freeRam);
-    ramPercent = (totalRam > 0) ? (uint8_t)((totalRam - freeRam) / totalRam * 100) : 0;
+    get_cpu_memory(&totalRam, &availRam);
+    ramPercent = (totalRam > 0) ? (uint8_t)((totalRam - availRam) / totalRam * 100) : 0;
     temp = get_temperature();
     get_sd_memory(&sdMemSize, &sdUseMemSize);
     get_hard_disk_memory(&diskMemSize, &diskUseMemSize);
