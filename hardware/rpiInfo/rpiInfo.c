@@ -166,25 +166,34 @@ void get_sd_memory(uint32_t *MemSize, uint32_t *freesize)
 
 
 /*
-* get hard disk memory
+* get hard disk memory via /proc/mounts + statfs
 */
 uint8_t get_hard_disk_memory(uint16_t *diskMemSize, uint16_t *useMemSize)
 {
   *diskMemSize = 0;
   *useMemSize = 0;
-  uint8_t diskMembuff[10] = {0};
-  uint8_t useMembuff[10] = {0};
-  FILE *fd = NULL;
-  fd=popen("df -l | grep /dev/sda | awk '{printf \"%s\", $(2)}'","r"); 
-  fgets(diskMembuff,sizeof(diskMembuff),fd);
-  fclose(fd);
+  char line[512], device[256], mountpoint[256];
+  struct statfs disk_info;
 
-  fd=popen("df -l | grep /dev/sda | awk '{printf \"%s\", $(3)}'","r"); 
-  fgets(useMembuff,sizeof(useMembuff),fd);
-  fclose(fd);
+  FILE *fp = fopen("/proc/mounts", "r");
+  if (!fp) return 1;
 
-  *diskMemSize = atoi(diskMembuff)/1024/1024;
-  *useMemSize  = atoi(useMembuff)/1024/1024;
+  while (fgets(line, sizeof(line), fp)) {
+      if (sscanf(line, "%255s %255s", device, mountpoint) == 2) {
+          if (strncmp(device, "/dev/sda", 8) == 0 ||
+              strncmp(device, "/dev/nvme", 9) == 0) {
+              if (statfs(mountpoint, &disk_info) == 0) {
+                  unsigned long long block = disk_info.f_bsize;
+                  unsigned long long total = block * disk_info.f_blocks;
+                  unsigned long long used = total - (block * disk_info.f_bfree);
+                  *diskMemSize += (uint16_t)(total >> 30);
+                  *useMemSize += (uint16_t)(used >> 30);
+              }
+          }
+      }
+  }
+  fclose(fp);
+  return 0;
 }
 
 /*
@@ -197,6 +206,7 @@ uint8_t get_temperature(void)
     unsigned int temp;
     char buff[10] = {0};
     fd = fopen("/sys/class/thermal/thermal_zone0/temp","r");
+    if (!fd) return 0;
     fgets(buff,sizeof(buff),fd);
     sscanf(buff, "%d", &temp);
     fclose(fd);
@@ -204,25 +214,54 @@ uint8_t get_temperature(void)
 }
 
 /*
-* Get cpu usage
+* Get cpu usage via /proc/stat delta
 */
 uint8_t get_cpu_message(void)
 {
-    FILE * fp;
-    uint8_t usCpuBuff[5] = {0};
-    uint8_t syCpubuff[5] = {0};
-    int usCpu = 0;
-    int syCpu = 0;
+    static unsigned long long prev_idle = 0, prev_total = 0;
+    static int initialized = 0;
+    unsigned long long user, nice, system, idle_val, iowait, irq, softirq, steal;
+    unsigned long long idle_sum, total, diff_idle, diff_total;
+    FILE *fp;
 
-    fp=popen("top -bn1 | grep %Cpu | awk '{printf \"%.2f\", $(2)}'","r");    //Gets the load on the CPU
-    fgets(usCpuBuff, sizeof(usCpuBuff),fp);                                    //Read the user CPU load
-    pclose(fp);    
+    if (!initialized) {
+        fp = fopen("/proc/stat", "r");
+        if (!fp) return 0;
+        fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
+               &user, &nice, &system, &idle_val, &iowait, &irq, &softirq, &steal);
+        fclose(fp);
+        prev_idle = idle_val + iowait;
+        prev_total = user + nice + system + idle_val + iowait + irq + softirq + steal;
+        usleep(100000);
+        initialized = 1;
+    }
 
-    fp=popen("top -bn1 | grep %Cpu | awk '{printf \"%.2f\", $(4)}'","r");    //Gets the load on the CPU
-    fgets(syCpubuff, sizeof(syCpubuff),fp);                                    //Read the system CPU load
-    pclose(fp);   
-    usCpu = atoi(usCpuBuff);
-    syCpu = atoi(syCpubuff);
-    return usCpu+syCpu;
-  
+    fp = fopen("/proc/stat", "r");
+    if (!fp) return 0;
+    fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
+           &user, &nice, &system, &idle_val, &iowait, &irq, &softirq, &steal);
+    fclose(fp);
+
+    idle_sum = idle_val + iowait;
+    total = user + nice + system + idle_val + iowait + irq + softirq + steal;
+    diff_idle = idle_sum - prev_idle;
+    diff_total = total - prev_total;
+    prev_idle = idle_sum;
+    prev_total = total;
+
+    if (diff_total == 0) return 0;
+    return (uint8_t)(100 * (diff_total - diff_idle) / diff_total);
+}
+
+/*
+* Get hostname
+*/
+char* get_hostname(void)
+{
+    static char hostname[65]; /* HOST_NAME_MAX is typically 64 */
+    if (gethostname(hostname, sizeof(hostname)) != 0) {
+        strncpy(hostname, "unknown", sizeof(hostname));
+    }
+    hostname[sizeof(hostname) - 1] = '\0';
+    return hostname;
 }

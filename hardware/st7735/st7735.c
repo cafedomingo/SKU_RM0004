@@ -247,6 +247,9 @@ void lcd_display(uint8_t symbol)
     case 3:
         lcd_display_disk();
         break;
+    case 4:
+        lcd_display_all();
+        break;
     default:
         break;
     }
@@ -368,4 +371,76 @@ void lcd_display_disk(void)
     lcd_write_string(85, 35, residueStr, Font_11x18, ST7735_WHITE, ST7735_BLACK);
     lcd_write_string(118, 35, "%", Font_11x18, ST7735_WHITE, ST7735_BLACK);
     lcd_display_percentage(residue, ST7735_BLUE);
+}
+
+void lcd_display_mini_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val, uint16_t color)
+{
+    uint16_t filled = (uint16_t)val * w / 100;
+    if (filled > w) filled = w;
+    if (filled > 0)
+        lcd_fill_rectangle(x, y, filled, h, color);
+    if (filled < w)
+        lcd_fill_rectangle(x + filled, y, w - filled, h, ST7735_GRAY);
+}
+
+void lcd_display_all(void)
+{
+    char buf[24];
+    char ipBuf[20];
+    uint8_t cpuLoad;
+    float totalRam = 0.0, freeRam = 0.0;
+    uint8_t ramPercent;
+    uint16_t temp;
+    uint32_t sdMemSize = 0, sdUseMemSize = 0;
+    uint16_t diskMemSize = 0, diskUseMemSize = 0;
+    uint16_t memTotal, useMemTotal, diskPercent;
+    uint8_t tempForBar;
+
+    /* Gather all data */
+    cpuLoad = get_cpu_message();
+    get_cpu_memory(&totalRam, &freeRam);
+    ramPercent = (totalRam > 0) ? (uint8_t)((totalRam - freeRam) / totalRam * 100) : 0;
+    temp = get_temperature();
+    get_sd_memory(&sdMemSize, &sdUseMemSize);
+    get_hard_disk_memory(&diskMemSize, &diskUseMemSize);
+    memTotal = sdMemSize + diskMemSize;
+    useMemTotal = sdUseMemSize + diskUseMemSize;
+    diskPercent = (memTotal > 0) ? useMemTotal * 100 / memTotal : 0;
+
+    /* Clear screen */
+    lcd_fill_screen(ST7735_BLACK);
+
+    /* Row 1: Hostname */
+    lcd_write_string(2, 0, get_hostname(), Font_8x16, ST7735_WHITE, ST7735_BLACK);
+
+    /* Row 2: IP address */
+    strcpy(ipBuf, get_ip_address_new());
+    lcd_write_string(2, 17, ipBuf, Font_7x10, ST7735_BLUE, ST7735_BLACK);
+
+    /* Separator line */
+    lcd_fill_rectangle(0, 29, ST7735_WIDTH, 1, ST7735_BLUE);
+
+    /* CPU (left column) */
+    sprintf(buf, "CPU:%3d%%", cpuLoad);
+    lcd_write_string(2, 31, buf, Font_7x10, ST7735_GREEN, ST7735_BLACK);
+    lcd_display_mini_bar(2, 43, 65, 5, cpuLoad, ST7735_GREEN);
+
+    /* RAM (right column) */
+    sprintf(buf, "RAM:%3d%%", ramPercent);
+    lcd_write_string(84, 31, buf, Font_7x10, ST7735_YELLOW, ST7735_BLACK);
+    lcd_display_mini_bar(84, 43, 65, 5, ramPercent, ST7735_YELLOW);
+
+    /* Temperature (left column) */
+    sprintf(buf, "TMP:%3d%c", temp, TEMPERATURE_TYPE == FAHRENHEIT ? 'F' : 'C');
+    lcd_write_string(2, 51, buf, Font_7x10, ST7735_RED, ST7735_BLACK);
+    tempForBar = temp;
+    if (TEMPERATURE_TYPE == FAHRENHEIT) {
+        tempForBar = (temp - 32) / 1.8;
+    }
+    lcd_display_mini_bar(2, 63, 65, 5, tempForBar > 100 ? 100 : tempForBar, ST7735_RED);
+
+    /* Disk (right column) */
+    sprintf(buf, "DSK:%3d%%", diskPercent > 999 ? 999 : diskPercent);
+    lcd_write_string(84, 51, buf, Font_7x10, ST7735_BLUE, ST7735_BLACK);
+    lcd_display_mini_bar(84, 63, 65, 5, diskPercent > 100 ? 100 : (uint8_t)diskPercent, ST7735_BLUE);
 }
