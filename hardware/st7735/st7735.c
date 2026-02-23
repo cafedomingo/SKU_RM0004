@@ -432,8 +432,11 @@ void lcd_display_all(void)
         char ipBuf[20];
         lcd_fill_screen(ST7735_BLACK);
 
-        /* Row 1: Hostname */
-        lcd_write_string(2, 0, get_hostname(), Font_8x16, ST7735_WHITE, ST7735_BLACK);
+        /* Row 1: Hostname (truncated to leave room for badge) */
+        char hostBuf[17];
+        strncpy(hostBuf, get_hostname(), 16);
+        hostBuf[16] = '\0';
+        lcd_write_string(2, 0, hostBuf, Font_8x16, ST7735_WHITE, ST7735_BLACK);
 
         /* Row 2: IP address */
         strcpy(ipBuf, get_ip_address_new());
@@ -443,6 +446,29 @@ void lcd_display_all(void)
         lcd_fill_rectangle(0, 30, ST7735_WIDTH, 1, ST7735_BLUE);
 
         header_drawn = 1;
+    }
+
+    /* DietPi status dot — red when update needed, hidden otherwise */
+    int dietpi_status = get_dietpi_update_status();
+    if (dietpi_status == 2) {
+        lcd_fill_rectangle(154, 5, 2, 1, ST7735_RED);
+        lcd_fill_rectangle(153, 6, 4, 1, ST7735_RED);
+        lcd_fill_rectangle(152, 7, 6, 1, ST7735_RED);
+        lcd_fill_rectangle(152, 8, 6, 1, ST7735_RED);
+        lcd_fill_rectangle(153, 9, 4, 1, ST7735_RED);
+        lcd_fill_rectangle(154, 10, 2, 1, ST7735_RED);
+    }
+
+    /* APT update count — right-aligned on IP row */
+    int apt_count = get_apt_update_count();
+    lcd_fill_rectangle(124, 18, 36, 10, ST7735_BLACK);
+    if (apt_count > 0) {
+        uint16_t badge_color = (apt_count >= 10) ? ST7735_RED : ST7735_YELLOW;
+        char badge_buf[8];
+        sprintf(badge_buf, "^%d", apt_count > 99 ? 99 : apt_count);
+        int len = strlen(badge_buf);
+        uint16_t bx = 160 - (len * 7) - 2;
+        lcd_write_string(bx, 19, badge_buf, Font_7x10, badge_color, ST7735_BLACK);
     }
 
     /* CPU (left column, row 1) */

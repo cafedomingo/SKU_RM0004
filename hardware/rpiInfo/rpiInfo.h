@@ -30,5 +30,7 @@ uint8_t get_temperature(void);
 uint8_t get_cpu_message(void);
 uint8_t get_hard_disk_memory(uint16_t *diskMemSize, uint16_t *useMemSize);
 char* get_hostname(void);
+int get_dietpi_update_status(void);
+int get_apt_update_count(void);
 
 #endif /*__RPIINFO_H*/
