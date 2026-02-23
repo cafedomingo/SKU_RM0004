@@ -417,7 +417,7 @@ void lcd_display_all(void)
 
         /* Row 2: IP address */
         strcpy(ipBuf, get_ip_address_new());
-        lcd_write_string(2, 17, ipBuf, Font_7x10, ST7735_BLUE, ST7735_BLACK);
+        lcd_write_string(2, 17, ipBuf, Font_7x10, ST7735_CYAN, ST7735_BLACK);
 
         /* Separator line */
         lcd_fill_rectangle(0, 29, ST7735_WIDTH, 1, ST7735_BLUE);
