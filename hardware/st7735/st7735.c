@@ -385,8 +385,8 @@ void lcd_display_mini_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_
 
 void lcd_display_all(void)
 {
+    static int header_drawn = 0;
     char buf[24];
-    char ipBuf[20];
     uint8_t cpuLoad;
     float totalRam = 0.0, freeRam = 0.0;
     uint8_t ramPercent;
@@ -407,18 +407,23 @@ void lcd_display_all(void)
     useMemTotal = sdUseMemSize + diskUseMemSize;
     diskPercent = (memTotal > 0) ? useMemTotal * 100 / memTotal : 0;
 
-    /* Clear screen */
-    lcd_fill_screen(ST7735_BLACK);
+    /* Draw header only once (hostname, IP, separator don't change) */
+    if (!header_drawn) {
+        char ipBuf[20];
+        lcd_fill_screen(ST7735_BLACK);
 
-    /* Row 1: Hostname */
-    lcd_write_string(2, 0, get_hostname(), Font_8x16, ST7735_WHITE, ST7735_BLACK);
+        /* Row 1: Hostname */
+        lcd_write_string(2, 0, get_hostname(), Font_8x16, ST7735_WHITE, ST7735_BLACK);
 
-    /* Row 2: IP address */
-    strcpy(ipBuf, get_ip_address_new());
-    lcd_write_string(2, 17, ipBuf, Font_7x10, ST7735_BLUE, ST7735_BLACK);
+        /* Row 2: IP address */
+        strcpy(ipBuf, get_ip_address_new());
+        lcd_write_string(2, 17, ipBuf, Font_7x10, ST7735_BLUE, ST7735_BLACK);
 
-    /* Separator line */
-    lcd_fill_rectangle(0, 29, ST7735_WIDTH, 1, ST7735_BLUE);
+        /* Separator line */
+        lcd_fill_rectangle(0, 29, ST7735_WIDTH, 1, ST7735_BLUE);
+
+        header_drawn = 1;
+    }
 
     /* CPU (left column) */
     sprintf(buf, "CPU:%3d%%", cpuLoad);

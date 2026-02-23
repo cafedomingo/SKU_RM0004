@@ -20,7 +20,7 @@ int main(void)
 	while(1)
 	{
 		lcd_display(symbol);
-		sleep(2);
+		sleep(5);
 	}
 	return 0;
 }
