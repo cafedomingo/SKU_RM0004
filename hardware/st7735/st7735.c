@@ -435,14 +435,20 @@ void lcd_display_all(void)
     lcd_write_string(84, 31, buf, Font_7x10, ST7735_YELLOW, ST7735_BLACK);
     lcd_display_mini_bar(84, 43, 65, 5, ramPercent, ST7735_YELLOW);
 
-    /* Temperature (left column) */
-    sprintf(buf, "TMP:%3d%c", temp, TEMPERATURE_TYPE == FAHRENHEIT ? 'F' : 'C');
-    lcd_write_string(2, 51, buf, Font_7x10, ST7735_RED, ST7735_BLACK);
+    /* Temperature (left column) — color based on DietPi thresholds */
     tempForBar = temp;
     if (TEMPERATURE_TYPE == FAHRENHEIT) {
         tempForBar = (temp - 32) / 1.8;
     }
-    lcd_display_mini_bar(2, 63, 65, 5, tempForBar > 100 ? 100 : tempForBar, ST7735_RED);
+    uint16_t tempColor;
+    if (tempForBar < 40)       tempColor = ST7735_CYAN;
+    else if (tempForBar < 50)  tempColor = ST7735_GREEN;
+    else if (tempForBar < 60)  tempColor = ST7735_YELLOW;
+    else if (tempForBar < 70)  tempColor = ST7735_COLOR565(255, 165, 0); /* orange */
+    else                       tempColor = ST7735_RED;
+    sprintf(buf, "TMP:%3d%c", temp, TEMPERATURE_TYPE == FAHRENHEIT ? 'F' : 'C');
+    lcd_write_string(2, 51, buf, Font_7x10, tempColor, ST7735_BLACK);
+    lcd_display_mini_bar(2, 63, 65, 5, tempForBar > 100 ? 100 : tempForBar, tempColor);
 
     /* Disk (right column) */
     sprintf(buf, "DSK:%3d%%", diskPercent > 999 ? 999 : diskPercent);
