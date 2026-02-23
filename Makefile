@@ -1,5 +1,5 @@
-TATGET := display
-CC     := gcc
+TARGET := display
+CC     ?= gcc
 
 OBJ := obj
 
@@ -9,22 +9,22 @@ $(shell mkdir -p $(dir)/$(OBJ))
 
 SRCDIRS :=  project/ \
 			hardware/rpiInfo \
-			hardware/st7735  
+			hardware/st7735
 
 SRCS := $(foreach dir, $(SRCDIRS), $(wildcard $(dir)/*.c))
 NOT_DIR :=$(notdir $(SRCS))
-OBJS := $(patsubst %.c, $(OBJ)/%.o, $(NOT_DIR)) 
+OBJS := $(patsubst %.c, $(OBJ)/%.o, $(NOT_DIR))
 
 INCLUDE := $(patsubst %, -I %, $(SRCDIRS))
 
 VPATH := $(SRCDIRS)
 
-$(TATGET):$(OBJS)
+$(TARGET):$(OBJS)
 	$(CC) -o $@ $^
 $(OBJS) : obj/%.o : %.c
 	$(CC) -c $(INCLUDE) -o $@ $<
 
 
 clean:
-	sudo rm -rf $(OBJ)
-	sudo rm -rf $(TATGET)
+	rm -rf $(OBJ)
+	rm -rf $(TARGET)
