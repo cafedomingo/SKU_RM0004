@@ -437,27 +437,27 @@ void lcd_display_all(void)
 
         /* Row 2: IP address */
         strcpy(ipBuf, get_ip_address_new());
-        lcd_write_string(2, 17, ipBuf, Font_7x10, ST7735_VIOLET, ST7735_BLACK);
+        lcd_write_string(2, 18, ipBuf, Font_7x10, ST7735_VIOLET, ST7735_BLACK);
 
         /* Separator line */
-        lcd_fill_rectangle(0, 29, ST7735_WIDTH, 1, ST7735_BLUE);
+        lcd_fill_rectangle(0, 30, ST7735_WIDTH, 1, ST7735_BLUE);
 
         header_drawn = 1;
     }
 
     /* CPU (left column, row 1) */
     color = threshold_color(cpuLoad);
-    lcd_write_string(2, 31, "CPU:", Font_7x10, ST7735_WHITE, ST7735_BLACK);
+    lcd_write_string(2, 34, "CPU:", Font_7x10, ST7735_WHITE, ST7735_BLACK);
     sprintf(buf, "%3d%%", cpuLoad);
-    lcd_write_string(30, 31, buf, Font_7x10, color, ST7735_BLACK);
-    lcd_display_mini_bar(2, 43, 65, 5, cpuLoad, color);
+    lcd_write_string(30, 34, buf, Font_7x10, color, ST7735_BLACK);
+    lcd_display_mini_bar(2, 46, 65, 6, cpuLoad, color);
 
     /* RAM (left column, row 2) */
     color = threshold_color(ramPercent);
-    lcd_write_string(2, 51, "RAM:", Font_7x10, ST7735_WHITE, ST7735_BLACK);
+    lcd_write_string(2, 56, "RAM:", Font_7x10, ST7735_WHITE, ST7735_BLACK);
     sprintf(buf, "%3d%%", ramPercent);
-    lcd_write_string(30, 51, buf, Font_7x10, color, ST7735_BLACK);
-    lcd_display_mini_bar(2, 63, 65, 5, ramPercent, color);
+    lcd_write_string(30, 56, buf, Font_7x10, color, ST7735_BLACK);
+    lcd_display_mini_bar(2, 68, 65, 6, ramPercent, color);
 
     /* Temperature (right column, row 1) */
     tempForBar = temp;
@@ -465,15 +465,15 @@ void lcd_display_all(void)
         tempForBar = (temp - 32) / 1.8;
     }
     color = temp_threshold_color(tempForBar);
-    lcd_write_string(84, 31, "TEMP:", Font_7x10, ST7735_WHITE, ST7735_BLACK);
+    lcd_write_string(84, 34, "TEMP:", Font_7x10, ST7735_WHITE, ST7735_BLACK);
     sprintf(buf, "%3d%c", temp, TEMPERATURE_TYPE == FAHRENHEIT ? 'F' : 'C');
-    lcd_write_string(119, 31, buf, Font_7x10, color, ST7735_BLACK);
-    lcd_display_mini_bar(84, 43, 65, 5, tempForBar > 100 ? 100 : tempForBar, color);
+    lcd_write_string(119, 34, buf, Font_7x10, color, ST7735_BLACK);
+    lcd_display_mini_bar(84, 46, 65, 6, tempForBar > 100 ? 100 : tempForBar, color);
 
     /* Disk (right column, row 2) */
     color = threshold_color(diskPercent > 100 ? 100 : (uint8_t)diskPercent);
-    lcd_write_string(84, 51, "DISK:", Font_7x10, ST7735_WHITE, ST7735_BLACK);
+    lcd_write_string(84, 56, "DISK:", Font_7x10, ST7735_WHITE, ST7735_BLACK);
     sprintf(buf, "%3d%%", diskPercent > 999 ? 999 : diskPercent);
-    lcd_write_string(119, 51, buf, Font_7x10, color, ST7735_BLACK);
-    lcd_display_mini_bar(84, 63, 65, 5, diskPercent > 100 ? 100 : (uint8_t)diskPercent, color);
+    lcd_write_string(119, 56, buf, Font_7x10, color, ST7735_BLACK);
+    lcd_display_mini_bar(84, 68, 65, 6, diskPercent > 100 ? 100 : (uint8_t)diskPercent, color);
 }
