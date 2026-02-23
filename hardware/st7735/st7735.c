@@ -448,11 +448,15 @@ void lcd_display_all(void)
         header_drawn = 1;
     }
 
-    /* DietPi status dot — green=current, red=update needed */
+    /* DietPi status dot — red when update needed, hidden otherwise */
     int dietpi_status = get_dietpi_update_status();
-    if (dietpi_status > 0) {
-        uint16_t dot_color = (dietpi_status == 2) ? ST7735_RED : ST7735_GREEN;
-        lcd_fill_rectangle(152, 5, 6, 6, dot_color);
+    if (dietpi_status == 2) {
+        lcd_fill_rectangle(154, 5, 2, 1, ST7735_RED);
+        lcd_fill_rectangle(153, 6, 4, 1, ST7735_RED);
+        lcd_fill_rectangle(152, 7, 6, 1, ST7735_RED);
+        lcd_fill_rectangle(152, 8, 6, 1, ST7735_RED);
+        lcd_fill_rectangle(153, 9, 4, 1, ST7735_RED);
+        lcd_fill_rectangle(154, 10, 2, 1, ST7735_RED);
     }
 
     /* APT update count — right-aligned on IP row */
