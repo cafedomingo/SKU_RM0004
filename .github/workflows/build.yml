@@ -1,0 +1,50 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cross-compiler and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu libi2c-dev
+
+      - name: Build for aarch64
+        run: CC=aarch64-linux-gnu-gcc make
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: display
+          path: display
+
+  release:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: display
+
+      - name: Create or update release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          chmod +x display
+          if gh release view latest >/dev/null 2>&1; then
+            gh release upload latest display --clobber
+          else
+            gh release create latest display --title "Latest Build" --notes "Automatically built from main branch"
+          fi
