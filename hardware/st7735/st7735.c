@@ -218,8 +218,9 @@ static uint16_t temp_threshold_color(uint8_t celsius)
 
 void lcd_display_all(void)
 {
-    static int header_drawn = 0;
     char buf[24];
+    char ipBuf[20];
+    char hostBuf[17];
     uint8_t cpuLoad;
     float totalRam = 0.0, availRam = 0.0;
     uint8_t ramPercent;
@@ -241,26 +242,17 @@ void lcd_display_all(void)
     useMemTotal = sdUseMemSize + diskUseMemSize;
     diskPercent = (memTotal > 0) ? useMemTotal * 100 / memTotal : 0;
 
-    /* Draw header only once (hostname, IP, separator don't change) */
-    if (!header_drawn) {
-        char ipBuf[20];
-        lcd_fill_screen(ST7735_BLACK);
+    /* Header: hostname, IP, separator */
+    lcd_fill_screen(ST7735_BLACK);
 
-        /* Row 1: Hostname (truncated to leave room for badge) */
-        char hostBuf[17];
-        strncpy(hostBuf, get_hostname(), 16);
-        hostBuf[16] = '\0';
-        lcd_write_string(2, 0, hostBuf, Font_8x16, ST7735_WHITE, ST7735_BLACK);
+    strncpy(hostBuf, get_hostname(), 16);
+    hostBuf[16] = '\0';
+    lcd_write_string(2, 0, hostBuf, Font_8x16, ST7735_WHITE, ST7735_BLACK);
 
-        /* Row 2: IP address */
-        strcpy(ipBuf, get_ip_address());
-        lcd_write_string(2, 18, ipBuf, Font_7x10, ST7735_VIOLET, ST7735_BLACK);
+    strcpy(ipBuf, get_ip_address());
+    lcd_write_string(2, 18, ipBuf, Font_7x10, ST7735_VIOLET, ST7735_BLACK);
 
-        /* Separator line */
-        lcd_fill_rectangle(0, 30, ST7735_WIDTH, 1, ST7735_BLUE);
-
-        header_drawn = 1;
-    }
+    lcd_fill_rectangle(0, 30, ST7735_WIDTH, 1, ST7735_BLUE);
 
     /* DietPi status dot — red when update needed, hidden otherwise */
     int dietpi_status = get_dietpi_update_status();
