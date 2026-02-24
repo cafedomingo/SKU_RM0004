@@ -33,6 +33,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: update.sh
+          sparse-checkout-cone-mode: false
+
       - uses: actions/download-artifact@v4
         with:
           name: display
@@ -43,8 +48,16 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           chmod +x display
+          NOTES='Automatically built from main branch.
+
+          ## Update existing installs
+
+          ```
+          curl -sL https://github.com/${{ github.repository }}/releases/latest/download/update.sh | sudo bash
+          ```'
           if gh release view latest >/dev/null 2>&1; then
-            gh release upload latest display --clobber
+            gh release upload latest display update.sh --clobber
+            gh release edit latest --notes "$NOTES"
           else
-            gh release create latest display --title "Latest Build" --notes "Automatically built from main branch"
+            gh release create latest display update.sh --title "Latest Build" --notes "$NOTES"
           fi
