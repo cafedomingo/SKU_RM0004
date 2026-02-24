@@ -172,7 +172,6 @@ void lcd_draw_image(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t *dat
 
 uint8_t lcd_begin(void)
 {
-    uint8_t count = 0;
     char i2c[20] = "/dev/i2c-1";
     // I2C Init
     i2cd = open(i2c, O_RDWR);
