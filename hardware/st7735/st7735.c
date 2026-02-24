@@ -173,10 +173,9 @@ void lcd_draw_image(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t *dat
 uint8_t lcd_begin(void)
 {
     uint8_t count = 0;
-    uint8_t buffer[20] = {0};
-    uint8_t i2c[20] = "/dev/i2c-1";
+    char i2c[20] = "/dev/i2c-1";
     // I2C Init
-    i2cd = open(i2c, O_RDWR); //"/dev/i2c-1"
+    i2cd = open(i2c, O_RDWR);
     if (i2cd < 0)
     {
         fprintf(stderr, "Device I2C-1 failed to initialize\n");
@@ -275,7 +274,7 @@ void lcd_display_cpuLoad(void)
 {
     char iPSource[20] = {0};
     uint8_t cpuLoad = 0;
-    uint8_t cpuStr[10] = {0};
+    char cpuStr[10] = {0};
     lcd_fill_screen(ST7735_BLACK);
     cpuLoad = get_cpu_message();
     sprintf(cpuStr, "%d", cpuLoad);
@@ -283,12 +282,12 @@ void lcd_display_cpuLoad(void)
     if (IP_SWITCH == IP_DISPLAY_OPEN)
     {
         lcd_write_string(0, 0, "IP:", Font_8x16, ST7735_WHITE, ST7735_BLACK);
-        strcpy(iPSource, get_ip_address());                                       // Get the IP address of the device's wireless network card
-        lcd_write_string(24, 0, iPSource, Font_8x16, ST7735_WHITE, ST7735_BLACK); // Send the IP address to the lower machine
+        strcpy(iPSource, get_ip_address());
+        lcd_write_string(24, 0, iPSource, Font_8x16, ST7735_WHITE, ST7735_BLACK);
     }
     else
     {
-        lcd_write_string(0, 0, CUSTOM_DISPLAY, Font_8x16, ST7735_WHITE, ST7735_BLACK); // Send the IP address to the lower machine
+        lcd_write_string(0, 0, CUSTOM_DISPLAY, Font_8x16, ST7735_WHITE, ST7735_BLACK);
     }
     lcd_write_string(36, 35, "CPU:", Font_11x18, ST7735_WHITE, ST7735_BLACK);
     lcd_write_string(80, 35, cpuStr, Font_11x18, ST7735_WHITE, ST7735_BLACK);
@@ -301,9 +300,7 @@ void lcd_display_ram(void)
     float Totalram = 0.0;
     float availram = 0.0;
     uint8_t residue = 0;
-    uint8_t Total[10] = {0};
-    uint8_t free[10] = {0};
-    uint8_t residueStr[10] = {0};
+    char residueStr[10] = {0};
     get_cpu_memory(&Totalram, &availram);
     residue = (Totalram - availram) / Totalram * 100;
     sprintf(residueStr, "%d", residue);
@@ -317,7 +314,7 @@ void lcd_display_ram(void)
 void lcd_display_temp(void)
 {
     uint16_t temp = 0;
-    uint8_t tempStr[10] = {0};
+    char tempStr[10] = {0};
     temp = get_temperature();
     sprintf(tempStr, "%d", temp);
     lcd_fill_rectangle(0, 35, ST7735_WIDTH, 20, ST7735_BLACK);
@@ -350,7 +347,7 @@ void lcd_display_disk(void)
     uint16_t memTotal = 0;
     uint16_t useMemTotal = 0;
     uint16_t residue = 0;
-    uint8_t residueStr[10] = {0};
+    char residueStr[10] = {0};
 
     get_sd_memory(&sdMemSize, &sdUseMemSize);
     get_hard_disk_memory(&diskMemSize, &diskUseMemSize);

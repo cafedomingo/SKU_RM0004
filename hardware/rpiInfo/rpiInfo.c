@@ -68,8 +68,8 @@ void get_cpu_memory(float *Totalram,float *availram)
   struct sysinfo s_info;
 
   unsigned int value=0;
-  unsigned char buffer[100]={0};
-  unsigned char famer[100]={0};
+  char buffer[100]={0};
+  char famer[100]={0};
     if(sysinfo(&s_info)==0)            //Get memory information
     {
         FILE* fp=fopen("/proc/meminfo","r");
