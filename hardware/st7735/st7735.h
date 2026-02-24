@@ -143,12 +143,6 @@ extern void i2c_write_command(uint8_t command,uint8_t high, uint8_t low);
 extern void lcd_write_char(uint16_t x, uint16_t y, char ch, FontDef font,uint16_t color, uint16_t bgcolor);
 extern void lcd_write_ch(uint16_t x, uint16_t y, char ch, FontType font,uint16_t color, uint16_t bgcolor);
 extern void i2c_burst_transfer(uint8_t* buff, uint32_t length);
-extern void lcd_display(uint8_t symbol);
-extern void lcd_display_cpuLoad(void);
-extern void lcd_display_ram(void);
-extern void lcd_display_temp(void);
-extern void lcd_display_disk(void);
-extern void lcd_display_percentage(uint8_t val, uint16_t color);
 extern void lcd_display_mini_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val, uint16_t color);
 extern void lcd_display_all(void);
 #ifdef __cplusplus
