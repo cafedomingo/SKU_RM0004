@@ -283,7 +283,7 @@ void lcd_display_cpuLoad(void)
     if (IP_SWITCH == IP_DISPLAY_OPEN)
     {
         lcd_write_string(0, 0, "IP:", Font_8x16, ST7735_WHITE, ST7735_BLACK);
-        strcpy(iPSource, get_ip_address_new());                                       // Get the IP address of the device's wireless network card
+        strcpy(iPSource, get_ip_address());                                       // Get the IP address of the device's wireless network card
         lcd_write_string(24, 0, iPSource, Font_8x16, ST7735_WHITE, ST7735_BLACK); // Send the IP address to the lower machine
     }
     else
@@ -433,7 +433,7 @@ void lcd_display_all(void)
         lcd_write_string(2, 0, hostBuf, Font_8x16, ST7735_WHITE, ST7735_BLACK);
 
         /* Row 2: IP address */
-        strcpy(ipBuf, get_ip_address_new());
+        strcpy(ipBuf, get_ip_address());
         lcd_write_string(2, 18, ipBuf, Font_7x10, ST7735_VIOLET, ST7735_BLACK);
 
         /* Separator line */

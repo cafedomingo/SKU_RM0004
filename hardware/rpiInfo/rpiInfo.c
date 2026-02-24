@@ -18,95 +18,55 @@
 #include <stdlib.h>
 
 /*
-* Get the IP address of wlan0 or eth0
+* Get the IP address of the default-route interface.
+* Auto-detects the interface via /proc/net/route instead of
+* hardcoding eth0/wlan0, so it works on any Linux system
+* (Armbian end0, USB gadgets, etc).
+* Inspired by darkgrue/SKU_RM0004.
 */
-
 char* get_ip_address(void)
 {
+    FILE *fp;
+    char line[256], iface[64], dest[16];
+    char *default_iface = NULL;
     int fd;
     struct ifreq ifr;
-    int symbol=0;
-    if (IPADDRESS_TYPE == ETH0_ADDRESS)
-    {
-      fd = socket(AF_INET, SOCK_DGRAM, 0);
-      /* I want to get an IPv4 IP address */
-      ifr.ifr_addr.sa_family = AF_INET;
-      /* I want IP address attached to "eth0" */
-      strncpy(ifr.ifr_name, "eth0", IFNAMSIZ-1);
-      symbol=ioctl(fd, SIOCGIFADDR, &ifr);
-      close(fd);
-      if(symbol==0)
-      {
-        return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
-      }
-      else
-      {
-        char* buffer="xxx.xxx.xxx.xxx";
-        return buffer;
-      }
-    }
-    else if (IPADDRESS_TYPE == WLAN0_ADDRESS)
-    {
-        fd = socket(AF_INET, SOCK_DGRAM, 0);
-        /* I want to get an IPv4 IP address */
-        ifr.ifr_addr.sa_family = AF_INET;
-        /* I want IP address attached to "wlan0" */
-        strncpy(ifr.ifr_name, "wlan0", IFNAMSIZ-1);
-        symbol=ioctl(fd, SIOCGIFADDR, &ifr);
-        close(fd);    
-        if(symbol==0)
-        {
-          return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);   
-        }
-        else
-        {
-          char* buffer="xxx.xxx.xxx.xxx";
-          return buffer;
-        }
-    }
-    else
-    {
-      char* buffer="xxx.xxx.xxx.xxx";
-      return buffer;
-    }
-}
 
-char* get_ip_address_new(void)
-{
-    int fd;
-    struct ifreq ifr;
-    int symbol=0;
+    /* Find the interface that carries the default route */
+    fp = fopen("/proc/net/route", "r");
+    if (fp) {
+        /* Skip header line */
+        if (fgets(line, sizeof(line), fp)) {
+            while (fgets(line, sizeof(line), fp)) {
+                if (sscanf(line, "%63s %15s", iface, dest) == 2) {
+                    if (strcmp(dest, "00000000") == 0) {
+                        default_iface = iface;
+                        break;
+                    }
+                }
+            }
+        }
+        fclose(fp);
+    }
+
+    if (!default_iface)
+        return "no route";
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);
-    /* I want to get an IPv4 IP address */
+    if (fd < 0)
+        return "no socket";
+
     ifr.ifr_addr.sa_family = AF_INET;
-    /* I want IP address attached to "eth0" */
-    strncpy(ifr.ifr_name, "eth0", IFNAMSIZ-1);
-    symbol=ioctl(fd, SIOCGIFADDR, &ifr);
+    strncpy(ifr.ifr_name, default_iface, IFNAMSIZ - 1);
+    ifr.ifr_name[IFNAMSIZ - 1] = '\0';
+
+    if (ioctl(fd, SIOCGIFADDR, &ifr) != 0) {
+        close(fd);
+        return "no addr";
+    }
     close(fd);
-    if(symbol==0)
-    {
-      return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
-    }
-    else
-    {
-      fd = socket(AF_INET, SOCK_DGRAM, 0);
-      /* I want to get an IPv4 IP address */
-      ifr.ifr_addr.sa_family = AF_INET;
-      /* I want IP address attached to "wlan0" */
-      strncpy(ifr.ifr_name, "wlan0", IFNAMSIZ-1);
-      symbol=ioctl(fd, SIOCGIFADDR, &ifr);
-      close(fd);    
-      if(symbol==0)
-      {
-        return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);   
-      }
-      else
-      {
-        char* buffer="xxx.xxx.xxx.xxx";
-        return buffer;
-      }
-    }
+
+    return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
 }
 
 
