@@ -58,27 +58,8 @@ void lcd_write_char(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t colo
     lcd_draw_image(x, y, font.width, font.height, buff);
 }
 
-void lcd_write_ch(uint16_t x, uint16_t y, char ch, FontType font, uint16_t color, uint16_t bgcolor)
-{
-    switch (font)
-    {
-    case FontType_7x10:
-        lcd_write_char(x, y, ch, Font_7x10, color, bgcolor);
-        break;
-    case FontType_8x16:
-        lcd_write_char(x, y, ch, Font_8x16, color, bgcolor);
-        break;
-    case FontType_11x18:
-        lcd_write_char(x, y, ch, Font_11x18, color, bgcolor);
-        break;
-    case FontType_16x26:
-        lcd_write_char(x, y, ch, Font_16x26, color, bgcolor);
-        break;
-    }
-}
-
 /*
- * display string
+ * Display a string
  */
 void lcd_write_string(uint16_t x, uint16_t y, char *str, FontDef font, uint16_t color, uint16_t bgcolor)
 {
@@ -108,27 +89,8 @@ void lcd_write_string(uint16_t x, uint16_t y, char *str, FontDef font, uint16_t 
     }
 }
 
-void lcd_write_str(uint16_t x, uint16_t y, char *str, FontType font, uint16_t color, uint16_t bgcolor)
-{
-    switch (font)
-    {
-    case FontType_7x10:
-        lcd_write_string(x, y, str, Font_7x10, color, bgcolor);
-        break;
-    case FontType_8x16:
-        lcd_write_string(x, y, str, Font_8x16, color, bgcolor);
-        break;
-    case FontType_11x18:
-        lcd_write_string(x, y, str, Font_11x18, color, bgcolor);
-        break;
-    case FontType_16x26:
-        lcd_write_string(x, y, str, Font_16x26, color, bgcolor);
-        break;
-    }
-}
-
 /*
- * fill rectangle
+ * Fill rectangle
  */
 void lcd_fill_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color)
 {
