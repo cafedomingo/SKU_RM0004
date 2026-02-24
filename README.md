@@ -27,12 +27,5 @@ sudo systemctl disable uctronics-display.service
 sudo rm /etc/systemd/system/uctronics-display.service
 sudo systemctl daemon-reload
 ```
-## How to use NVMe 
-***Note: only for Raspberry Pi 5 and UC-B86 NVMe hat***
-
-https://github.com/UCTRONICS/SKU_RM0004/blob/main/data/NVMe_User_Guide.md
-
-
-
 
 
