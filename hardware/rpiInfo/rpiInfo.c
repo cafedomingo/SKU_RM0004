@@ -156,8 +156,8 @@ uint8_t get_temperature(void)
     char buff[10] = {0};
     fd = fopen("/sys/class/thermal/thermal_zone0/temp","r");
     if (!fd) return 0;
-    fgets(buff,sizeof(buff),fd);
-    sscanf(buff, "%d", &temp);
+    if (!fgets(buff,sizeof(buff),fd)) { fclose(fd); return 0; }
+    if (sscanf(buff, "%d", &temp) != 1) { fclose(fd); return 0; }
     fclose(fd);
     return TEMPERATURE_TYPE == FAHRENHEIT ? temp/1000*1.8+32 : temp/1000;    
 }
@@ -176,8 +176,10 @@ uint8_t get_cpu_message(void)
     if (!initialized) {
         fp = fopen("/proc/stat", "r");
         if (!fp) return 0;
-        fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
-               &user, &nice, &system, &idle_val, &iowait, &irq, &softirq, &steal);
+        if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
+               &user, &nice, &system, &idle_val, &iowait, &irq, &softirq, &steal) != 8) {
+            fclose(fp); return 0;
+        }
         fclose(fp);
         prev_idle = idle_val + iowait;
         prev_total = user + nice + system + idle_val + iowait + irq + softirq + steal;
@@ -187,8 +189,10 @@ uint8_t get_cpu_message(void)
 
     fp = fopen("/proc/stat", "r");
     if (!fp) return 0;
-    fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
-           &user, &nice, &system, &idle_val, &iowait, &irq, &softirq, &steal);
+    if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
+           &user, &nice, &system, &idle_val, &iowait, &irq, &softirq, &steal) != 8) {
+        fclose(fp); return 0;
+    }
     fclose(fp);
 
     idle_sum = idle_val + iowait;
@@ -237,7 +241,7 @@ int get_apt_update_count(void)
     int count = 0;
     FILE *fp = fopen("/run/dietpi/.apt_updates", "r");
     if (!fp) return -1;
-    fscanf(fp, "%d", &count);
+    if (fscanf(fp, "%d", &count) != 1) count = 0;
     fclose(fp);
     return count;
 }
