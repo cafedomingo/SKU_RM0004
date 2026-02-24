@@ -10,12 +10,6 @@
 #include <net/if.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <sys/ioctl.h>
-#include <linux/i2c.h>
-#include <linux/i2c-dev.h>
-#include <fcntl.h>
-#include "st7735.h"
-#include <stdlib.h>
 
 /*
 * Get the IP address of the default-route interface.
@@ -79,8 +73,8 @@ void get_cpu_memory(float *Totalram,float *availram)
   struct sysinfo s_info;
 
   unsigned int value=0;
-  unsigned char buffer[100]={0};
-  unsigned char famer[100]={0};
+  char buffer[100]={0};
+  char famer[100]={0};
     if(sysinfo(&s_info)==0)            //Get memory information
     {
         FILE* fp=fopen("/proc/meminfo","r");
@@ -162,15 +156,15 @@ uint8_t get_hard_disk_memory(uint16_t *diskMemSize, uint16_t *useMemSize)
 
 uint8_t get_temperature(void)
 {
-    FILE *fd;
+    FILE *fp;
     unsigned int temp;
     char buff[10] = {0};
-    fd = fopen("/sys/class/thermal/thermal_zone0/temp","r");
-    if (!fd) return 0;
-    fgets(buff,sizeof(buff),fd);
-    sscanf(buff, "%d", &temp);
-    fclose(fd);
-    return TEMPERATURE_TYPE == FAHRENHEIT ? temp/1000*1.8+32 : temp/1000;    
+    fp = fopen("/sys/class/thermal/thermal_zone0/temp", "r");
+    if (!fp) return 0;
+    if (!fgets(buff, sizeof(buff), fp)) { fclose(fp); return 0; }
+    fclose(fp);
+    if (sscanf(buff, "%u", &temp) != 1) return 0;
+    return TEMPERATURE_TYPE == FAHRENHEIT ? temp/1000*1.8+32 : temp/1000;
 }
 
 /*
@@ -187,8 +181,9 @@ uint8_t get_cpu_message(void)
     if (!initialized) {
         fp = fopen("/proc/stat", "r");
         if (!fp) return 0;
-        fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
-               &user, &nice, &system, &idle_val, &iowait, &irq, &softirq, &steal);
+        if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
+               &user, &nice, &system, &idle_val, &iowait, &irq, &softirq, &steal) != 8)
+        { fclose(fp); return 0; }
         fclose(fp);
         prev_idle = idle_val + iowait;
         prev_total = user + nice + system + idle_val + iowait + irq + softirq + steal;
@@ -198,8 +193,9 @@ uint8_t get_cpu_message(void)
 
     fp = fopen("/proc/stat", "r");
     if (!fp) return 0;
-    fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
-           &user, &nice, &system, &idle_val, &iowait, &irq, &softirq, &steal);
+    if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
+           &user, &nice, &system, &idle_val, &iowait, &irq, &softirq, &steal) != 8)
+    { fclose(fp); return 0; }
     fclose(fp);
 
     idle_sum = idle_val + iowait;
@@ -248,7 +244,7 @@ int get_apt_update_count(void)
     int count = 0;
     FILE *fp = fopen("/run/dietpi/.apt_updates", "r");
     if (!fp) return -1;
-    fscanf(fp, "%d", &count);
+    if (fscanf(fp, "%d", &count) != 1) count = 0;
     fclose(fp);
     return count;
 }
