@@ -8,6 +8,10 @@
 #define TEMPERATURE_TYPE  CELSIUS
 /**********Select display temperature type**************/
 
+/***************Refresh interval (seconds)***************/
+#define REFRESH_INTERVAL_SECS  5
+/***************Refresh interval (seconds)***************/
+
 
 char* get_ip_address(void);
 void get_sd_memory(uint32_t *MemSize, uint32_t *freesize);

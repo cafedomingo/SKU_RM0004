@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "st7735.h"
+#include "rpiInfo.h"
 
 int main(void)
 {
@@ -12,7 +13,7 @@ int main(void)
 	sleep(1);
 	while (1) {
 		lcd_display_all();
-		sleep(5);
+		sleep(REFRESH_INTERVAL_SECS);
 	}
 	return 0;
 }

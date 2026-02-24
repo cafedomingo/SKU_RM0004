@@ -4,7 +4,7 @@ Display driver for the [UCTRONICS SKU_RM0004](https://github.com/UCTRONICS/SKU_R
 
 ```
 ┌─────────────────────────────┐
-│ raspberrypi            ◆    │
+│ raspberrypi               ◆ │
 │ 192.168.1.42             ^3 │
 │─────────────────────────────│
 │ CPU:  12%    TEMP:  42C     │
@@ -56,10 +56,9 @@ sudo systemctl daemon-reload
 
 ## Configuration
 
-Temperature units can be changed in `hardware/rpiInfo/rpiInfo.h`:
+Settings are in `hardware/rpiInfo/rpiInfo.h`. Rebuild after changing.
 
 ```c
 #define TEMPERATURE_TYPE  CELSIUS    // or FAHRENHEIT
+#define REFRESH_INTERVAL_SECS  5     // seconds between updates
 ```
-
-Rebuild after changing.
