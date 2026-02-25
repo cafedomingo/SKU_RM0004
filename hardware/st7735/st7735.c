@@ -81,12 +81,9 @@ void lcd_fill_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
     uint8_t buff[320] = {0};
     uint16_t count = 0;
     // clipping
-    if ((x >= ST7735_WIDTH) || (y >= ST7735_HEIGHT))
-        return;
-    if ((x + w) >= ST7735_WIDTH)
-        w = ST7735_WIDTH - x;
-    if ((y + h) >= ST7735_HEIGHT)
-        h = ST7735_HEIGHT - y;
+    if ((x >= ST7735_WIDTH) || (y >= ST7735_HEIGHT)) return;
+    if ((x + w) >= ST7735_WIDTH) w = ST7735_WIDTH - x;
+    if ((y + h) >= ST7735_HEIGHT) h = ST7735_HEIGHT - y;
     lcd_set_address_window(x, y, x + w - 1, y + h - 1);
 
     for (count = 0; count < w; count++) {
@@ -159,33 +156,24 @@ void i2c_burst_transfer(uint8_t *buff, uint32_t length) {
 void lcd_display_mini_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
                           uint8_t val, uint16_t color) {
     uint16_t filled = (uint16_t)val * w / 100;
-    if (filled > w)
-        filled = w;
-    if (filled > 0)
-        lcd_fill_rectangle(x, y, filled, h, color);
+    if (filled > w) filled = w;
+    if (filled > 0) lcd_fill_rectangle(x, y, filled, h, color);
     if (filled < w)
         lcd_fill_rectangle(x + filled, y, w - filled, h, ST7735_GRAY);
 }
 
 static uint16_t threshold_color(uint8_t val) {
-    if (val < 60)
-        return ST7735_GREEN;
-    if (val < 80)
-        return ST7735_YELLOW;
-    if (val < 90)
-        return ST7735_COLOR565(255, 165, 0); /* orange */
+    if (val < 60) return ST7735_GREEN;
+    if (val < 80) return ST7735_YELLOW;
+    if (val < 90) return ST7735_COLOR565(255, 165, 0); /* orange */
     return ST7735_RED;
 }
 
 static uint16_t temp_threshold_color(uint8_t celsius) {
-    if (celsius < 40)
-        return ST7735_CYAN;
-    if (celsius < 50)
-        return ST7735_GREEN;
-    if (celsius < 60)
-        return ST7735_YELLOW;
-    if (celsius < 70)
-        return ST7735_COLOR565(255, 165, 0); /* orange */
+    if (celsius < 40) return ST7735_CYAN;
+    if (celsius < 50) return ST7735_GREEN;
+    if (celsius < 60) return ST7735_YELLOW;
+    if (celsius < 70) return ST7735_COLOR565(255, 165, 0); /* orange */
     return ST7735_RED;
 }
 
@@ -260,8 +248,7 @@ void lcd_display_all(void) {
 
     /* Temperature */
     tempForBar = temp;
-    if (TEMPERATURE_TYPE == FAHRENHEIT)
-        tempForBar = (temp - 32) / 1.8;
+    if (TEMPERATURE_TYPE == FAHRENHEIT) tempForBar = (temp - 32) / 1.8;
     color = temp_threshold_color(tempForBar);
     sprintf(buf, "%3d%c", temp, TEMPERATURE_TYPE == FAHRENHEIT ? 'F' : 'C');
     draw_metric(84, 34, "TEMP:", buf, tempForBar > 100 ? 100 : tempForBar,

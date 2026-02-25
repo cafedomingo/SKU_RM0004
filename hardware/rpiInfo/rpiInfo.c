@@ -45,12 +45,10 @@ char *get_ip_address(void) {
         fclose(fp);
     }
 
-    if (!default_iface)
-        return "no route";
+    if (!default_iface) return "no route";
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (fd < 0)
-        return "no socket";
+    if (fd < 0) return "no socket";
 
     ifr.ifr_addr.sa_family = AF_INET;
     strncpy(ifr.ifr_name, default_iface, IFNAMSIZ - 1);
@@ -74,12 +72,10 @@ uint8_t get_ram_percent(void) {
     char buffer[128], label[32];
 
     FILE *fp = fopen("/proc/meminfo", "r");
-    if (!fp)
-        return 0;
+    if (!fp) return 0;
 
     while (fgets(buffer, sizeof(buffer), fp)) {
-        if (sscanf(buffer, "%31s %u", label, &value) != 2)
-            continue;
+        if (sscanf(buffer, "%31s %u", label, &value) != 2) continue;
         if (strcmp(label, "MemTotal:") == 0)
             total = value;
         else if (strcmp(label, "MemAvailable:") == 0)
@@ -87,8 +83,7 @@ uint8_t get_ram_percent(void) {
     }
     fclose(fp);
 
-    if (total == 0)
-        return 0;
+    if (total == 0) return 0;
     return (uint8_t)((uint64_t)(total - avail) * 100 / total);
 }
 
@@ -119,8 +114,7 @@ static void get_hard_disk_memory(uint32_t *total_gib, uint32_t *used_gib) {
     struct statfs info;
 
     FILE *fp = fopen("/proc/mounts", "r");
-    if (!fp)
-        return;
+    if (!fp) return;
 
     while (fgets(line, sizeof(line), fp)) {
         if (sscanf(line, "%255s %255s", device, mountpoint) == 2) {
@@ -152,8 +146,7 @@ uint8_t get_disk_percent(void) {
     uint32_t total = sdTotal + diskTotal;
     uint32_t used = sdUsed + diskUsed;
 
-    if (total == 0)
-        return 0;
+    if (total == 0) return 0;
     uint32_t pct = used * 100 / total;
     return (uint8_t)(pct > 100 ? 100 : pct);
 }
@@ -166,19 +159,16 @@ uint8_t get_temperature(void) {
     char buf[10];
 
     FILE *fp = fopen("/sys/class/thermal/thermal_zone0/temp", "r");
-    if (!fp)
-        return 0;
+    if (!fp) return 0;
     if (!fgets(buf, sizeof(buf), fp)) {
         fclose(fp);
         return 0;
     }
     fclose(fp);
-    if (sscanf(buf, "%u", &millideg) != 1)
-        return 0;
+    if (sscanf(buf, "%u", &millideg) != 1) return 0;
 
     unsigned int celsius = millideg / 1000;
-    if (TEMPERATURE_TYPE == FAHRENHEIT)
-        return (uint8_t)(celsius * 9 / 5 + 32);
+    if (TEMPERATURE_TYPE == FAHRENHEIT) return (uint8_t)(celsius * 9 / 5 + 32);
     return (uint8_t)celsius;
 }
 
@@ -189,8 +179,7 @@ static int read_cpu_stat(unsigned long long *idle, unsigned long long *total) {
     unsigned long long user, nice, system, idle_val, iowait, irq, softirq,
         steal;
     FILE *fp = fopen("/proc/stat", "r");
-    if (!fp)
-        return -1;
+    if (!fp) return -1;
     if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu", &user, &nice,
                &system, &idle_val, &iowait, &irq, &softirq, &steal) != 8) {
         fclose(fp);
@@ -211,22 +200,19 @@ uint8_t get_cpu_percent(void) {
     unsigned long long idle, total;
 
     if (!initialized) {
-        if (read_cpu_stat(&prev_idle, &prev_total) != 0)
-            return 0;
+        if (read_cpu_stat(&prev_idle, &prev_total) != 0) return 0;
         usleep(100000);
         initialized = 1;
     }
 
-    if (read_cpu_stat(&idle, &total) != 0)
-        return 0;
+    if (read_cpu_stat(&idle, &total) != 0) return 0;
 
     unsigned long long diff_idle = idle - prev_idle;
     unsigned long long diff_total = total - prev_total;
     prev_idle = idle;
     prev_total = total;
 
-    if (diff_total == 0)
-        return 0;
+    if (diff_total == 0) return 0;
     return (uint8_t)((100 * (diff_total - diff_idle) + diff_total / 2) /
                      diff_total);
 }
@@ -248,10 +234,8 @@ char *get_hostname(void) {
  * Returns: 0 = not DietPi, 1 = up to date, 2 = update available
  */
 int get_dietpi_update_status(void) {
-    if (access("/run/dietpi", F_OK) != 0)
-        return 0;
-    if (access("/run/dietpi/.update_available", F_OK) == 0)
-        return 2;
+    if (access("/run/dietpi", F_OK) != 0) return 0;
+    if (access("/run/dietpi/.update_available", F_OK) == 0) return 2;
     return 1;
 }
 
@@ -262,10 +246,8 @@ int get_dietpi_update_status(void) {
 int get_apt_update_count(void) {
     int count = 0;
     FILE *fp = fopen("/run/dietpi/.apt_updates", "r");
-    if (!fp)
-        return -1;
-    if (fscanf(fp, "%d", &count) != 1)
-        count = 0;
+    if (!fp) return -1;
+    if (fscanf(fp, "%d", &count) != 1) count = 0;
     fclose(fp);
     return count;
 }
