@@ -21,17 +21,9 @@ This compiles the binary, installs a systemd service, configures I2C, and prompt
 
 ## Update
 
-For devices already running the service:
-
 ```bash
-curl -sL https://github.com/cafedomingo/SKU_RM0004/releases/latest/download/update.sh | sudo bash
-```
-
-Or build from source:
-
-```bash
-cd /opt/uctronics-lcd
-sudo git pull
+cd SKU_RM0004
+git pull
 sudo make clean && sudo make
 sudo systemctl restart uctronics-display.service
 ```
