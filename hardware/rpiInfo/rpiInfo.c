@@ -223,7 +223,7 @@ uint8_t get_cpu_percent(void)
     prev_total = total;
 
     if (diff_total == 0) return 0;
-    return (uint8_t)(100 * (diff_total - diff_idle) / diff_total);
+    return (uint8_t)((100 * (diff_total - diff_idle) + diff_total / 2) / diff_total);
 }
 
 /*
