@@ -30,8 +30,10 @@ clean:
 	rm -rf $(OBJ)
 	rm -rf $(TARGET)
 
+FMT_SRCS = find $(SRCDIRS) -type f \( -name '*.c' -o -name '*.h' \) -print0
+
 format:
-	find . -name '*.c' -o -name '*.h' | grep -v 'fonts\.c$$' | xargs clang-format -i
+	$(FMT_SRCS) | xargs -0 clang-format -i
 
 format-check:
-	find . -name '*.c' -o -name '*.h' | grep -v 'fonts\.c$$' | xargs clang-format --dry-run --Werror
+	$(FMT_SRCS) | xargs -0 clang-format --dry-run --Werror
