@@ -1,6 +1,7 @@
 /* vim: set ai et ts=4 sw=4: */
 #include "fonts.h"
 
+// clang-format off
 static const uint16_t Font7x10[] = {
     0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
     0x0000, 0x0000, 0x0000, 0x0000, 0x0000, // sp

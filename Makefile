@@ -29,3 +29,9 @@ $(OBJS) : obj/%.o : %.c
 clean:
 	rm -rf $(OBJ)
 	rm -rf $(TARGET)
+
+format:
+	find . -name '*.c' -o -name '*.h' | grep -v fonts | xargs clang-format -i
+
+format-check:
+	find . -name '*.c' -o -name '*.h' | grep -v fonts | xargs clang-format --dry-run --Werror
