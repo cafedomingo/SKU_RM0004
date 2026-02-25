@@ -232,8 +232,6 @@ void lcd_display_all(void)
     diskPercent = (memTotal > 0) ? useMemTotal * 100 / memTotal : 0;
 
     /* Header: hostname, IP, separator */
-    lcd_fill_screen(ST7735_BLACK);
-
     strncpy(hostBuf, get_hostname(), 16);
     hostBuf[16] = '\0';
     lcd_write_string(2, 0, hostBuf, Font_8x16, ST7735_WHITE, ST7735_BLACK);
