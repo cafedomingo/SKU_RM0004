@@ -181,41 +181,42 @@ uint8_t get_temperature(void)
 }
 
 /*
+* Read aggregate CPU idle and total ticks from /proc/stat
+*/
+static int read_cpu_stat(unsigned long long *idle, unsigned long long *total)
+{
+    unsigned long long user, nice, system, idle_val, iowait, irq, softirq, steal;
+    FILE *fp = fopen("/proc/stat", "r");
+    if (!fp) return -1;
+    if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
+           &user, &nice, &system, &idle_val, &iowait, &irq, &softirq, &steal) != 8)
+    { fclose(fp); return -1; }
+    fclose(fp);
+    *idle  = idle_val + iowait;
+    *total = user + nice + system + idle_val + iowait + irq + softirq + steal;
+    return 0;
+}
+
+/*
 * Get CPU usage as a percentage (0-100) via /proc/stat delta
 */
 uint8_t get_cpu_percent(void)
 {
     static unsigned long long prev_idle = 0, prev_total = 0;
     static int initialized = 0;
-    unsigned long long user, nice, system, idle_val, iowait, irq, softirq, steal;
-    unsigned long long idle_sum, total, diff_idle, diff_total;
-    FILE *fp;
+    unsigned long long idle, total;
 
     if (!initialized) {
-        fp = fopen("/proc/stat", "r");
-        if (!fp) return 0;
-        if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
-               &user, &nice, &system, &idle_val, &iowait, &irq, &softirq, &steal) != 8)
-        { fclose(fp); return 0; }
-        fclose(fp);
-        prev_idle = idle_val + iowait;
-        prev_total = user + nice + system + idle_val + iowait + irq + softirq + steal;
+        if (read_cpu_stat(&prev_idle, &prev_total) != 0) return 0;
         usleep(100000);
         initialized = 1;
     }
 
-    fp = fopen("/proc/stat", "r");
-    if (!fp) return 0;
-    if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
-           &user, &nice, &system, &idle_val, &iowait, &irq, &softirq, &steal) != 8)
-    { fclose(fp); return 0; }
-    fclose(fp);
+    if (read_cpu_stat(&idle, &total) != 0) return 0;
 
-    idle_sum = idle_val + iowait;
-    total = user + nice + system + idle_val + iowait + irq + softirq + steal;
-    diff_idle = idle_sum - prev_idle;
-    diff_total = total - prev_total;
-    prev_idle = idle_sum;
+    unsigned long long diff_idle  = idle - prev_idle;
+    unsigned long long diff_total = total - prev_total;
+    prev_idle  = idle;
     prev_total = total;
 
     if (diff_total == 0) return 0;
