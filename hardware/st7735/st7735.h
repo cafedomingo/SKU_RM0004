@@ -5,21 +5,21 @@
 #include "fonts.h"
 #include <stdbool.h>
 
-#define I2C_ADDRESS       0x18
-#define BURST_MAX_LENGTH  160
+#define I2C_ADDRESS 0x18
+#define BURST_MAX_LENGTH 160
 
-#define X_COORDINATE_MAX  160
-#define X_COORDINATE_MIN  0
-#define Y_COORDINATE_MAX  80
-#define Y_COORDINATE_MIN  0
+#define X_COORDINATE_MAX 160
+#define X_COORDINATE_MIN 0
+#define Y_COORDINATE_MAX 80
+#define Y_COORDINATE_MIN 0
 
-#define X_COORDINATE_REG   0X2A
-#define Y_COORDINATE_REG   0X2B
-#define CHAR_DATA_REG      0X2C
+#define X_COORDINATE_REG 0X2A
+#define Y_COORDINATE_REG 0X2B
+#define CHAR_DATA_REG 0X2C
 #define SCAN_DIRECTION_REG 0x36
-#define WRITE_DATA_REG     0x00
-#define BURST_WRITE_REG    0X01
-#define SYNC_REG           0X03
+#define WRITE_DATA_REG 0x00
+#define BURST_WRITE_REG 0X01
+#define SYNC_REG 0X03
 
 #define ST7735_MADCTL_MY 0x80
 #define ST7735_MADCTL_MX 0x40
@@ -33,9 +33,10 @@
 #define ST7735_IS_160X80 1
 #define ST7735_XSTART 0
 #define ST7735_YSTART 24
-#define ST7735_WIDTH  160
+#define ST7735_WIDTH 160
 #define ST7735_HEIGHT 80
-#define ST7735_ROTATION (ST7735_MADCTL_MY | ST7735_MADCTL_MV | ST7735_MADCTL_BGR)
+#define ST7735_ROTATION                                                        \
+    (ST7735_MADCTL_MY | ST7735_MADCTL_MV | ST7735_MADCTL_BGR)
 
 /****************************/
 
@@ -96,19 +97,25 @@
 #define ST7735_WHITE 0xFFFF
 #define ST7735_GRAY 0x8410
 #define ST7735_COLOR565(r, g, b)                                               \
-  (((r & 0xF8) << 8) | ((g & 0xFC) << 3) | ((b & 0xF8) >> 3))
+    (((r & 0xF8) << 8) | ((g & 0xFC) << 3) | ((b & 0xF8) >> 3))
 
-extern void lcd_write_string(uint16_t x, uint16_t y, char *str, FontDef font, uint16_t color, uint16_t bgcolor);
-extern void lcd_fill_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
+extern void lcd_write_string(uint16_t x, uint16_t y, char *str, FontDef font,
+                             uint16_t color, uint16_t bgcolor);
+extern void lcd_fill_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
+                               uint16_t color);
 extern void lcd_fill_screen(uint16_t color);
-extern void lcd_draw_image(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t *data);
-extern void lcd_set_address_window(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1);
+extern void lcd_draw_image(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
+                           uint8_t *data);
+extern void lcd_set_address_window(uint8_t x0, uint8_t y0, uint8_t x1,
+                                   uint8_t y1);
 extern uint8_t lcd_begin(void);
 extern void i2c_write_data(uint8_t high, uint8_t low);
 extern void i2c_write_command(uint8_t command, uint8_t high, uint8_t low);
-extern void lcd_write_char(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color, uint16_t bgcolor);
+extern void lcd_write_char(uint16_t x, uint16_t y, char ch, FontDef font,
+                           uint16_t color, uint16_t bgcolor);
 extern void i2c_burst_transfer(uint8_t *buff, uint32_t length);
-extern void lcd_display_mini_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val, uint16_t color);
+extern void lcd_display_mini_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
+                                 uint8_t val, uint16_t color);
 extern void lcd_display_all(void);
 
 #endif // __ST7735_H__

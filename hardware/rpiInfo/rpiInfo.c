@@ -1,29 +1,27 @@
 #include "rpiInfo.h"
+#include <arpa/inet.h>
+#include <net/if.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/vfs.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <netinet/in.h>
-#include <net/if.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/vfs.h>
 #include <unistd.h>
-#include <arpa/inet.h>
 
-static inline int has_prefix(const char *s, const char *prefix)
-{
+static inline int has_prefix(const char *s, const char *prefix) {
     return strncmp(s, prefix, strlen(prefix)) == 0;
 }
 
 /*
-* Get the IP address of the default-route interface.
-* Auto-detects the interface via /proc/net/route instead of
-* hardcoding eth0/wlan0, so it works on any Linux system
-* (Armbian end0, USB gadgets, etc).
-* Inspired by darkgrue/SKU_RM0004.
-*/
-char* get_ip_address(void)
-{
+ * Get the IP address of the default-route interface.
+ * Auto-detects the interface via /proc/net/route instead of
+ * hardcoding eth0/wlan0, so it works on any Linux system
+ * (Armbian end0, USB gadgets, etc).
+ * Inspired by darkgrue/SKU_RM0004.
+ */
+char *get_ip_address(void) {
     FILE *fp;
     char line[256], iface[64], dest[16];
     char *default_iface = NULL;
@@ -68,10 +66,9 @@ char* get_ip_address(void)
 }
 
 /*
-* Get RAM usage as a percentage (0-100)
-*/
-uint8_t get_ram_percent(void)
-{
+ * Get RAM usage as a percentage (0-100)
+ */
+uint8_t get_ram_percent(void) {
     unsigned int value = 0;
     unsigned int total = 0, avail = 0;
     char buffer[128], label[32];
@@ -96,10 +93,9 @@ uint8_t get_ram_percent(void)
 }
 
 /*
-* Get SD card usage in GiB
-*/
-static void get_sd_memory(uint32_t *total_gib, uint32_t *used_gib)
-{
+ * Get SD card usage in GiB
+ */
+static void get_sd_memory(uint32_t *total_gib, uint32_t *used_gib) {
     struct statfs info;
     if (statfs("/", &info) != 0) {
         *total_gib = 0;
@@ -108,23 +104,23 @@ static void get_sd_memory(uint32_t *total_gib, uint32_t *used_gib)
     }
     unsigned long long block = info.f_bsize;
     unsigned long long total = block * info.f_blocks;
-    unsigned long long used  = total - block * info.f_bfree;
+    unsigned long long used = total - block * info.f_bfree;
     *total_gib = (uint32_t)(total >> 30);
-    *used_gib  = (uint32_t)(used >> 30);
+    *used_gib = (uint32_t)(used >> 30);
 }
 
 /*
-* Get hard disk usage in GiB via /proc/mounts + statfs
-*/
-static void get_hard_disk_memory(uint32_t *total_gib, uint32_t *used_gib)
-{
+ * Get hard disk usage in GiB via /proc/mounts + statfs
+ */
+static void get_hard_disk_memory(uint32_t *total_gib, uint32_t *used_gib) {
     *total_gib = 0;
     *used_gib = 0;
     char line[512], device[256], mountpoint[256];
     struct statfs info;
 
     FILE *fp = fopen("/proc/mounts", "r");
-    if (!fp) return;
+    if (!fp)
+        return;
 
     while (fgets(line, sizeof(line), fp)) {
         if (sscanf(line, "%255s %255s", device, mountpoint) == 2) {
@@ -133,9 +129,9 @@ static void get_hard_disk_memory(uint32_t *total_gib, uint32_t *used_gib)
                 if (statfs(mountpoint, &info) == 0) {
                     unsigned long long block = info.f_bsize;
                     unsigned long long total = block * info.f_blocks;
-                    unsigned long long used  = total - (block * info.f_bfree);
+                    unsigned long long used = total - (block * info.f_bfree);
                     *total_gib += (uint32_t)(total >> 30);
-                    *used_gib  += (uint32_t)(used >> 30);
+                    *used_gib += (uint32_t)(used >> 30);
                 }
             }
         }
@@ -144,10 +140,9 @@ static void get_hard_disk_memory(uint32_t *total_gib, uint32_t *used_gib)
 }
 
 /*
-* Get combined disk usage (SD + hard disk) as a percentage (0-100)
-*/
-uint8_t get_disk_percent(void)
-{
+ * Get combined disk usage (SD + hard disk) as a percentage (0-100)
+ */
+uint8_t get_disk_percent(void) {
     uint32_t sdTotal = 0, sdUsed = 0;
     uint32_t diskTotal = 0, diskUsed = 0;
 
@@ -155,7 +150,7 @@ uint8_t get_disk_percent(void)
     get_hard_disk_memory(&diskTotal, &diskUsed);
 
     uint32_t total = sdTotal + diskTotal;
-    uint32_t used  = sdUsed + diskUsed;
+    uint32_t used = sdUsed + diskUsed;
 
     if (total == 0)
         return 0;
@@ -164,18 +159,22 @@ uint8_t get_disk_percent(void)
 }
 
 /*
-* Get CPU temperature in configured units (C or F)
-*/
-uint8_t get_temperature(void)
-{
+ * Get CPU temperature in configured units (C or F)
+ */
+uint8_t get_temperature(void) {
     unsigned int millideg;
     char buf[10];
 
     FILE *fp = fopen("/sys/class/thermal/thermal_zone0/temp", "r");
-    if (!fp) return 0;
-    if (!fgets(buf, sizeof(buf), fp)) { fclose(fp); return 0; }
+    if (!fp)
+        return 0;
+    if (!fgets(buf, sizeof(buf), fp)) {
+        fclose(fp);
+        return 0;
+    }
     fclose(fp);
-    if (sscanf(buf, "%u", &millideg) != 1) return 0;
+    if (sscanf(buf, "%u", &millideg) != 1)
+        return 0;
 
     unsigned int celsius = millideg / 1000;
     if (TEMPERATURE_TYPE == FAHRENHEIT)
@@ -184,53 +183,58 @@ uint8_t get_temperature(void)
 }
 
 /*
-* Read aggregate CPU idle and total ticks from /proc/stat
-*/
-static int read_cpu_stat(unsigned long long *idle, unsigned long long *total)
-{
-    unsigned long long user, nice, system, idle_val, iowait, irq, softirq, steal;
+ * Read aggregate CPU idle and total ticks from /proc/stat
+ */
+static int read_cpu_stat(unsigned long long *idle, unsigned long long *total) {
+    unsigned long long user, nice, system, idle_val, iowait, irq, softirq,
+        steal;
     FILE *fp = fopen("/proc/stat", "r");
-    if (!fp) return -1;
-    if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
-           &user, &nice, &system, &idle_val, &iowait, &irq, &softirq, &steal) != 8)
-    { fclose(fp); return -1; }
+    if (!fp)
+        return -1;
+    if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu", &user, &nice,
+               &system, &idle_val, &iowait, &irq, &softirq, &steal) != 8) {
+        fclose(fp);
+        return -1;
+    }
     fclose(fp);
-    *idle  = idle_val + iowait;
+    *idle = idle_val + iowait;
     *total = user + nice + system + idle_val + iowait + irq + softirq + steal;
     return 0;
 }
 
 /*
-* Get CPU usage as a percentage (0-100) via /proc/stat delta
-*/
-uint8_t get_cpu_percent(void)
-{
+ * Get CPU usage as a percentage (0-100) via /proc/stat delta
+ */
+uint8_t get_cpu_percent(void) {
     static unsigned long long prev_idle = 0, prev_total = 0;
     static int initialized = 0;
     unsigned long long idle, total;
 
     if (!initialized) {
-        if (read_cpu_stat(&prev_idle, &prev_total) != 0) return 0;
+        if (read_cpu_stat(&prev_idle, &prev_total) != 0)
+            return 0;
         usleep(100000);
         initialized = 1;
     }
 
-    if (read_cpu_stat(&idle, &total) != 0) return 0;
+    if (read_cpu_stat(&idle, &total) != 0)
+        return 0;
 
-    unsigned long long diff_idle  = idle - prev_idle;
+    unsigned long long diff_idle = idle - prev_idle;
     unsigned long long diff_total = total - prev_total;
-    prev_idle  = idle;
+    prev_idle = idle;
     prev_total = total;
 
-    if (diff_total == 0) return 0;
-    return (uint8_t)((100 * (diff_total - diff_idle) + diff_total / 2) / diff_total);
+    if (diff_total == 0)
+        return 0;
+    return (uint8_t)((100 * (diff_total - diff_idle) + diff_total / 2) /
+                     diff_total);
 }
 
 /*
-* Get hostname
-*/
-char* get_hostname(void)
-{
+ * Get hostname
+ */
+char *get_hostname(void) {
     static char hostname[65]; /* HOST_NAME_MAX is typically 64 */
     if (gethostname(hostname, sizeof(hostname)) != 0) {
         strncpy(hostname, "unknown", sizeof(hostname));
@@ -240,11 +244,10 @@ char* get_hostname(void)
 }
 
 /*
-* Get DietPi core update status
-* Returns: 0 = not DietPi, 1 = up to date, 2 = update available
-*/
-int get_dietpi_update_status(void)
-{
+ * Get DietPi core update status
+ * Returns: 0 = not DietPi, 1 = up to date, 2 = update available
+ */
+int get_dietpi_update_status(void) {
     if (access("/run/dietpi", F_OK) != 0)
         return 0;
     if (access("/run/dietpi/.update_available", F_OK) == 0)
@@ -253,15 +256,16 @@ int get_dietpi_update_status(void)
 }
 
 /*
-* Get APT upgradable package count from DietPi cache
-* Returns: -1 if file missing, otherwise the count
-*/
-int get_apt_update_count(void)
-{
+ * Get APT upgradable package count from DietPi cache
+ * Returns: -1 if file missing, otherwise the count
+ */
+int get_apt_update_count(void) {
     int count = 0;
     FILE *fp = fopen("/run/dietpi/.apt_updates", "r");
-    if (!fp) return -1;
-    if (fscanf(fp, "%d", &count) != 1) count = 0;
+    if (!fp)
+        return -1;
+    if (fscanf(fp, "%d", &count) != 1)
+        count = 0;
     fclose(fp);
     return count;
 }
