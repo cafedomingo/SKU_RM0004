@@ -1,5 +1,6 @@
 TARGET := display
 CC     ?= gcc
+CFLAGS := -Wall -Wextra -Wno-unused-parameter -O2 -D_FORTIFY_SOURCE=2 -fstack-protector-strong
 
 OBJ := obj
 
@@ -20,9 +21,9 @@ INCLUDE := $(patsubst %, -I %, $(SRCDIRS))
 VPATH := $(SRCDIRS)
 
 $(TARGET):$(OBJS)
-	$(CC) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^
 $(OBJS) : obj/%.o : %.c
-	$(CC) -c $(INCLUDE) -o $@ $<
+	$(CC) $(CFLAGS) -c $(INCLUDE) -o $@ $<
 
 
 clean:

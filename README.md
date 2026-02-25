@@ -1,38 +1,54 @@
-# SKU_RM0004
-The project supports running on RaspberryPi, Ubuntu, [HomeAssistant](https://github.com/UCTRONICS/UCTRONICS_RM0004_HA),You can also use Python to call compiled DLLs on these platforms.
-# RaspberryPi
+# UCTRONICS LCD Display Driver
 
-## Deployment service
->  Clone SKU_RM0004 library 
+Display driver for the [UCTRONICS SKU_RM0004](https://github.com/UCTRONICS/SKU_RM0004) 160x80 ST7735 TFT LCD on Raspberry Pi 4/5. Forked from the original and simplified to focus on the all-in-one status view.
+
+![Display preview](display.svg)
+
+- Hostname and auto-detected IP address
+- CPU, RAM, temperature, and disk usage with color-coded bars
+- DietPi update indicator (◆) and APT upgrade count (^N)
+- Refreshes every 5 seconds
+
+## Install
+
 ```bash
-git clone https://github.com/UCTRONICS/SKU_RM0004.git
-```
-> Compile 
-```bash
+git clone https://github.com/cafedomingo/SKU_RM0004.git
 cd SKU_RM0004
-make clean && make 
+sudo ./deployment_service.sh
 ```
-## Add automatic start script
+
+This compiles the binary, installs a systemd service, configures I2C, and prompts for a reboot.
+
+## Update
+
+For devices already running the service:
+
 ```bash
-./deployment_service.sh   
+curl -sL https://github.com/cafedomingo/SKU_RM0004/releases/latest/download/update.sh | sudo bash
 ```
-**reboot your system**
+
+Or build from source:
+
 ```bash
-sudo reboot
+cd /opt/uctronics-lcd
+sudo git pull
+sudo make clean && sudo make
+sudo systemctl restart uctronics-display.service
 ```
-## How to uninstall the uctronics-display.service
+
+## Uninstall
 
 ```bash
 sudo systemctl disable uctronics-display.service
 sudo rm /etc/systemd/system/uctronics-display.service
 sudo systemctl daemon-reload
 ```
-## How to use NVMe 
-***Note: only for Raspberry Pi 5 and UC-B86 NVMe hat***
 
-https://github.com/UCTRONICS/SKU_RM0004/blob/main/data/NVMe_User_Guide.md
+## Configuration
 
+Settings are in `hardware/rpiInfo/rpiInfo.h`. Rebuild after changing.
 
-
-
-
+```c
+#define TEMPERATURE_TYPE  CELSIUS    // or FAHRENHEIT
+#define REFRESH_INTERVAL_SECS  5     // seconds between updates
+```

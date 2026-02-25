@@ -1,18 +1,9 @@
 /* vim: set ai et ts=4 sw=4: */
 #include "st7735.h"
-#include "time.h"
 #include <stdio.h>
 #include <string.h>
-#include <sys/sysinfo.h>
-#include <sys/vfs.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <netinet/in.h>
-#include <net/if.h>
 #include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/ioctl.h>
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
 #include <fcntl.h>
@@ -58,27 +49,8 @@ void lcd_write_char(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t colo
     lcd_draw_image(x, y, font.width, font.height, buff);
 }
 
-void lcd_write_ch(uint16_t x, uint16_t y, char ch, FontType font, uint16_t color, uint16_t bgcolor)
-{
-    switch (font)
-    {
-    case FontType_7x10:
-        lcd_write_char(x, y, ch, Font_7x10, color, bgcolor);
-        break;
-    case FontType_8x16:
-        lcd_write_char(x, y, ch, Font_8x16, color, bgcolor);
-        break;
-    case FontType_11x18:
-        lcd_write_char(x, y, ch, Font_11x18, color, bgcolor);
-        break;
-    case FontType_16x26:
-        lcd_write_char(x, y, ch, Font_16x26, color, bgcolor);
-        break;
-    }
-}
-
 /*
- * display string
+ * Display a string
  */
 void lcd_write_string(uint16_t x, uint16_t y, char *str, FontDef font, uint16_t color, uint16_t bgcolor)
 {
@@ -108,27 +80,8 @@ void lcd_write_string(uint16_t x, uint16_t y, char *str, FontDef font, uint16_t 
     }
 }
 
-void lcd_write_str(uint16_t x, uint16_t y, char *str, FontType font, uint16_t color, uint16_t bgcolor)
-{
-    switch (font)
-    {
-    case FontType_7x10:
-        lcd_write_string(x, y, str, Font_7x10, color, bgcolor);
-        break;
-    case FontType_8x16:
-        lcd_write_string(x, y, str, Font_8x16, color, bgcolor);
-        break;
-    case FontType_11x18:
-        lcd_write_string(x, y, str, Font_11x18, color, bgcolor);
-        break;
-    case FontType_16x26:
-        lcd_write_string(x, y, str, Font_16x26, color, bgcolor);
-        break;
-    }
-}
-
 /*
- * fill rectangle
+ * Fill rectangle
  */
 void lcd_fill_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color)
 {
@@ -172,11 +125,9 @@ void lcd_draw_image(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t *dat
 
 uint8_t lcd_begin(void)
 {
-    uint8_t count = 0;
-    uint8_t buffer[20] = {0};
-    uint8_t i2c[20] = "/dev/i2c-1";
-    // I2C Init
-    i2cd = open(i2c, O_RDWR); //"/dev/i2c-1"
+    char i2c_path[] = "/dev/i2c-1";
+
+    i2cd = open(i2c_path, O_RDWR);
     if (i2cd < 0)
     {
         fprintf(stderr, "Device I2C-1 failed to initialize\n");
@@ -192,14 +143,14 @@ uint8_t lcd_begin(void)
 void i2c_write_data(uint8_t high, uint8_t low)
 {
     uint8_t msg[3] = {WRITE_DATA_REG, high, low};
-    write(i2cd, msg, 3);
+    if (write(i2cd, msg, 3) < 0) { /* best-effort I2C */ }
     usleep(10);
 }
 
 void i2c_write_command(uint8_t command, uint8_t high, uint8_t low)
 {
     uint8_t msg[3] = {command, high, low};
-    write(i2cd, msg, 3);
+    if (write(i2cd, msg, 3) < 0) { /* best-effort I2C */ }
     usleep(10);
 }
 
@@ -211,160 +162,18 @@ void i2c_burst_transfer(uint8_t *buff, uint32_t length)
     {
         if ((length - count) > BURST_MAX_LENGTH)
         {
-            write(i2cd, buff + count, BURST_MAX_LENGTH);
+            if (write(i2cd, buff + count, BURST_MAX_LENGTH) < 0) { /* best-effort */ }
             count += BURST_MAX_LENGTH;
         }
         else
         {
-            write(i2cd, buff + count, length - count);
+            if (write(i2cd, buff + count, length - count) < 0) { /* best-effort */ }
             count += (length - count);
         }
         usleep(700);
     }
     i2c_write_command(BURST_WRITE_REG, 0x00, 0x00);
     i2c_write_command(SYNC_REG, 0x00, 0x01);
-}
-
-void lcd_display(uint8_t symbol)
-{
-    switch (symbol)
-    {
-    case 0:
-        lcd_display_cpuLoad();
-        break;
-    case 1:
-        lcd_display_ram();
-        break;
-    case 2:
-        lcd_display_temp();
-        break;
-    case 3:
-        lcd_display_disk();
-        break;
-    case 4:
-        lcd_display_all();
-        break;
-    default:
-        break;
-    }
-}
-
-void lcd_display_percentage(uint8_t val, uint16_t color)
-{
-    uint8_t count = 0;
-    uint8_t xCoordinate = 30;
-    val += 10;
-    if (val >= 100)
-    {
-        val = 100;
-    }
-    val /= 10;
-    for (count = 0; count < val; count++)
-    {
-        lcd_fill_rectangle(xCoordinate, 60, 6, 10, color);
-        xCoordinate += 10;
-    }
-    for (count = 0; count < 10 - val; count++)
-    {
-        lcd_fill_rectangle(xCoordinate, 60, 6, 10, ST7735_GRAY);
-        xCoordinate += 10;
-    }
-}
-
-void lcd_display_cpuLoad(void)
-{
-    char iPSource[20] = {0};
-    uint8_t cpuLoad = 0;
-    uint8_t cpuStr[10] = {0};
-    lcd_fill_screen(ST7735_BLACK);
-    cpuLoad = get_cpu_message();
-    sprintf(cpuStr, "%d", cpuLoad);
-    lcd_fill_rectangle(0, 20, ST7735_WIDTH, 5, ST7735_BLUE);
-    if (IP_SWITCH == IP_DISPLAY_OPEN)
-    {
-        lcd_write_string(0, 0, "IP:", Font_8x16, ST7735_WHITE, ST7735_BLACK);
-        strcpy(iPSource, get_ip_address());                                       // Get the IP address of the device's wireless network card
-        lcd_write_string(24, 0, iPSource, Font_8x16, ST7735_WHITE, ST7735_BLACK); // Send the IP address to the lower machine
-    }
-    else
-    {
-        lcd_write_string(0, 0, CUSTOM_DISPLAY, Font_8x16, ST7735_WHITE, ST7735_BLACK); // Send the IP address to the lower machine
-    }
-    lcd_write_string(36, 35, "CPU:", Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    lcd_write_string(80, 35, cpuStr, Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    lcd_write_string(113, 35, "%", Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    lcd_display_percentage(cpuLoad, ST7735_GREEN);
-}
-
-void lcd_display_ram(void)
-{
-    float Totalram = 0.0;
-    float availram = 0.0;
-    uint8_t residue = 0;
-    uint8_t Total[10] = {0};
-    uint8_t free[10] = {0};
-    uint8_t residueStr[10] = {0};
-    get_cpu_memory(&Totalram, &availram);
-    residue = (Totalram - availram) / Totalram * 100;
-    sprintf(residueStr, "%d", residue);
-    lcd_fill_rectangle(0, 35, ST7735_WIDTH, 20, ST7735_BLACK);
-    lcd_write_string(36, 35, "RAM:", Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    lcd_write_string(80, 35, residueStr, Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    lcd_write_string(113, 35, "%", Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    lcd_display_percentage(residue, ST7735_YELLOW);
-}
-
-void lcd_display_temp(void)
-{
-    uint16_t temp = 0;
-    uint8_t tempStr[10] = {0};
-    temp = get_temperature();
-    sprintf(tempStr, "%d", temp);
-    lcd_fill_rectangle(0, 35, ST7735_WIDTH, 20, ST7735_BLACK);
-    lcd_write_string(30, 35, "TEMP:", Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    lcd_write_string(85, 35, tempStr, Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    if (TEMPERATURE_TYPE == FAHRENHEIT)
-    {
-        lcd_write_string(118, 35, "F", Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    }
-    else
-    {
-        lcd_write_string(118, 35, "C", Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    }
-    if (TEMPERATURE_TYPE == FAHRENHEIT)
-    {
-        temp -= 32;
-        temp /= 1.8;
-    }
-    lcd_display_percentage((uint16_t)temp, ST7735_RED);
-}
-
-void lcd_display_disk(void)
-{
-
-    uint16_t diskMemSize = 0;
-    uint16_t diskUseMemSize = 0;
-    uint32_t sdMemSize = 0;
-    uint32_t sdUseMemSize = 0;
-
-    uint16_t memTotal = 0;
-    uint16_t useMemTotal = 0;
-    uint16_t residue = 0;
-    uint8_t residueStr[10] = {0};
-
-    get_sd_memory(&sdMemSize, &sdUseMemSize);
-    get_hard_disk_memory(&diskMemSize, &diskUseMemSize);
-
-    memTotal = sdMemSize + diskMemSize;
-    useMemTotal = sdUseMemSize + diskUseMemSize;
-    residue = useMemTotal * 1.0 / memTotal * 100;
-    sprintf(residueStr, "%d", residue);
-
-    lcd_fill_rectangle(0, 35, ST7735_WIDTH, 20, ST7735_BLACK);
-    lcd_write_string(30, 35, "DISK:", Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    lcd_write_string(85, 35, residueStr, Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    lcd_write_string(118, 35, "%", Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    lcd_display_percentage(residue, ST7735_BLUE);
 }
 
 void lcd_display_mini_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val, uint16_t color)
@@ -396,51 +205,38 @@ static uint16_t temp_threshold_color(uint8_t celsius)
 
 #define ST7735_VIOLET ST7735_COLOR565(180, 130, 255)
 
+static void draw_metric(uint16_t x, uint16_t y, const char *label,
+                        const char *value, uint8_t bar_pct, uint16_t color)
+{
+    uint16_t val_x = x + 65 - strlen(value) * 7; /* right-align with bar */
+    lcd_write_string(x, y, (char *)label, Font_7x10, ST7735_WHITE, ST7735_BLACK);
+    lcd_write_string(val_x, y, (char *)value, Font_7x10, color, ST7735_BLACK);
+    lcd_display_mini_bar(x, y + 12, 65, 6, bar_pct, color);
+}
+
 void lcd_display_all(void)
 {
-    static int header_drawn = 0;
     char buf[24];
-    uint8_t cpuLoad;
-    float totalRam = 0.0, availRam = 0.0;
-    uint8_t ramPercent;
-    uint16_t temp;
-    uint32_t sdMemSize = 0, sdUseMemSize = 0;
-    uint16_t diskMemSize = 0, diskUseMemSize = 0;
-    uint16_t memTotal, useMemTotal, diskPercent;
+    char ipBuf[20];
+    char hostBuf[17];
     uint8_t tempForBar;
     uint16_t color;
 
     /* Gather all data */
-    cpuLoad = get_cpu_message();
-    get_cpu_memory(&totalRam, &availRam);
-    ramPercent = (totalRam > 0) ? (uint8_t)((totalRam - availRam) / totalRam * 100) : 0;
-    temp = get_temperature();
-    get_sd_memory(&sdMemSize, &sdUseMemSize);
-    get_hard_disk_memory(&diskMemSize, &diskUseMemSize);
-    memTotal = sdMemSize + diskMemSize;
-    useMemTotal = sdUseMemSize + diskUseMemSize;
-    diskPercent = (memTotal > 0) ? useMemTotal * 100 / memTotal : 0;
+    uint8_t cpuPercent  = get_cpu_percent();
+    uint8_t ramPercent  = get_ram_percent();
+    uint8_t temp        = get_temperature();
+    uint8_t diskPercent = get_disk_percent();
 
-    /* Draw header only once (hostname, IP, separator don't change) */
-    if (!header_drawn) {
-        char ipBuf[20];
-        lcd_fill_screen(ST7735_BLACK);
+    /* Header: hostname, IP, separator */
+    strncpy(hostBuf, get_hostname(), 16);
+    hostBuf[16] = '\0';
+    lcd_write_string(2, 0, hostBuf, Font_8x16, ST7735_WHITE, ST7735_BLACK);
 
-        /* Row 1: Hostname (truncated to leave room for badge) */
-        char hostBuf[17];
-        strncpy(hostBuf, get_hostname(), 16);
-        hostBuf[16] = '\0';
-        lcd_write_string(2, 0, hostBuf, Font_8x16, ST7735_WHITE, ST7735_BLACK);
+    strcpy(ipBuf, get_ip_address());
+    lcd_write_string(2, 18, ipBuf, Font_7x10, ST7735_VIOLET, ST7735_BLACK);
 
-        /* Row 2: IP address */
-        strcpy(ipBuf, get_ip_address());
-        lcd_write_string(2, 18, ipBuf, Font_7x10, ST7735_VIOLET, ST7735_BLACK);
-
-        /* Separator line */
-        lcd_fill_rectangle(0, 30, ST7735_WIDTH, 1, ST7735_BLUE);
-
-        header_drawn = 1;
-    }
+    lcd_fill_rectangle(0, 30, ST7735_WIDTH, 1, ST7735_BLUE);
 
     /* DietPi status dot — red when update needed, hidden otherwise */
     int dietpi_status = get_dietpi_update_status();
@@ -465,35 +261,26 @@ void lcd_display_all(void)
         lcd_write_string(bx, 19, badge_buf, Font_7x10, badge_color, ST7735_BLACK);
     }
 
-    /* CPU (left column, row 1) */
-    color = threshold_color(cpuLoad);
-    lcd_write_string(2, 34, "CPU:", Font_7x10, ST7735_WHITE, ST7735_BLACK);
-    sprintf(buf, "%3d%%", cpuLoad);
-    lcd_write_string(30, 34, buf, Font_7x10, color, ST7735_BLACK);
-    lcd_display_mini_bar(2, 46, 65, 6, cpuLoad, color);
+    /* CPU */
+    color = threshold_color(cpuPercent);
+    sprintf(buf, "%3d%%", cpuPercent);
+    draw_metric(2, 34, "CPU:", buf, cpuPercent, color);
 
-    /* RAM (left column, row 2) */
+    /* RAM */
     color = threshold_color(ramPercent);
-    lcd_write_string(2, 56, "RAM:", Font_7x10, ST7735_WHITE, ST7735_BLACK);
     sprintf(buf, "%3d%%", ramPercent);
-    lcd_write_string(30, 56, buf, Font_7x10, color, ST7735_BLACK);
-    lcd_display_mini_bar(2, 68, 65, 6, ramPercent, color);
+    draw_metric(2, 56, "RAM:", buf, ramPercent, color);
 
-    /* Temperature (right column, row 1) */
+    /* Temperature */
     tempForBar = temp;
-    if (TEMPERATURE_TYPE == FAHRENHEIT) {
+    if (TEMPERATURE_TYPE == FAHRENHEIT)
         tempForBar = (temp - 32) / 1.8;
-    }
     color = temp_threshold_color(tempForBar);
-    lcd_write_string(84, 34, "TEMP:", Font_7x10, ST7735_WHITE, ST7735_BLACK);
     sprintf(buf, "%3d%c", temp, TEMPERATURE_TYPE == FAHRENHEIT ? 'F' : 'C');
-    lcd_write_string(119, 34, buf, Font_7x10, color, ST7735_BLACK);
-    lcd_display_mini_bar(84, 46, 65, 6, tempForBar > 100 ? 100 : tempForBar, color);
+    draw_metric(84, 34, "TEMP:", buf, tempForBar > 100 ? 100 : tempForBar, color);
 
-    /* Disk (right column, row 2) */
-    color = threshold_color(diskPercent > 100 ? 100 : (uint8_t)diskPercent);
-    lcd_write_string(84, 56, "DISK:", Font_7x10, ST7735_WHITE, ST7735_BLACK);
-    sprintf(buf, "%3d%%", diskPercent > 999 ? 999 : diskPercent);
-    lcd_write_string(119, 56, buf, Font_7x10, color, ST7735_BLACK);
-    lcd_display_mini_bar(84, 68, 65, 6, diskPercent > 100 ? 100 : (uint8_t)diskPercent, color);
+    /* Disk */
+    color = threshold_color(diskPercent);
+    sprintf(buf, "%3d%%", diskPercent);
+    draw_metric(84, 56, "DISK:", buf, diskPercent, color);
 }
