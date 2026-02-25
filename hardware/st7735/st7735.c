@@ -121,13 +121,13 @@ uint8_t lcd_begin(void) {
 
 void i2c_write_data(uint8_t high, uint8_t low) {
     uint8_t msg[3] = {WRITE_DATA_REG, high, low};
-    (void)write(i2cd, msg, 3);
+    write(i2cd, msg, 3);
     usleep(10);
 }
 
 void i2c_write_command(uint8_t command, uint8_t high, uint8_t low) {
     uint8_t msg[3] = {command, high, low};
-    (void)write(i2cd, msg, 3);
+    write(i2cd, msg, 3);
     usleep(10);
 }
 
@@ -136,10 +136,10 @@ void i2c_burst_transfer(uint8_t *buff, uint32_t length) {
     i2c_write_command(BURST_WRITE_REG, 0x00, 0x01);
     while (length > count) {
         if ((length - count) > BURST_MAX_LENGTH) {
-            (void)write(i2cd, buff + count, BURST_MAX_LENGTH);
+            write(i2cd, buff + count, BURST_MAX_LENGTH);
             count += BURST_MAX_LENGTH;
         } else {
-            (void)write(i2cd, buff + count, length - count);
+            write(i2cd, buff + count, length - count);
             count += (length - count);
         }
         usleep(700);

@@ -1,6 +1,6 @@
 TARGET := display
 CC     ?= gcc
-CFLAGS := -Wall -Wextra -Wno-unused-parameter -O2 -D_FORTIFY_SOURCE=2 -fstack-protector-strong
+CFLAGS := -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O2 -D_FORTIFY_SOURCE=2 -fstack-protector-strong
 
 OBJ := obj
 
