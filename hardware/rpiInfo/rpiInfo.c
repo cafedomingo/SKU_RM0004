@@ -64,8 +64,6 @@ char* get_ip_address(void)
     return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
 }
 
-
-
 /*
 * Get RAM usage as a percentage (0-100)
 */
@@ -115,7 +113,7 @@ static void get_sd_memory(uint32_t *total_gib, uint32_t *used_gib)
 /*
 * Get hard disk usage in GiB via /proc/mounts + statfs
 */
-static void get_hard_disk_memory(uint16_t *total_gib, uint16_t *used_gib)
+static void get_hard_disk_memory(uint32_t *total_gib, uint32_t *used_gib)
 {
     *total_gib = 0;
     *used_gib = 0;
@@ -133,8 +131,8 @@ static void get_hard_disk_memory(uint16_t *total_gib, uint16_t *used_gib)
                     unsigned long long block = info.f_bsize;
                     unsigned long long total = block * info.f_blocks;
                     unsigned long long used  = total - (block * info.f_bfree);
-                    *total_gib += (uint16_t)(total >> 30);
-                    *used_gib  += (uint16_t)(used >> 30);
+                    *total_gib += (uint32_t)(total >> 30);
+                    *used_gib  += (uint32_t)(used >> 30);
                 }
             }
         }
@@ -148,7 +146,7 @@ static void get_hard_disk_memory(uint16_t *total_gib, uint16_t *used_gib)
 uint8_t get_disk_percent(void)
 {
     uint32_t sdTotal = 0, sdUsed = 0;
-    uint16_t diskTotal = 0, diskUsed = 0;
+    uint32_t diskTotal = 0, diskUsed = 0;
 
     get_sd_memory(&sdTotal, &sdUsed);
     get_hard_disk_memory(&diskTotal, &diskUsed);
