@@ -1,26 +1,24 @@
-/* vim: set ai et ts=4 sw=4: */
 #include "st7735.h"
+#include "rpiInfo.h"
+#include <fcntl.h>
+#include <linux/i2c-dev.h>
+#include <linux/i2c.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-#include <linux/i2c.h>
-#include <linux/i2c-dev.h>
-#include <fcntl.h>
-#include "rpiInfo.h"
 
 int i2cd;
 
 /*
  * Set display coordinates
  */
-void lcd_set_address_window(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1)
-{
-    // col address set
+void lcd_set_address_window(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1) {
+    /* col address set */
     i2c_write_command(X_COORDINATE_REG, x0 + ST7735_XSTART, x1 + ST7735_XSTART);
-    // row address set
+    /* row address set */
     i2c_write_command(Y_COORDINATE_REG, y0 + ST7735_YSTART, y1 + ST7735_YSTART);
-    // write to RAM
+    /* write to RAM */
     i2c_write_command(CHAR_DATA_REG, 0x00, 0x00);
 
     i2c_write_command(SYNC_REG, 0x00, 0x01);
@@ -29,19 +27,16 @@ void lcd_set_address_window(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1)
 /*
  * Display a single character
  */
-void lcd_write_char(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color, uint16_t bgcolor)
-{
+void lcd_write_char(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color, uint16_t bgcolor) {
     uint8_t buff[16 * 26 * 2]; /* max font size: 16x26 */
     uint32_t i, b, j, idx;
 
-    for (i = 0; i < font.height; i++)
-    {
+    for (i = 0; i < font.height; i++) {
         b = font.data[(ch - 32) * font.height + i];
-        for (j = 0; j < font.width; j++)
-        {
+        for (j = 0; j < font.width; j++) {
             idx = (i * font.width + j) * 2;
             uint16_t c = ((b << j) & 0x8000) ? color : bgcolor;
-            buff[idx]     = c >> 8;
+            buff[idx] = c >> 8;
             buff[idx + 1] = c & 0xFF;
         }
     }
@@ -52,23 +47,18 @@ void lcd_write_char(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t colo
 /*
  * Display a string
  */
-void lcd_write_string(uint16_t x, uint16_t y, char *str, FontDef font, uint16_t color, uint16_t bgcolor)
-{
+void lcd_write_string(uint16_t x, uint16_t y, char *str, FontDef font, uint16_t color, uint16_t bgcolor) {
 
-    while (*str)
-    {
-        if (x + font.width >= ST7735_WIDTH)
-        {
+    while (*str) {
+        if (x + font.width >= ST7735_WIDTH) {
             x = 0;
             y += font.height;
-            if (y + font.height >= ST7735_HEIGHT)
-            {
+            if (y + font.height >= ST7735_HEIGHT) {
                 break;
             }
 
-            if (*str == ' ')
-            {
-                // skip spaces in the beginning of the new line
+            if (*str == ' ') {
+                /* skip spaces in the beginning of the new line */
                 str++;
                 continue;
             }
@@ -83,26 +73,20 @@ void lcd_write_string(uint16_t x, uint16_t y, char *str, FontDef font, uint16_t 
 /*
  * Fill rectangle
  */
-void lcd_fill_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color)
-{
+void lcd_fill_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color) {
     uint8_t buff[320] = {0};
     uint16_t count = 0;
-    // clipping
-    if ((x >= ST7735_WIDTH) || (y >= ST7735_HEIGHT))
-        return;
-    if ((x + w) >= ST7735_WIDTH)
-        w = ST7735_WIDTH - x;
-    if ((y + h) >= ST7735_HEIGHT)
-        h = ST7735_HEIGHT - y;
+    /* clipping */
+    if ((x >= ST7735_WIDTH) || (y >= ST7735_HEIGHT)) return;
+    if ((x + w) >= ST7735_WIDTH) w = ST7735_WIDTH - x;
+    if ((y + h) >= ST7735_HEIGHT) h = ST7735_HEIGHT - y;
     lcd_set_address_window(x, y, x + w - 1, y + h - 1);
 
-    for (count = 0; count < w; count++)
-    {
+    for (count = 0; count < w; count++) {
         buff[count * 2] = color >> 8;
         buff[count * 2 + 1] = color & 0xFF;
     }
-    for (y = h; y > 0; y--)
-    {
+    for (y = h; y > 0; y--) {
         i2c_burst_transfer(buff, sizeof(uint16_t) * w);
     }
 }
@@ -111,63 +95,51 @@ void lcd_fill_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t
  * fill screen
  */
 
-void lcd_fill_screen(uint16_t color)
-{
+void lcd_fill_screen(uint16_t color) {
     lcd_fill_rectangle(0, 0, ST7735_WIDTH, ST7735_HEIGHT, color);
     i2c_write_command(SYNC_REG, 0x00, 0x01);
 }
 
-void lcd_draw_image(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t *data)
-{
+void lcd_draw_image(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t *data) {
     lcd_set_address_window(x, y, x + w - 1, y + h - 1);
     i2c_burst_transfer(data, sizeof(uint16_t) * w * h);
 }
 
-uint8_t lcd_begin(void)
-{
+uint8_t lcd_begin(void) {
     char i2c_path[] = "/dev/i2c-1";
 
     i2cd = open(i2c_path, O_RDWR);
-    if (i2cd < 0)
-    {
+    if (i2cd < 0) {
         fprintf(stderr, "Device I2C-1 failed to initialize\n");
         return 1;
     }
-    if (ioctl(i2cd, I2C_SLAVE_FORCE, I2C_ADDRESS) < 0)
-    {
+    if (ioctl(i2cd, I2C_SLAVE_FORCE, I2C_ADDRESS) < 0) {
         return 1;
     }
     return 0;
 }
 
-void i2c_write_data(uint8_t high, uint8_t low)
-{
+void i2c_write_data(uint8_t high, uint8_t low) {
     uint8_t msg[3] = {WRITE_DATA_REG, high, low};
-    if (write(i2cd, msg, 3) < 0) { /* best-effort I2C */ }
+    write(i2cd, msg, 3);
     usleep(10);
 }
 
-void i2c_write_command(uint8_t command, uint8_t high, uint8_t low)
-{
+void i2c_write_command(uint8_t command, uint8_t high, uint8_t low) {
     uint8_t msg[3] = {command, high, low};
-    if (write(i2cd, msg, 3) < 0) { /* best-effort I2C */ }
+    write(i2cd, msg, 3);
     usleep(10);
 }
 
-void i2c_burst_transfer(uint8_t *buff, uint32_t length)
-{
+void i2c_burst_transfer(uint8_t *buff, uint32_t length) {
     uint32_t count = 0;
     i2c_write_command(BURST_WRITE_REG, 0x00, 0x01);
-    while (length > count)
-    {
-        if ((length - count) > BURST_MAX_LENGTH)
-        {
-            if (write(i2cd, buff + count, BURST_MAX_LENGTH) < 0) { /* best-effort */ }
+    while (length > count) {
+        if ((length - count) > BURST_MAX_LENGTH) {
+            write(i2cd, buff + count, BURST_MAX_LENGTH);
             count += BURST_MAX_LENGTH;
-        }
-        else
-        {
-            if (write(i2cd, buff + count, length - count) < 0) { /* best-effort */ }
+        } else {
+            write(i2cd, buff + count, length - count);
             count += (length - count);
         }
         usleep(700);
@@ -176,62 +148,50 @@ void i2c_burst_transfer(uint8_t *buff, uint32_t length)
     i2c_write_command(SYNC_REG, 0x00, 0x01);
 }
 
-void lcd_display_mini_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val, uint16_t color)
-{
+void lcd_display_mini_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val, uint16_t color) {
     uint16_t filled = (uint16_t)val * w / 100;
     if (filled > w) filled = w;
-    if (filled > 0)
-        lcd_fill_rectangle(x, y, filled, h, color);
-    if (filled < w)
-        lcd_fill_rectangle(x + filled, y, w - filled, h, ST7735_GRAY);
+    if (filled > 0) lcd_fill_rectangle(x, y, filled, h, color);
+    if (filled < w) lcd_fill_rectangle(x + filled, y, w - filled, h, ST7735_GRAY);
 }
 
-static uint16_t threshold_color(uint8_t val)
-{
-    if (val < 60)       return ST7735_GREEN;
-    if (val < 80)       return ST7735_YELLOW;
-    if (val < 90)       return ST7735_COLOR565(255, 165, 0); /* orange */
+static uint16_t threshold_color(uint8_t val) {
+    if (val < 60) return ST7735_GREEN;
+    if (val < 80) return ST7735_YELLOW;
+    if (val < 90) return ST7735_ORANGE;
     return ST7735_RED;
 }
 
-static uint16_t temp_threshold_color(uint8_t celsius)
-{
-    if (celsius < 40)       return ST7735_CYAN;
-    if (celsius < 50)       return ST7735_GREEN;
-    if (celsius < 60)       return ST7735_YELLOW;
-    if (celsius < 70)       return ST7735_COLOR565(255, 165, 0); /* orange */
+static uint16_t temp_threshold_color(uint8_t celsius) {
+    if (celsius < 40) return ST7735_CYAN;
+    if (celsius < 50) return ST7735_GREEN;
+    if (celsius < 60) return ST7735_YELLOW;
+    if (celsius < 70) return ST7735_ORANGE;
     return ST7735_RED;
 }
 
-#define ST7735_VIOLET ST7735_COLOR565(180, 130, 255)
-#define BAR_WIDTH  65
-#define BAR_HEIGHT 6
-
-static void draw_metric(uint16_t x, uint16_t y, const char *label,
-                        const char *value, uint8_t bar_pct, uint16_t color)
-{
-    uint16_t val_x = x + BAR_WIDTH - strlen(value) * Font_7x10.width; /* right-align with bar */
+static void draw_metric(uint16_t x, uint16_t y, const char *label, const char *value, uint8_t bar_pct, uint16_t color) {
+    uint16_t val_x = x + METRIC_BAR_WIDTH - strlen(value) * Font_7x10.width; /* right-align with bar */
     lcd_write_string(x, y, (char *)label, Font_7x10, ST7735_WHITE, ST7735_BLACK);
     lcd_write_string(val_x, y, (char *)value, Font_7x10, color, ST7735_BLACK);
-    lcd_display_mini_bar(x, y + 12, BAR_WIDTH, BAR_HEIGHT, bar_pct, color);
+    lcd_display_mini_bar(x, y + 12, METRIC_BAR_WIDTH, METRIC_BAR_HEIGHT, bar_pct, color);
 }
 
-void lcd_display_all(void)
-{
+void lcd_display_all(void) {
     char buf[24];
     char hostBuf[17];
     uint8_t tempForBar;
     uint16_t color;
 
     /* Gather all data */
-    uint8_t cpuPercent   = get_cpu_percent();
-    uint8_t ramPercent   = get_ram_percent();
-    uint8_t temp         = get_temperature();
-    uint8_t diskPercent  = get_disk_percent();
+    uint8_t cpuPercent = get_cpu_percent();
+    uint8_t ramPercent = get_ram_percent();
+    uint8_t temp = get_temperature();
+    uint8_t diskPercent = get_disk_percent();
     const char *hostname = get_hostname();
-    const char *ip       = get_ip_address();
-    int dietpi_status    = get_dietpi_update_status();
-    int apt_count        = get_apt_update_count();
+    const char *ip = get_ip_address();
+    int dietpi_status = get_dietpi_update_status();
+    int apt_count = get_apt_update_count();
 
     /* Header: hostname, IP, separator */
     strncpy(hostBuf, hostname, 16);
@@ -274,8 +234,7 @@ void lcd_display_all(void)
 
     /* Temperature */
     tempForBar = temp;
-    if (TEMPERATURE_TYPE == FAHRENHEIT)
-        tempForBar = (temp - 32) / 1.8;
+    if (TEMPERATURE_TYPE == FAHRENHEIT) tempForBar = (temp - 32) / 1.8;
     color = temp_threshold_color(tempForBar);
     sprintf(buf, "%3d%c", temp, TEMPERATURE_TYPE == FAHRENHEIT ? 'F' : 'C');
     draw_metric(84, 34, "TEMP:", buf, tempForBar > 100 ? 100 : tempForBar, color);

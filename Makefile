@@ -1,6 +1,6 @@
 TARGET := display
 CC     ?= gcc
-CFLAGS := -Wall -Wextra -Wno-unused-parameter -O2 -D_FORTIFY_SOURCE=2 -fstack-protector-strong
+CFLAGS := -Wall -Wextra -Wno-unused-parameter -Wno-unused-result -O2 -D_FORTIFY_SOURCE=2 -fstack-protector-strong
 
 OBJ := obj
 
@@ -29,3 +29,11 @@ $(OBJS) : obj/%.o : %.c
 clean:
 	rm -rf $(OBJ)
 	rm -rf $(TARGET)
+
+FMT_SRCS = find $(SRCDIRS) -type f \( -name '*.c' -o -name '*.h' \) -print0
+
+format:
+	$(FMT_SRCS) | xargs -0 clang-format -i
+
+format-check:
+	$(FMT_SRCS) | xargs -0 clang-format --dry-run --Werror
