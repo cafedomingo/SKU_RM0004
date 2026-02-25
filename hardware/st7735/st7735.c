@@ -177,7 +177,7 @@ static uint16_t temp_threshold_color(uint8_t celsius) {
     return ST7735_RED;
 }
 
-#define BAR_WIDTH 65
+#define BAR_WIDTH  65
 #define BAR_HEIGHT 6
 
 static void draw_metric(uint16_t x, uint16_t y, const char *label,

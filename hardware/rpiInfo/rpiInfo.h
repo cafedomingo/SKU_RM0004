@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 /* Temperature unit: CELSIUS or FAHRENHEIT */
-#define CELSIUS 0
-#define FAHRENHEIT 1
+#define CELSIUS          0
+#define FAHRENHEIT       1
 #define TEMPERATURE_TYPE CELSIUS
 
 /* Seconds between display refreshes */
