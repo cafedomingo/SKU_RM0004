@@ -2,15 +2,13 @@
 #define __RPIINFO_H
 
 #include <stdint.h>
-/**********Select display temperature type**************/
+/* Temperature unit: CELSIUS or FAHRENHEIT */
 #define CELSIUS 0
 #define FAHRENHEIT 1
 #define TEMPERATURE_TYPE CELSIUS
-/**********Select display temperature type**************/
 
-/***************Refresh interval (seconds)***************/
+/* Seconds between display refreshes */
 #define REFRESH_INTERVAL_SECS 5
-/***************Refresh interval (seconds)***************/
 
 char *get_ip_address(void);
 uint8_t get_cpu_percent(void);
