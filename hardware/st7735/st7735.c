@@ -205,6 +205,15 @@ static uint16_t temp_threshold_color(uint8_t celsius)
 
 #define ST7735_VIOLET ST7735_COLOR565(180, 130, 255)
 
+static void draw_metric(uint16_t x, uint16_t y, const char *label,
+                        const char *value, uint8_t bar_pct, uint16_t color)
+{
+    uint16_t val_x = x + strlen(label) * 7; /* Font_7x10: 7px per char */
+    lcd_write_string(x, y, (char *)label, Font_7x10, ST7735_WHITE, ST7735_BLACK);
+    lcd_write_string(val_x, y, (char *)value, Font_7x10, color, ST7735_BLACK);
+    lcd_display_mini_bar(x, y + 12, 65, 6, bar_pct, color);
+}
+
 void lcd_display_all(void)
 {
     char buf[24];
@@ -264,35 +273,26 @@ void lcd_display_all(void)
         lcd_write_string(bx, 19, badge_buf, Font_7x10, badge_color, ST7735_BLACK);
     }
 
-    /* CPU (left column, row 1) */
+    /* CPU */
     color = threshold_color(cpuLoad);
-    lcd_write_string(2, 34, "CPU:", Font_7x10, ST7735_WHITE, ST7735_BLACK);
     sprintf(buf, "%3d%%", cpuLoad);
-    lcd_write_string(30, 34, buf, Font_7x10, color, ST7735_BLACK);
-    lcd_display_mini_bar(2, 46, 65, 6, cpuLoad, color);
+    draw_metric(2, 34, "CPU:", buf, cpuLoad, color);
 
-    /* RAM (left column, row 2) */
+    /* RAM */
     color = threshold_color(ramPercent);
-    lcd_write_string(2, 56, "RAM:", Font_7x10, ST7735_WHITE, ST7735_BLACK);
     sprintf(buf, "%3d%%", ramPercent);
-    lcd_write_string(30, 56, buf, Font_7x10, color, ST7735_BLACK);
-    lcd_display_mini_bar(2, 68, 65, 6, ramPercent, color);
+    draw_metric(2, 56, "RAM:", buf, ramPercent, color);
 
-    /* Temperature (right column, row 1) */
+    /* Temperature */
     tempForBar = temp;
-    if (TEMPERATURE_TYPE == FAHRENHEIT) {
+    if (TEMPERATURE_TYPE == FAHRENHEIT)
         tempForBar = (temp - 32) / 1.8;
-    }
     color = temp_threshold_color(tempForBar);
-    lcd_write_string(84, 34, "TEMP:", Font_7x10, ST7735_WHITE, ST7735_BLACK);
     sprintf(buf, "%3d%c", temp, TEMPERATURE_TYPE == FAHRENHEIT ? 'F' : 'C');
-    lcd_write_string(119, 34, buf, Font_7x10, color, ST7735_BLACK);
-    lcd_display_mini_bar(84, 46, 65, 6, tempForBar > 100 ? 100 : tempForBar, color);
+    draw_metric(84, 34, "TEMP:", buf, tempForBar > 100 ? 100 : tempForBar, color);
 
-    /* Disk (right column, row 2) */
+    /* Disk */
     color = threshold_color(diskPercent > 100 ? 100 : (uint8_t)diskPercent);
-    lcd_write_string(84, 56, "DISK:", Font_7x10, ST7735_WHITE, ST7735_BLACK);
     sprintf(buf, "%3d%%", diskPercent > 999 ? 999 : diskPercent);
-    lcd_write_string(119, 56, buf, Font_7x10, color, ST7735_BLACK);
-    lcd_display_mini_bar(84, 68, 65, 6, diskPercent > 100 ? 100 : (uint8_t)diskPercent, color);
+    draw_metric(84, 56, "DISK:", buf, diskPercent > 100 ? 100 : (uint8_t)diskPercent, color);
 }
