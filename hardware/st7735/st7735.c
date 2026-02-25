@@ -1,4 +1,3 @@
-/* vim: set ai et ts=4 sw=4: */
 #include "st7735.h"
 #include "rpiInfo.h"
 #include <fcntl.h>
