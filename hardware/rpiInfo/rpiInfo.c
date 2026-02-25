@@ -10,7 +10,10 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
-#define HAS_PREFIX(s, prefix) (strncmp(s, prefix, sizeof(prefix) - 1) == 0)
+static inline int has_prefix(const char *s, const char *prefix)
+{
+    return strncmp(s, prefix, strlen(prefix)) == 0;
+}
 
 /*
 * Get the IP address of the default-route interface.
@@ -89,7 +92,7 @@ uint8_t get_ram_percent(void)
 
     if (total == 0)
         return 0;
-    return (uint8_t)((total - avail) * 100 / total);
+    return (uint8_t)((uint64_t)(total - avail) * 100 / total);
 }
 
 /*
@@ -125,8 +128,8 @@ static void get_hard_disk_memory(uint32_t *total_gib, uint32_t *used_gib)
 
     while (fgets(line, sizeof(line), fp)) {
         if (sscanf(line, "%255s %255s", device, mountpoint) == 2) {
-            if (HAS_PREFIX(device, "/dev/sda") ||
-                HAS_PREFIX(device, "/dev/nvme")) {
+            if (has_prefix(device, "/dev/sda") ||
+                has_prefix(device, "/dev/nvme")) {
                 if (statfs(mountpoint, &info) == 0) {
                     unsigned long long block = info.f_bsize;
                     unsigned long long total = block * info.f_blocks;
