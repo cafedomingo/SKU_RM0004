@@ -161,20 +161,23 @@ uint8_t get_disk_percent(void)
 }
 
 /*
-* get temperature
+* Get CPU temperature in configured units (C or F)
 */
-
 uint8_t get_temperature(void)
 {
-    FILE *fp;
-    unsigned int temp;
-    char buff[10] = {0};
-    fp = fopen("/sys/class/thermal/thermal_zone0/temp", "r");
+    unsigned int millideg;
+    char buf[10];
+
+    FILE *fp = fopen("/sys/class/thermal/thermal_zone0/temp", "r");
     if (!fp) return 0;
-    if (!fgets(buff, sizeof(buff), fp)) { fclose(fp); return 0; }
+    if (!fgets(buf, sizeof(buf), fp)) { fclose(fp); return 0; }
     fclose(fp);
-    if (sscanf(buff, "%u", &temp) != 1) return 0;
-    return TEMPERATURE_TYPE == FAHRENHEIT ? temp/1000*1.8+32 : temp/1000;
+    if (sscanf(buf, "%u", &millideg) != 1) return 0;
+
+    unsigned int celsius = millideg / 1000;
+    if (TEMPERATURE_TYPE == FAHRENHEIT)
+        return (uint8_t)(celsius * 9 / 5 + 32);
+    return (uint8_t)celsius;
 }
 
 /*
