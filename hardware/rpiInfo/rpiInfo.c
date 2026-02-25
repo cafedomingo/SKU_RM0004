@@ -1,7 +1,6 @@
 #include "rpiInfo.h"
 #include <stdio.h>
 #include <string.h>
-#include <sys/sysinfo.h>
 #include <sys/vfs.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -10,6 +9,11 @@
 #include <net/if.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+
+static inline int has_prefix(const char *s, const char *prefix)
+{
+    return strncmp(s, prefix, strlen(prefix)) == 0;
+}
 
 /*
 * Get the IP address of the default-route interface.
@@ -63,88 +67,80 @@ char* get_ip_address(void)
     return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
 }
 
-
-
 /*
 * Get RAM usage as a percentage (0-100)
 */
 uint8_t get_ram_percent(void)
 {
-    struct sysinfo s_info;
     unsigned int value = 0;
-    char buffer[100] = {0};
-    char label[100] = {0};
-    float total = 0.0, avail = 0.0;
-
-    if (sysinfo(&s_info) != 0)
-        return 0;
+    unsigned int total = 0, avail = 0;
+    char buffer[128], label[32];
 
     FILE *fp = fopen("/proc/meminfo", "r");
     if (!fp)
         return 0;
 
     while (fgets(buffer, sizeof(buffer), fp)) {
-        if (sscanf(buffer, "%s%u", label, &value) != 2)
+        if (sscanf(buffer, "%31s %u", label, &value) != 2)
             continue;
         if (strcmp(label, "MemTotal:") == 0)
-            total = value / 1000.0 / 1000.0;
+            total = value;
         else if (strcmp(label, "MemAvailable:") == 0)
-            avail = value / 1000.0 / 1000.0;
+            avail = value;
     }
     fclose(fp);
 
-    if (total <= 0)
+    if (total == 0)
         return 0;
-    return (uint8_t)((total - avail) / total * 100);
+    return (uint8_t)((uint64_t)(total - avail) * 100 / total);
 }
 
 /*
-* get sd memory
+* Get SD card usage in GiB
 */
-static void get_sd_memory(uint32_t *MemSize, uint32_t *freesize)
+static void get_sd_memory(uint32_t *total_gib, uint32_t *used_gib)
 {
-    struct statfs diskInfo;
-    statfs("/",&diskInfo);
-    unsigned long long blocksize = diskInfo.f_bsize;// The number of bytes per block
-    unsigned long long totalsize = blocksize*diskInfo.f_blocks;//Total number of bytes	
-    *MemSize=(unsigned int)(totalsize>>30);
-
-
-    unsigned long long size = blocksize*diskInfo.f_bfree; //Now let's figure out how much space we have left
-    *freesize=size>>30;
-    *freesize=*MemSize-*freesize;
+    struct statfs info;
+    if (statfs("/", &info) != 0) {
+        *total_gib = 0;
+        *used_gib = 0;
+        return;
+    }
+    unsigned long long block = info.f_bsize;
+    unsigned long long total = block * info.f_blocks;
+    unsigned long long used  = total - block * info.f_bfree;
+    *total_gib = (uint32_t)(total >> 30);
+    *used_gib  = (uint32_t)(used >> 30);
 }
 
-
 /*
-* get hard disk memory via /proc/mounts + statfs
+* Get hard disk usage in GiB via /proc/mounts + statfs
 */
-static uint8_t get_hard_disk_memory(uint16_t *diskMemSize, uint16_t *useMemSize)
+static void get_hard_disk_memory(uint32_t *total_gib, uint32_t *used_gib)
 {
-  *diskMemSize = 0;
-  *useMemSize = 0;
-  char line[512], device[256], mountpoint[256];
-  struct statfs disk_info;
+    *total_gib = 0;
+    *used_gib = 0;
+    char line[512], device[256], mountpoint[256];
+    struct statfs info;
 
-  FILE *fp = fopen("/proc/mounts", "r");
-  if (!fp) return 1;
+    FILE *fp = fopen("/proc/mounts", "r");
+    if (!fp) return;
 
-  while (fgets(line, sizeof(line), fp)) {
-      if (sscanf(line, "%255s %255s", device, mountpoint) == 2) {
-          if (strncmp(device, "/dev/sda", 8) == 0 ||
-              strncmp(device, "/dev/nvme", 9) == 0) {
-              if (statfs(mountpoint, &disk_info) == 0) {
-                  unsigned long long block = disk_info.f_bsize;
-                  unsigned long long total = block * disk_info.f_blocks;
-                  unsigned long long used = total - (block * disk_info.f_bfree);
-                  *diskMemSize += (uint16_t)(total >> 30);
-                  *useMemSize += (uint16_t)(used >> 30);
-              }
-          }
-      }
-  }
-  fclose(fp);
-  return 0;
+    while (fgets(line, sizeof(line), fp)) {
+        if (sscanf(line, "%255s %255s", device, mountpoint) == 2) {
+            if (has_prefix(device, "/dev/sda") ||
+                has_prefix(device, "/dev/nvme")) {
+                if (statfs(mountpoint, &info) == 0) {
+                    unsigned long long block = info.f_bsize;
+                    unsigned long long total = block * info.f_blocks;
+                    unsigned long long used  = total - (block * info.f_bfree);
+                    *total_gib += (uint32_t)(total >> 30);
+                    *used_gib  += (uint32_t)(used >> 30);
+                }
+            }
+        }
+    }
+    fclose(fp);
 }
 
 /*
@@ -152,14 +148,14 @@ static uint8_t get_hard_disk_memory(uint16_t *diskMemSize, uint16_t *useMemSize)
 */
 uint8_t get_disk_percent(void)
 {
-    uint32_t sdMemSize = 0, sdUseMemSize = 0;
-    uint16_t diskMemSize = 0, diskUseMemSize = 0;
+    uint32_t sdTotal = 0, sdUsed = 0;
+    uint32_t diskTotal = 0, diskUsed = 0;
 
-    get_sd_memory(&sdMemSize, &sdUseMemSize);
-    get_hard_disk_memory(&diskMemSize, &diskUseMemSize);
+    get_sd_memory(&sdTotal, &sdUsed);
+    get_hard_disk_memory(&diskTotal, &diskUsed);
 
-    uint32_t total = sdMemSize + diskMemSize;
-    uint32_t used = sdUseMemSize + diskUseMemSize;
+    uint32_t total = sdTotal + diskTotal;
+    uint32_t used  = sdUsed + diskUsed;
 
     if (total == 0)
         return 0;
@@ -168,20 +164,40 @@ uint8_t get_disk_percent(void)
 }
 
 /*
-* get temperature
+* Get CPU temperature in configured units (C or F)
 */
-
 uint8_t get_temperature(void)
 {
-    FILE *fp;
-    unsigned int temp;
-    char buff[10] = {0};
-    fp = fopen("/sys/class/thermal/thermal_zone0/temp", "r");
+    unsigned int millideg;
+    char buf[10];
+
+    FILE *fp = fopen("/sys/class/thermal/thermal_zone0/temp", "r");
     if (!fp) return 0;
-    if (!fgets(buff, sizeof(buff), fp)) { fclose(fp); return 0; }
+    if (!fgets(buf, sizeof(buf), fp)) { fclose(fp); return 0; }
     fclose(fp);
-    if (sscanf(buff, "%u", &temp) != 1) return 0;
-    return TEMPERATURE_TYPE == FAHRENHEIT ? temp/1000*1.8+32 : temp/1000;
+    if (sscanf(buf, "%u", &millideg) != 1) return 0;
+
+    unsigned int celsius = millideg / 1000;
+    if (TEMPERATURE_TYPE == FAHRENHEIT)
+        return (uint8_t)(celsius * 9 / 5 + 32);
+    return (uint8_t)celsius;
+}
+
+/*
+* Read aggregate CPU idle and total ticks from /proc/stat
+*/
+static int read_cpu_stat(unsigned long long *idle, unsigned long long *total)
+{
+    unsigned long long user, nice, system, idle_val, iowait, irq, softirq, steal;
+    FILE *fp = fopen("/proc/stat", "r");
+    if (!fp) return -1;
+    if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
+           &user, &nice, &system, &idle_val, &iowait, &irq, &softirq, &steal) != 8)
+    { fclose(fp); return -1; }
+    fclose(fp);
+    *idle  = idle_val + iowait;
+    *total = user + nice + system + idle_val + iowait + irq + softirq + steal;
+    return 0;
 }
 
 /*
@@ -191,35 +207,19 @@ uint8_t get_cpu_percent(void)
 {
     static unsigned long long prev_idle = 0, prev_total = 0;
     static int initialized = 0;
-    unsigned long long user, nice, system, idle_val, iowait, irq, softirq, steal;
-    unsigned long long idle_sum, total, diff_idle, diff_total;
-    FILE *fp;
+    unsigned long long idle, total;
 
     if (!initialized) {
-        fp = fopen("/proc/stat", "r");
-        if (!fp) return 0;
-        if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
-               &user, &nice, &system, &idle_val, &iowait, &irq, &softirq, &steal) != 8)
-        { fclose(fp); return 0; }
-        fclose(fp);
-        prev_idle = idle_val + iowait;
-        prev_total = user + nice + system + idle_val + iowait + irq + softirq + steal;
+        if (read_cpu_stat(&prev_idle, &prev_total) != 0) return 0;
         usleep(100000);
         initialized = 1;
     }
 
-    fp = fopen("/proc/stat", "r");
-    if (!fp) return 0;
-    if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
-           &user, &nice, &system, &idle_val, &iowait, &irq, &softirq, &steal) != 8)
-    { fclose(fp); return 0; }
-    fclose(fp);
+    if (read_cpu_stat(&idle, &total) != 0) return 0;
 
-    idle_sum = idle_val + iowait;
-    total = user + nice + system + idle_val + iowait + irq + softirq + steal;
-    diff_idle = idle_sum - prev_idle;
-    diff_total = total - prev_total;
-    prev_idle = idle_sum;
+    unsigned long long diff_idle  = idle - prev_idle;
+    unsigned long long diff_total = total - prev_total;
+    prev_idle  = idle;
     prev_total = total;
 
     if (diff_total == 0) return 0;
