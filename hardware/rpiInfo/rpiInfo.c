@@ -1,7 +1,6 @@
 #include "rpiInfo.h"
 #include <stdio.h>
 #include <string.h>
-#include <sys/sysinfo.h>
 #include <sys/vfs.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -70,32 +69,27 @@ char* get_ip_address(void)
 */
 uint8_t get_ram_percent(void)
 {
-    struct sysinfo s_info;
     unsigned int value = 0;
-    char buffer[100] = {0};
-    char label[100] = {0};
-    float total = 0.0, avail = 0.0;
-
-    if (sysinfo(&s_info) != 0)
-        return 0;
+    unsigned int total = 0, avail = 0;
+    char buffer[128], label[32];
 
     FILE *fp = fopen("/proc/meminfo", "r");
     if (!fp)
         return 0;
 
     while (fgets(buffer, sizeof(buffer), fp)) {
-        if (sscanf(buffer, "%s%u", label, &value) != 2)
+        if (sscanf(buffer, "%31s %u", label, &value) != 2)
             continue;
         if (strcmp(label, "MemTotal:") == 0)
-            total = value / 1000.0 / 1000.0;
+            total = value;
         else if (strcmp(label, "MemAvailable:") == 0)
-            avail = value / 1000.0 / 1000.0;
+            avail = value;
     }
     fclose(fp);
 
-    if (total <= 0)
+    if (total == 0)
         return 0;
-    return (uint8_t)((total - avail) / total * 100);
+    return (uint8_t)((total - avail) * 100 / total);
 }
 
 /*
