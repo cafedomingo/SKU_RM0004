@@ -2,17 +2,7 @@
 
 Display driver for the [UCTRONICS SKU_RM0004](https://github.com/UCTRONICS/SKU_RM0004) 160x80 ST7735 TFT LCD on Raspberry Pi 4/5. Forked from the original and simplified to focus on the all-in-one status view.
 
-```
-┌─────────────────────────────┐
-│ raspberrypi               ◆ │
-│ 192.168.1.42             ^3 │
-│─────────────────────────────│
-│ CPU:  12%    TEMP:  42C     │
-│ ██░░░░░░░░   ██████░░░░     │
-│ RAM:  34%    DISK:  67%     │
-│ ████░░░░░░   ███████░░░     │
-└─────────────────────────────┘
-```
+![Display preview](display.svg)
 
 - Hostname and auto-detected IP address
 - CPU, RAM, temperature, and disk usage with color-coded bars
