@@ -208,7 +208,7 @@ static uint16_t temp_threshold_color(uint8_t celsius)
 static void draw_metric(uint16_t x, uint16_t y, const char *label,
                         const char *value, uint8_t bar_pct, uint16_t color)
 {
-    uint16_t val_x = x + strlen(label) * 7; /* Font_7x10: 7px per char */
+    uint16_t val_x = x + 65 - strlen(value) * 7; /* right-align with bar */
     lcd_write_string(x, y, (char *)label, Font_7x10, ST7735_WHITE, ST7735_BLACK);
     lcd_write_string(val_x, y, (char *)value, Font_7x10, color, ST7735_BLACK);
     lcd_display_mini_bar(x, y + 12, 65, 6, bar_pct, color);
