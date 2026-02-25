@@ -253,12 +253,11 @@ void lcd_display_all(void)
     /* APT update count — right-aligned on IP row */
     lcd_fill_rectangle(124, 18, 36, 10, ST7735_BLACK);
     if (apt_count > 0) {
-        uint16_t badge_color = (apt_count >= 10) ? ST7735_RED : ST7735_YELLOW;
-        char badge_buf[8];
-        sprintf(badge_buf, "^%d", apt_count > 99 ? 99 : apt_count);
-        int len = strlen(badge_buf);
-        uint16_t bx = 160 - (len * 7) - 2;
-        lcd_write_string(bx, 19, badge_buf, Font_7x10, badge_color, ST7735_BLACK);
+        char badge[5];
+        sprintf(badge, "^%d", apt_count > 99 ? 99 : apt_count);
+        uint16_t color = (apt_count >= 10) ? ST7735_RED : ST7735_YELLOW;
+        uint16_t bx = 160 - strlen(badge) * 7 - 2;
+        lcd_write_string(bx, 19, badge, Font_7x10, color, ST7735_BLACK);
     }
 
     /* CPU */
