@@ -204,14 +204,16 @@ static uint16_t temp_threshold_color(uint8_t celsius)
 }
 
 #define ST7735_VIOLET ST7735_COLOR565(180, 130, 255)
+#define BAR_WIDTH  65
+#define BAR_HEIGHT 6
 
 static void draw_metric(uint16_t x, uint16_t y, const char *label,
                         const char *value, uint8_t bar_pct, uint16_t color)
 {
-    uint16_t val_x = x + 65 - strlen(value) * 7; /* right-align with bar */
+    uint16_t val_x = x + BAR_WIDTH - strlen(value) * Font_7x10.width; /* right-align with bar */
     lcd_write_string(x, y, (char *)label, Font_7x10, ST7735_WHITE, ST7735_BLACK);
     lcd_write_string(val_x, y, (char *)value, Font_7x10, color, ST7735_BLACK);
-    lcd_display_mini_bar(x, y + 12, 65, 6, bar_pct, color);
+    lcd_display_mini_bar(x, y + 12, BAR_WIDTH, BAR_HEIGHT, bar_pct, color);
 }
 
 void lcd_display_all(void)
@@ -256,7 +258,7 @@ void lcd_display_all(void)
         char badge[5];
         sprintf(badge, "^%d", apt_count > 99 ? 99 : apt_count);
         uint16_t color = (apt_count >= 10) ? ST7735_RED : ST7735_YELLOW;
-        uint16_t bx = 160 - strlen(badge) * 7 - 2;
+        uint16_t bx = ST7735_WIDTH - strlen(badge) * Font_7x10.width - 2;
         lcd_write_string(bx, 19, badge, Font_7x10, color, ST7735_BLACK);
     }
 
