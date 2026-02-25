@@ -31,7 +31,7 @@ clean:
 	rm -rf $(TARGET)
 
 format:
-	find . -name '*.c' -o -name '*.h' | grep -v fonts | xargs clang-format -i
+	find . -name '*.c' -o -name '*.h' | grep -v 'fonts\.c$$' | xargs clang-format -i
 
 format-check:
-	find . -name '*.c' -o -name '*.h' | grep -v fonts | xargs clang-format --dry-run --Werror
+	find . -name '*.c' -o -name '*.h' | grep -v 'fonts\.c$$' | xargs clang-format --dry-run --Werror
