@@ -99,6 +99,10 @@
 #define ST7735_ORANGE            ST7735_COLOR565(255, 165, 0)
 #define ST7735_VIOLET            ST7735_COLOR565(180, 130, 255)
 
+/* Layout constants for metric bars */
+#define METRIC_BAR_WIDTH  65
+#define METRIC_BAR_HEIGHT 6
+
 extern void lcd_write_string(uint16_t x, uint16_t y, char *str, FontDef font, uint16_t color, uint16_t bgcolor);
 extern void lcd_fill_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
 extern void lcd_fill_screen(uint16_t color);

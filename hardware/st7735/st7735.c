@@ -171,14 +171,11 @@ static uint16_t temp_threshold_color(uint8_t celsius) {
     return ST7735_RED;
 }
 
-#define BAR_WIDTH  65
-#define BAR_HEIGHT 6
-
 static void draw_metric(uint16_t x, uint16_t y, const char *label, const char *value, uint8_t bar_pct, uint16_t color) {
-    uint16_t val_x = x + BAR_WIDTH - strlen(value) * Font_7x10.width; /* right-align with bar */
+    uint16_t val_x = x + METRIC_BAR_WIDTH - strlen(value) * Font_7x10.width; /* right-align with bar */
     lcd_write_string(x, y, (char *)label, Font_7x10, ST7735_WHITE, ST7735_BLACK);
     lcd_write_string(val_x, y, (char *)value, Font_7x10, color, ST7735_BLACK);
-    lcd_display_mini_bar(x, y + 12, BAR_WIDTH, BAR_HEIGHT, bar_pct, color);
+    lcd_display_mini_bar(x, y + 12, METRIC_BAR_WIDTH, METRIC_BAR_HEIGHT, bar_pct, color);
 }
 
 void lcd_display_all(void) {
