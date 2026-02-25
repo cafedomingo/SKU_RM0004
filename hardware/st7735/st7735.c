@@ -15,11 +15,11 @@ int i2cd;
  * Set display coordinates
  */
 void lcd_set_address_window(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1) {
-    // col address set
+    /* col address set */
     i2c_write_command(X_COORDINATE_REG, x0 + ST7735_XSTART, x1 + ST7735_XSTART);
-    // row address set
+    /* row address set */
     i2c_write_command(Y_COORDINATE_REG, y0 + ST7735_YSTART, y1 + ST7735_YSTART);
-    // write to RAM
+    /* write to RAM */
     i2c_write_command(CHAR_DATA_REG, 0x00, 0x00);
 
     i2c_write_command(SYNC_REG, 0x00, 0x01);
@@ -59,7 +59,7 @@ void lcd_write_string(uint16_t x, uint16_t y, char *str, FontDef font, uint16_t 
             }
 
             if (*str == ' ') {
-                // skip spaces in the beginning of the new line
+                /* skip spaces in the beginning of the new line */
                 str++;
                 continue;
             }
@@ -77,7 +77,7 @@ void lcd_write_string(uint16_t x, uint16_t y, char *str, FontDef font, uint16_t 
 void lcd_fill_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color) {
     uint8_t buff[320] = {0};
     uint16_t count = 0;
-    // clipping
+    /* clipping */
     if ((x >= ST7735_WIDTH) || (y >= ST7735_HEIGHT)) return;
     if ((x + w) >= ST7735_WIDTH) w = ST7735_WIDTH - x;
     if ((y + h) >= ST7735_HEIGHT) h = ST7735_HEIGHT - y;

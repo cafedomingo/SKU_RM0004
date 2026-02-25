@@ -19,4 +19,4 @@ char *get_hostname(void);
 int get_dietpi_update_status(void);
 int get_apt_update_count(void);
 
-#endif /*__RPIINFO_H*/
+#endif /* __RPIINFO_H */

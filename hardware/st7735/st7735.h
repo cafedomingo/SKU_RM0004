@@ -29,7 +29,7 @@
 #define ST7735_MADCTL_BGR 0x08
 #define ST7735_MADCTL_MH  0x04
 
-// ST7735 160x80 display, rotated right
+/* ST7735 160x80 display, rotated right */
 #define ST7735_IS_160X80 1
 #define ST7735_XSTART    0
 #define ST7735_YSTART    24
@@ -85,7 +85,7 @@
 #define ST7735_GMCTRP1 0xE0
 #define ST7735_GMCTRN1 0xE1
 
-// Color definitions
+/* Color definitions */
 #define ST7735_BLACK             0x0000
 #define ST7735_BLUE              0x001F
 #define ST7735_CYAN              0x07FF
@@ -116,4 +116,4 @@ extern void i2c_burst_transfer(uint8_t *buff, uint32_t length);
 extern void lcd_display_mini_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val, uint16_t color);
 extern void lcd_display_all(void);
 
-#endif // __ST7735_H__
+#endif /* __ST7735_H__ */
