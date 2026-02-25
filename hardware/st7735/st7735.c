@@ -204,42 +204,45 @@ static uint16_t temp_threshold_color(uint8_t celsius)
 }
 
 #define ST7735_VIOLET ST7735_COLOR565(180, 130, 255)
+#define BAR_WIDTH  65
+#define BAR_HEIGHT 6
 
 static void draw_metric(uint16_t x, uint16_t y, const char *label,
                         const char *value, uint8_t bar_pct, uint16_t color)
 {
-    uint16_t val_x = x + 65 - strlen(value) * 7; /* right-align with bar */
+    uint16_t val_x = x + BAR_WIDTH - strlen(value) * Font_7x10.width; /* right-align with bar */
     lcd_write_string(x, y, (char *)label, Font_7x10, ST7735_WHITE, ST7735_BLACK);
     lcd_write_string(val_x, y, (char *)value, Font_7x10, color, ST7735_BLACK);
-    lcd_display_mini_bar(x, y + 12, 65, 6, bar_pct, color);
+    lcd_display_mini_bar(x, y + 12, BAR_WIDTH, BAR_HEIGHT, bar_pct, color);
 }
 
 void lcd_display_all(void)
 {
     char buf[24];
-    char ipBuf[20];
     char hostBuf[17];
     uint8_t tempForBar;
     uint16_t color;
 
     /* Gather all data */
-    uint8_t cpuPercent  = get_cpu_percent();
-    uint8_t ramPercent  = get_ram_percent();
-    uint8_t temp        = get_temperature();
-    uint8_t diskPercent = get_disk_percent();
+    uint8_t cpuPercent   = get_cpu_percent();
+    uint8_t ramPercent   = get_ram_percent();
+    uint8_t temp         = get_temperature();
+    uint8_t diskPercent  = get_disk_percent();
+    const char *hostname = get_hostname();
+    const char *ip       = get_ip_address();
+    int dietpi_status    = get_dietpi_update_status();
+    int apt_count        = get_apt_update_count();
 
     /* Header: hostname, IP, separator */
-    strncpy(hostBuf, get_hostname(), 16);
+    strncpy(hostBuf, hostname, 16);
     hostBuf[16] = '\0';
     lcd_write_string(2, 0, hostBuf, Font_8x16, ST7735_WHITE, ST7735_BLACK);
 
-    strcpy(ipBuf, get_ip_address());
-    lcd_write_string(2, 18, ipBuf, Font_7x10, ST7735_VIOLET, ST7735_BLACK);
+    lcd_write_string(2, 18, (char *)ip, Font_7x10, ST7735_VIOLET, ST7735_BLACK);
 
     lcd_fill_rectangle(0, 30, ST7735_WIDTH, 1, ST7735_BLUE);
 
     /* DietPi status dot — red when update needed, hidden otherwise */
-    int dietpi_status = get_dietpi_update_status();
     if (dietpi_status == 2) {
         lcd_fill_rectangle(154, 5, 2, 1, ST7735_RED);
         lcd_fill_rectangle(153, 6, 4, 1, ST7735_RED);
@@ -250,15 +253,13 @@ void lcd_display_all(void)
     }
 
     /* APT update count — right-aligned on IP row */
-    int apt_count = get_apt_update_count();
     lcd_fill_rectangle(124, 18, 36, 10, ST7735_BLACK);
     if (apt_count > 0) {
-        uint16_t badge_color = (apt_count >= 10) ? ST7735_RED : ST7735_YELLOW;
-        char badge_buf[8];
-        sprintf(badge_buf, "^%d", apt_count > 99 ? 99 : apt_count);
-        int len = strlen(badge_buf);
-        uint16_t bx = 160 - (len * 7) - 2;
-        lcd_write_string(bx, 19, badge_buf, Font_7x10, badge_color, ST7735_BLACK);
+        char badge[5];
+        sprintf(badge, "^%d", apt_count > 99 ? 99 : apt_count);
+        uint16_t color = (apt_count >= 10) ? ST7735_RED : ST7735_YELLOW;
+        uint16_t bx = ST7735_WIDTH - strlen(badge) * Font_7x10.width - 2;
+        lcd_write_string(bx, 19, badge, Font_7x10, color, ST7735_BLACK);
     }
 
     /* CPU */
