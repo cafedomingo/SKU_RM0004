@@ -14,11 +14,10 @@
 
 
 char* get_ip_address(void);
-void get_sd_memory(uint32_t *MemSize, uint32_t *freesize);
-void get_cpu_memory(float *Totalram, float *availram);
+uint8_t get_cpu_percent(void);
+uint8_t get_ram_percent(void);
 uint8_t get_temperature(void);
-uint8_t get_cpu_message(void);
-uint8_t get_hard_disk_memory(uint16_t *diskMemSize, uint16_t *useMemSize);
+uint8_t get_disk_percent(void);
 char* get_hostname(void);
 int get_dietpi_update_status(void);
 int get_apt_update_count(void);

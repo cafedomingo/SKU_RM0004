@@ -219,27 +219,14 @@ void lcd_display_all(void)
     char buf[24];
     char ipBuf[20];
     char hostBuf[17];
-    uint8_t cpuLoad;
-    float totalRam = 0.0, availRam = 0.0;
-    uint8_t ramPercent;
-    uint16_t temp;
-    uint32_t sdMemSize = 0, sdUseMemSize = 0;
-    uint16_t diskMemSize = 0, diskUseMemSize = 0;
-    uint16_t memTotal, useMemTotal, diskPercent;
     uint8_t tempForBar;
     uint16_t color;
 
     /* Gather all data */
-    cpuLoad = get_cpu_message();
-    get_cpu_memory(&totalRam, &availRam);
-    ramPercent = (totalRam > 0) ? (uint8_t)((totalRam - availRam) / totalRam * 100) : 0;
-    temp = get_temperature();
-    get_sd_memory(&sdMemSize, &sdUseMemSize);
-    get_hard_disk_memory(&diskMemSize, &diskUseMemSize);
-    memTotal = sdMemSize + diskMemSize;
-    useMemTotal = sdUseMemSize + diskUseMemSize;
-    diskPercent = (memTotal > 0) ? useMemTotal * 100 / memTotal : 0;
-    if (diskPercent > 100) diskPercent = 100;
+    uint8_t cpuPercent  = get_cpu_percent();
+    uint8_t ramPercent  = get_ram_percent();
+    uint8_t temp        = get_temperature();
+    uint8_t diskPercent = get_disk_percent();
 
     /* Header: hostname, IP, separator */
     strncpy(hostBuf, get_hostname(), 16);
@@ -275,9 +262,9 @@ void lcd_display_all(void)
     }
 
     /* CPU */
-    color = threshold_color(cpuLoad);
-    sprintf(buf, "%3d%%", cpuLoad);
-    draw_metric(2, 34, "CPU:", buf, cpuLoad, color);
+    color = threshold_color(cpuPercent);
+    sprintf(buf, "%3d%%", cpuPercent);
+    draw_metric(2, 34, "CPU:", buf, cpuPercent, color);
 
     /* RAM */
     color = threshold_color(ramPercent);
@@ -293,7 +280,7 @@ void lcd_display_all(void)
     draw_metric(84, 34, "TEMP:", buf, tempForBar > 100 ? 100 : tempForBar, color);
 
     /* Disk */
-    color = threshold_color((uint8_t)diskPercent);
+    color = threshold_color(diskPercent);
     sprintf(buf, "%3d%%", diskPercent);
-    draw_metric(84, 56, "DISK:", buf, (uint8_t)diskPercent, color);
+    draw_metric(84, 56, "DISK:", buf, diskPercent, color);
 }

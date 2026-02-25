@@ -66,45 +66,42 @@ char* get_ip_address(void)
 
 
 /*
-* get ram memory
+* Get RAM usage as a percentage (0-100)
 */
-void get_cpu_memory(float *Totalram,float *availram)
+uint8_t get_ram_percent(void)
 {
-  struct sysinfo s_info;
+    struct sysinfo s_info;
+    unsigned int value = 0;
+    char buffer[100] = {0};
+    char label[100] = {0};
+    float total = 0.0, avail = 0.0;
 
-  unsigned int value=0;
-  char buffer[100]={0};
-  char famer[100]={0};
-    if(sysinfo(&s_info)==0)            //Get memory information
-    {
-        FILE* fp=fopen("/proc/meminfo","r");
-        if(fp==NULL)
-        {
-            return ;
-        }
-        while(fgets(buffer,sizeof(buffer),fp))
-        {
-            if(sscanf(buffer,"%s%u",famer,&value)!=2)
-            {
+    if (sysinfo(&s_info) != 0)
+        return 0;
+
+    FILE *fp = fopen("/proc/meminfo", "r");
+    if (!fp)
+        return 0;
+
+    while (fgets(buffer, sizeof(buffer), fp)) {
+        if (sscanf(buffer, "%s%u", label, &value) != 2)
             continue;
-            }
-            if(strcmp(famer,"MemTotal:")==0)
-            {
-             *Totalram=value/1000.0/1000.0;
-            }
-            else if(strcmp(famer,"MemAvailable:")==0)
-            {
-              *availram=value/1000.0/1000.0;
-            }
-        }
-        fclose(fp);    
-    }   
+        if (strcmp(label, "MemTotal:") == 0)
+            total = value / 1000.0 / 1000.0;
+        else if (strcmp(label, "MemAvailable:") == 0)
+            avail = value / 1000.0 / 1000.0;
+    }
+    fclose(fp);
+
+    if (total <= 0)
+        return 0;
+    return (uint8_t)((total - avail) / total * 100);
 }
 
 /*
 * get sd memory
 */
-void get_sd_memory(uint32_t *MemSize, uint32_t *freesize)
+static void get_sd_memory(uint32_t *MemSize, uint32_t *freesize)
 {
     struct statfs diskInfo;
     statfs("/",&diskInfo);
@@ -122,7 +119,7 @@ void get_sd_memory(uint32_t *MemSize, uint32_t *freesize)
 /*
 * get hard disk memory via /proc/mounts + statfs
 */
-uint8_t get_hard_disk_memory(uint16_t *diskMemSize, uint16_t *useMemSize)
+static uint8_t get_hard_disk_memory(uint16_t *diskMemSize, uint16_t *useMemSize)
 {
   *diskMemSize = 0;
   *useMemSize = 0;
@@ -151,6 +148,26 @@ uint8_t get_hard_disk_memory(uint16_t *diskMemSize, uint16_t *useMemSize)
 }
 
 /*
+* Get combined disk usage (SD + hard disk) as a percentage (0-100)
+*/
+uint8_t get_disk_percent(void)
+{
+    uint32_t sdMemSize = 0, sdUseMemSize = 0;
+    uint16_t diskMemSize = 0, diskUseMemSize = 0;
+
+    get_sd_memory(&sdMemSize, &sdUseMemSize);
+    get_hard_disk_memory(&diskMemSize, &diskUseMemSize);
+
+    uint32_t total = sdMemSize + diskMemSize;
+    uint32_t used = sdUseMemSize + diskUseMemSize;
+
+    if (total == 0)
+        return 0;
+    uint32_t pct = used * 100 / total;
+    return (uint8_t)(pct > 100 ? 100 : pct);
+}
+
+/*
 * get temperature
 */
 
@@ -168,9 +185,9 @@ uint8_t get_temperature(void)
 }
 
 /*
-* Get cpu usage via /proc/stat delta
+* Get CPU usage as a percentage (0-100) via /proc/stat delta
 */
-uint8_t get_cpu_message(void)
+uint8_t get_cpu_percent(void)
 {
     static unsigned long long prev_idle = 0, prev_total = 0;
     static int initialized = 0;
