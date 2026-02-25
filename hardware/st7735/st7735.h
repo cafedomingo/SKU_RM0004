@@ -89,15 +89,17 @@
 // Color definitions
 #define ST7735_BLACK 0x0000
 #define ST7735_BLUE 0x001F
-#define ST7735_RED 0xF800
-#define ST7735_GREEN 0x07E0
 #define ST7735_CYAN 0x07FF
-#define ST7735_MAGENTA 0xF81F
-#define ST7735_YELLOW 0xFFE0
-#define ST7735_WHITE 0xFFFF
 #define ST7735_GRAY 0x8410
+#define ST7735_GREEN 0x07E0
+#define ST7735_MAGENTA 0xF81F
+#define ST7735_RED 0xF800
+#define ST7735_WHITE 0xFFFF
+#define ST7735_YELLOW 0xFFE0
 #define ST7735_COLOR565(r, g, b)                                               \
     (((r & 0xF8) << 8) | ((g & 0xFC) << 3) | ((b & 0xF8) >> 3))
+#define ST7735_ORANGE ST7735_COLOR565(255, 165, 0)
+#define ST7735_VIOLET ST7735_COLOR565(180, 130, 255)
 
 extern void lcd_write_string(uint16_t x, uint16_t y, char *str, FontDef font,
                              uint16_t color, uint16_t bgcolor);

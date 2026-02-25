@@ -165,7 +165,7 @@ void lcd_display_mini_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
 static uint16_t threshold_color(uint8_t val) {
     if (val < 60) return ST7735_GREEN;
     if (val < 80) return ST7735_YELLOW;
-    if (val < 90) return ST7735_COLOR565(255, 165, 0); /* orange */
+    if (val < 90) return ST7735_ORANGE;
     return ST7735_RED;
 }
 
@@ -173,11 +173,10 @@ static uint16_t temp_threshold_color(uint8_t celsius) {
     if (celsius < 40) return ST7735_CYAN;
     if (celsius < 50) return ST7735_GREEN;
     if (celsius < 60) return ST7735_YELLOW;
-    if (celsius < 70) return ST7735_COLOR565(255, 165, 0); /* orange */
+    if (celsius < 70) return ST7735_ORANGE;
     return ST7735_RED;
 }
 
-#define ST7735_VIOLET ST7735_COLOR565(180, 130, 255)
 #define BAR_WIDTH 65
 #define BAR_HEIGHT 6
 
