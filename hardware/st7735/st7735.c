@@ -239,6 +239,7 @@ void lcd_display_all(void)
     memTotal = sdMemSize + diskMemSize;
     useMemTotal = sdUseMemSize + diskUseMemSize;
     diskPercent = (memTotal > 0) ? useMemTotal * 100 / memTotal : 0;
+    if (diskPercent > 100) diskPercent = 100;
 
     /* Header: hostname, IP, separator */
     strncpy(hostBuf, get_hostname(), 16);
@@ -292,7 +293,7 @@ void lcd_display_all(void)
     draw_metric(84, 34, "TEMP:", buf, tempForBar > 100 ? 100 : tempForBar, color);
 
     /* Disk */
-    color = threshold_color(diskPercent > 100 ? 100 : (uint8_t)diskPercent);
-    sprintf(buf, "%3d%%", diskPercent > 999 ? 999 : diskPercent);
-    draw_metric(84, 56, "DISK:", buf, diskPercent > 100 ? 100 : (uint8_t)diskPercent, color);
+    color = threshold_color((uint8_t)diskPercent);
+    sprintf(buf, "%3d%%", diskPercent);
+    draw_metric(84, 56, "DISK:", buf, (uint8_t)diskPercent, color);
 }
