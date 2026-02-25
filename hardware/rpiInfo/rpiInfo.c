@@ -93,52 +93,51 @@ uint8_t get_ram_percent(void)
 }
 
 /*
-* get sd memory
+* Get SD card usage in GiB
 */
-static void get_sd_memory(uint32_t *MemSize, uint32_t *freesize)
+static void get_sd_memory(uint32_t *total_gib, uint32_t *used_gib)
 {
-    struct statfs diskInfo;
-    statfs("/",&diskInfo);
-    unsigned long long blocksize = diskInfo.f_bsize;// The number of bytes per block
-    unsigned long long totalsize = blocksize*diskInfo.f_blocks;//Total number of bytes	
-    *MemSize=(unsigned int)(totalsize>>30);
-
-
-    unsigned long long size = blocksize*diskInfo.f_bfree; //Now let's figure out how much space we have left
-    *freesize=size>>30;
-    *freesize=*MemSize-*freesize;
+    struct statfs info;
+    if (statfs("/", &info) != 0) {
+        *total_gib = 0;
+        *used_gib = 0;
+        return;
+    }
+    unsigned long long block = info.f_bsize;
+    unsigned long long total = block * info.f_blocks;
+    unsigned long long used  = total - block * info.f_bfree;
+    *total_gib = (uint32_t)(total >> 30);
+    *used_gib  = (uint32_t)(used >> 30);
 }
 
-
 /*
-* get hard disk memory via /proc/mounts + statfs
+* Get hard disk usage in GiB via /proc/mounts + statfs
 */
-static uint8_t get_hard_disk_memory(uint16_t *diskMemSize, uint16_t *useMemSize)
+static void get_hard_disk_memory(uint16_t *total_gib, uint16_t *used_gib)
 {
-  *diskMemSize = 0;
-  *useMemSize = 0;
-  char line[512], device[256], mountpoint[256];
-  struct statfs disk_info;
+    *total_gib = 0;
+    *used_gib = 0;
+    char line[512], device[256], mountpoint[256];
+    struct statfs info;
 
-  FILE *fp = fopen("/proc/mounts", "r");
-  if (!fp) return 1;
+    FILE *fp = fopen("/proc/mounts", "r");
+    if (!fp) return;
 
-  while (fgets(line, sizeof(line), fp)) {
-      if (sscanf(line, "%255s %255s", device, mountpoint) == 2) {
-          if (strncmp(device, "/dev/sda", 8) == 0 ||
-              strncmp(device, "/dev/nvme", 9) == 0) {
-              if (statfs(mountpoint, &disk_info) == 0) {
-                  unsigned long long block = disk_info.f_bsize;
-                  unsigned long long total = block * disk_info.f_blocks;
-                  unsigned long long used = total - (block * disk_info.f_bfree);
-                  *diskMemSize += (uint16_t)(total >> 30);
-                  *useMemSize += (uint16_t)(used >> 30);
-              }
-          }
-      }
-  }
-  fclose(fp);
-  return 0;
+    while (fgets(line, sizeof(line), fp)) {
+        if (sscanf(line, "%255s %255s", device, mountpoint) == 2) {
+            if (strncmp(device, "/dev/sda", 8) == 0 ||
+                strncmp(device, "/dev/nvme", 9) == 0) {
+                if (statfs(mountpoint, &info) == 0) {
+                    unsigned long long block = info.f_bsize;
+                    unsigned long long total = block * info.f_blocks;
+                    unsigned long long used  = total - (block * info.f_bfree);
+                    *total_gib += (uint16_t)(total >> 30);
+                    *used_gib  += (uint16_t)(used >> 30);
+                }
+            }
+        }
+    }
+    fclose(fp);
 }
 
 /*
@@ -146,14 +145,14 @@ static uint8_t get_hard_disk_memory(uint16_t *diskMemSize, uint16_t *useMemSize)
 */
 uint8_t get_disk_percent(void)
 {
-    uint32_t sdMemSize = 0, sdUseMemSize = 0;
-    uint16_t diskMemSize = 0, diskUseMemSize = 0;
+    uint32_t sdTotal = 0, sdUsed = 0;
+    uint16_t diskTotal = 0, diskUsed = 0;
 
-    get_sd_memory(&sdMemSize, &sdUseMemSize);
-    get_hard_disk_memory(&diskMemSize, &diskUseMemSize);
+    get_sd_memory(&sdTotal, &sdUsed);
+    get_hard_disk_memory(&diskTotal, &diskUsed);
 
-    uint32_t total = sdMemSize + diskMemSize;
-    uint32_t used = sdUseMemSize + diskUseMemSize;
+    uint32_t total = sdTotal + diskTotal;
+    uint32_t used  = sdUsed + diskUsed;
 
     if (total == 0)
         return 0;
