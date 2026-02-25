@@ -10,9 +10,7 @@
 #include <sys/vfs.h>
 #include <unistd.h>
 
-static inline int has_prefix(const char *s, const char *prefix) {
-    return strncmp(s, prefix, strlen(prefix)) == 0;
-}
+static inline int has_prefix(const char *s, const char *prefix) { return strncmp(s, prefix, strlen(prefix)) == 0; }
 
 /*
  * Get the IP address of the default-route interface.
@@ -118,8 +116,7 @@ static void get_hard_disk_memory(uint32_t *total_gib, uint32_t *used_gib) {
 
     while (fgets(line, sizeof(line), fp)) {
         if (sscanf(line, "%255s %255s", device, mountpoint) == 2) {
-            if (has_prefix(device, "/dev/sda") ||
-                has_prefix(device, "/dev/nvme")) {
+            if (has_prefix(device, "/dev/sda") || has_prefix(device, "/dev/nvme")) {
                 if (statfs(mountpoint, &info) == 0) {
                     unsigned long long block = info.f_bsize;
                     unsigned long long total = block * info.f_blocks;
@@ -176,12 +173,11 @@ uint8_t get_temperature(void) {
  * Read aggregate CPU idle and total ticks from /proc/stat
  */
 static int read_cpu_stat(unsigned long long *idle, unsigned long long *total) {
-    unsigned long long user, nice, system, idle_val, iowait, irq, softirq,
-        steal;
+    unsigned long long user, nice, system, idle_val, iowait, irq, softirq, steal;
     FILE *fp = fopen("/proc/stat", "r");
     if (!fp) return -1;
-    if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu", &user, &nice,
-               &system, &idle_val, &iowait, &irq, &softirq, &steal) != 8) {
+    if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu", &user, &nice, &system, &idle_val, &iowait, &irq,
+               &softirq, &steal) != 8) {
         fclose(fp);
         return -1;
     }
@@ -213,8 +209,7 @@ uint8_t get_cpu_percent(void) {
     prev_total = total;
 
     if (diff_total == 0) return 0;
-    return (uint8_t)((100 * (diff_total - diff_idle) + diff_total / 2) /
-                     diff_total);
+    return (uint8_t)((100 * (diff_total - diff_idle) + diff_total / 2) / diff_total);
 }
 
 /*
