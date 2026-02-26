@@ -34,7 +34,7 @@ fi
 
 detect_pi_model() {
     local model
-    model=$(cat /proc/device-tree/model 2>/dev/null) || die "Cannot read /proc/device-tree/model"
+    model=$(tr -d '\0' < /proc/device-tree/model 2>/dev/null) || die "Cannot read /proc/device-tree/model"
 
     if [[ "$model" == *"Raspberry Pi 5"* ]]; then
         echo "pi5"
