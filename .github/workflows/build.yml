@@ -7,13 +7,21 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Check formatting
         run: make format-check
+
+      - name: Lint shell scripts
+        run: shellcheck install.sh
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Install cross-compiler and dependencies
         run: sudo apt-get install -y gcc-aarch64-linux-gnu libi2c-dev
@@ -28,7 +36,7 @@ jobs:
           path: display
 
   release:
-    needs: build
+    needs: [lint, build]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -36,29 +44,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          sparse-checkout: update.sh
+          sparse-checkout: install.sh
           sparse-checkout-cone-mode: false
 
       - uses: actions/download-artifact@v4
         with:
           name: display
 
-      - name: Create or update release
+      - name: Create or update releases
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          chmod +x display
-          NOTES='Automatically built from main branch.
+          chmod +x display install.sh
 
-          ## Update existing installs
+          LATEST_NOTES='Automatically built from main branch.
+
+          ## Install or update
 
           ```
-          curl -sL https://github.com/${{ github.repository }}/releases/latest/download/update.sh | sudo bash
+          curl -sL https://github.com/${{ github.repository }}/releases/latest/download/install.sh | sudo bash
           ```'
+
+          # Update rolling "latest" release
           if gh release view latest >/dev/null 2>&1; then
-            gh release upload latest display update.sh --clobber
-            gh release edit latest --notes "$NOTES"
+            gh release upload latest display install.sh --clobber
+            gh release edit latest --notes "$LATEST_NOTES"
           else
-            gh release create latest display update.sh --title "Latest Build" --notes "$NOTES"
+            gh release create latest display install.sh --title "Latest Build" --notes "$LATEST_NOTES"
           fi
+
+          # Create dated release (YYYY-MM-DD.N)
+          TODAY=$(date -u +%Y-%m-%d)
+          BUILD=1
+          while gh release view "${TODAY}.${BUILD}" >/dev/null 2>&1; do
+            BUILD=$((BUILD + 1))
+          done
+          TAG="${TODAY}.${BUILD}"
+
+          gh release create "$TAG" display \
+            --title "$TAG" \
+            --notes "Built from commit ${GITHUB_SHA::7} on ${TODAY}."
