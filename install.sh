@@ -91,6 +91,13 @@ configure_boot() {
         fi
         needs_reboot=true
     fi
+
+    # i2c-dev kernel module (provides /dev/i2c-* device nodes for userspace access)
+    if ! grep -q "^i2c-dev" /etc/modules; then
+        log "Adding i2c-dev to /etc/modules"
+        echo "i2c-dev" >> /etc/modules
+        needs_reboot=true
+    fi
 }
 
 # --- Binary install ---
