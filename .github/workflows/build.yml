@@ -66,13 +66,11 @@ jobs:
           curl -sL https://github.com/${{ github.repository }}/releases/latest/download/install.sh | sudo bash
           ```'
 
-          # Update rolling "latest" release
-          if gh release view latest >/dev/null 2>&1; then
-            gh release upload latest display install.sh --clobber
-            gh release edit latest --notes "$LATEST_NOTES"
-          else
-            gh release create latest display install.sh --title "Latest Build" --notes "$LATEST_NOTES"
-          fi
+          # Recreate rolling "latest" release (delete + create to update timestamp)
+          gh release delete latest --yes 2>/dev/null || true
+          git tag -d latest 2>/dev/null || true
+          git push origin :refs/tags/latest 2>/dev/null || true
+          gh release create latest display install.sh --title "Latest Build" --notes "$LATEST_NOTES"
 
           # Create dated release (YYYY-MM-DD.N)
           TODAY=$(date -u +%Y-%m-%d)
