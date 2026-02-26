@@ -15,6 +15,9 @@ jobs:
       - name: Check formatting
         run: make format-check
 
+      - name: Lint shell scripts
+        run: shellcheck install.sh
+
       - name: Install cross-compiler and dependencies
         run: sudo apt-get install -y gcc-aarch64-linux-gnu libi2c-dev
 
