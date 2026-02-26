@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,6 +17,11 @@ jobs:
 
       - name: Lint shell scripts
         run: shellcheck install.sh
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Install cross-compiler and dependencies
         run: sudo apt-get install -y gcc-aarch64-linux-gnu libi2c-dev
@@ -31,7 +36,7 @@ jobs:
           path: display
 
   release:
-    needs: build
+    needs: [lint, build]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
