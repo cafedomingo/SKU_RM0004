@@ -77,14 +77,6 @@ jobs:
           done
           TAG="${TODAY}.${BUILD}"
 
-          DATED_NOTES="Built from commit ${GITHUB_SHA::7} on ${TODAY}.
-
-          ## Install this version
-
-          \`\`\`
-          curl -sL https://github.com/${{ github.repository }}/releases/download/${TAG}/install.sh | sudo bash
-          \`\`\`"
-
-          gh release create "$TAG" display install.sh \
+          gh release create "$TAG" display \
             --title "$TAG" \
-            --notes "$DATED_NOTES"
+            --notes "Built from commit ${GITHUB_SHA::7} on ${TODAY}."

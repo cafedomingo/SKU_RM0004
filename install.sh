@@ -26,6 +26,10 @@ die() {
     exit 1
 }
 
+if [ "$(id -u)" -ne 0 ]; then
+    die "This script must be run as root (use sudo)"
+fi
+
 # --- Pi model detection ---
 
 detect_pi_model() {
@@ -90,14 +94,19 @@ configure_boot() {
 install_binary() {
     mkdir -p "$INSTALL_DIR"
 
-    # Developer path: use local binary if it exists
-    if [ -f "./${BINARY}" ]; then
+    # Developer path: use local binary if run from a repo clone
+    if [ -f "./${BINARY}" ] && [ -f "./Makefile" ]; then
         log "Installing local ./${BINARY} to ${INSTALL_DIR}/${BINARY}"
         cp "./${BINARY}" "${INSTALL_DIR}/${BINARY}"
     else
         log "Downloading ${BINARY} from latest release"
-        curl -sL "https://github.com/${REPO}/releases/latest/download/${BINARY}" \
-            -o "${INSTALL_DIR}/${BINARY}"
+        if ! curl -fsSL "https://github.com/${REPO}/releases/latest/download/${BINARY}" \
+            -o "${INSTALL_DIR}/${BINARY}"; then
+            die "Failed to download ${BINARY} from GitHub releases"
+        fi
+        if [ ! -s "${INSTALL_DIR}/${BINARY}" ]; then
+            die "Downloaded ${BINARY} is empty"
+        fi
     fi
 
     chmod +x "${INSTALL_DIR}/${BINARY}"
@@ -144,7 +153,7 @@ install_binary
 install_service
 
 if [ "$needs_reboot" = true ]; then
-    log "Install complete. Reboot required for boot config changes to take effect."
+    log "Install complete. Reboot required for boot config changes — the display service will start automatically after reboot."
 else
     log "Starting ${SERVICE_NAME}"
     systemctl start "$SERVICE_NAME"
