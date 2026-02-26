@@ -11,7 +11,7 @@ int main(void) {
     lcd_fill_screen(ST7735_BLACK);
     sleep(1);
     while (1) {
-        lcd_display_all();
+        lcd_display_dashboard();
         sleep(REFRESH_INTERVAL_SECS);
     }
     return 0;
