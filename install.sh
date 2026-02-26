@@ -103,7 +103,11 @@ install_binary() {
         log "Installing local ./${BINARY} to ${INSTALL_DIR}/${BINARY}"
         cp "./${BINARY}" "${INSTALL_DIR}/${BINARY}"
     else
-        log "Downloading ${BINARY} from latest release"
+        if [ -f "./Makefile" ]; then
+            log "No local binary — downloading from release (run 'make' first to install a local build)"
+        else
+            log "Downloading ${BINARY} from latest release"
+        fi
         if ! curl -fsSL "https://github.com/${REPO}/releases/latest/download/${BINARY}" \
             -o "${INSTALL_DIR}/${BINARY}"; then
             die "Failed to download ${BINARY} from GitHub releases"
