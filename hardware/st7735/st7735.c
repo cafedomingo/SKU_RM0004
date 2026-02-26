@@ -167,7 +167,7 @@ void i2c_burst_transfer(uint8_t *buff, uint32_t length) {
 /*
  * Draw a small horizontal progress bar (0-100%).
  */
-void lcd_display_mini_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val, uint16_t color) {
+void lcd_draw_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val, uint16_t color) {
     uint16_t filled = (uint16_t)val * w / 100;
     if (filled > w) filled = w;
     if (filled > 0) lcd_fill_rectangle(x, y, filled, h, color);
@@ -202,13 +202,13 @@ static void draw_metric(uint16_t x, uint16_t y, const char *label, const char *v
     uint16_t val_x = x + METRIC_BAR_WIDTH - strlen(value) * Font_7x10.width; /* right-align with bar */
     lcd_write_string(x, y, (char *)label, Font_7x10, ST7735_WHITE, ST7735_BLACK);
     lcd_write_string(val_x, y, (char *)value, Font_7x10, color, ST7735_BLACK);
-    lcd_display_mini_bar(x, y + 12, METRIC_BAR_WIDTH, METRIC_BAR_HEIGHT, bar_pct, color);
+    lcd_draw_bar(x, y + 12, METRIC_BAR_WIDTH, METRIC_BAR_HEIGHT, bar_pct, color);
 }
 
 /*
  * Gather system metrics and render the full dashboard display.
  */
-void lcd_display_all(void) {
+void lcd_display_dashboard(void) {
     char buf[24];
     char hostBuf[17];
     uint8_t tempForBar;
