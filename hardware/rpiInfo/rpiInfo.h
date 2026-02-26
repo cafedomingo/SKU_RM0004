@@ -2,6 +2,7 @@
 #define __RPIINFO_H
 
 #include <stdint.h>
+
 /* Temperature unit: CELSIUS or FAHRENHEIT */
 #define CELSIUS          0
 #define FAHRENHEIT       1
