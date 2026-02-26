@@ -43,10 +43,10 @@ char *get_ip_address(void) {
         fclose(fp);
     }
 
-    if (!default_iface) return "no route";
+    if (!default_iface) return "no network";
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (fd < 0) return "no socket";
+    if (fd < 0) return "no network";
 
     ifr.ifr_addr.sa_family = AF_INET;
     strncpy(ifr.ifr_name, default_iface, IFNAMSIZ - 1);
@@ -54,7 +54,7 @@ char *get_ip_address(void) {
 
     if (ioctl(fd, SIOCGIFADDR, &ifr) != 0) {
         close(fd);
-        return "no addr";
+        return "no network";
     }
     close(fd);
 
