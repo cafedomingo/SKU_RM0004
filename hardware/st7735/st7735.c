@@ -100,11 +100,18 @@ void lcd_fill_screen(uint16_t color) {
     i2c_write_command(SYNC_REG, 0x00, 0x01);
 }
 
+/*
+ * Draw a rectangular image from a raw pixel buffer.
+ */
 void lcd_draw_image(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t *data) {
     lcd_set_address_window(x, y, x + w - 1, y + h - 1);
     i2c_burst_transfer(data, sizeof(uint16_t) * w * h);
 }
 
+/*
+ * Open the I2C bus and configure the LCD slave address.
+ * Returns 0 on success, 1 on failure.
+ */
 uint8_t lcd_begin(void) {
     char i2c_path[] = "/dev/i2c-1";
 
@@ -119,18 +126,27 @@ uint8_t lcd_begin(void) {
     return 0;
 }
 
+/*
+ * Write a two-byte data value over I2C.
+ */
 void i2c_write_data(uint8_t high, uint8_t low) {
     uint8_t msg[3] = {WRITE_DATA_REG, high, low};
     write(i2cd, msg, 3);
     usleep(10);
 }
 
+/*
+ * Write a command with a two-byte argument over I2C.
+ */
 void i2c_write_command(uint8_t command, uint8_t high, uint8_t low) {
     uint8_t msg[3] = {command, high, low};
     write(i2cd, msg, 3);
     usleep(10);
 }
 
+/*
+ * Transfer a large buffer over I2C in BURST_MAX_LENGTH-byte chunks.
+ */
 void i2c_burst_transfer(uint8_t *buff, uint32_t length) {
     uint32_t count = 0;
     i2c_write_command(BURST_WRITE_REG, 0x00, 0x01);
@@ -148,6 +164,9 @@ void i2c_burst_transfer(uint8_t *buff, uint32_t length) {
     i2c_write_command(SYNC_REG, 0x00, 0x01);
 }
 
+/*
+ * Draw a small horizontal progress bar (0-100%).
+ */
 void lcd_display_mini_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val, uint16_t color) {
     uint16_t filled = (uint16_t)val * w / 100;
     if (filled > w) filled = w;
@@ -155,6 +174,9 @@ void lcd_display_mini_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_
     if (filled < w) lcd_fill_rectangle(x + filled, y, w - filled, h, ST7735_GRAY);
 }
 
+/*
+ * Map a percentage value to a green/yellow/orange/red color.
+ */
 static uint16_t threshold_color(uint8_t val) {
     if (val < 60) return ST7735_GREEN;
     if (val < 80) return ST7735_YELLOW;
@@ -162,6 +184,9 @@ static uint16_t threshold_color(uint8_t val) {
     return ST7735_RED;
 }
 
+/*
+ * Map a temperature in Celsius to a cyan-to-red color scale.
+ */
 static uint16_t temp_threshold_color(uint8_t celsius) {
     if (celsius < 40) return ST7735_CYAN;
     if (celsius < 50) return ST7735_GREEN;
@@ -170,6 +195,9 @@ static uint16_t temp_threshold_color(uint8_t celsius) {
     return ST7735_RED;
 }
 
+/*
+ * Draw a labeled metric with a right-aligned value and progress bar.
+ */
 static void draw_metric(uint16_t x, uint16_t y, const char *label, const char *value, uint8_t bar_pct, uint16_t color) {
     uint16_t val_x = x + METRIC_BAR_WIDTH - strlen(value) * Font_7x10.width; /* right-align with bar */
     lcd_write_string(x, y, (char *)label, Font_7x10, ST7735_WHITE, ST7735_BLACK);
@@ -177,6 +205,9 @@ static void draw_metric(uint16_t x, uint16_t y, const char *label, const char *v
     lcd_display_mini_bar(x, y + 12, METRIC_BAR_WIDTH, METRIC_BAR_HEIGHT, bar_pct, color);
 }
 
+/*
+ * Gather system metrics and render the full dashboard display.
+ */
 void lcd_display_all(void) {
     char buf[24];
     char hostBuf[17];
