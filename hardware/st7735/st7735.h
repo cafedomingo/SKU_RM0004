@@ -103,17 +103,26 @@
 #define METRIC_BAR_WIDTH  65
 #define METRIC_BAR_HEIGHT 6
 
-extern void lcd_write_string(uint16_t x, uint16_t y, char *str, FontDef font, uint16_t color, uint16_t bgcolor);
+/* Lifecycle */
+extern uint8_t lcd_begin(void);
+
+/* I2C transport */
+extern void i2c_burst_transfer(uint8_t *buff, uint32_t length);
+extern void i2c_write_command(uint8_t command, uint8_t high, uint8_t low);
+extern void i2c_write_data(uint8_t high, uint8_t low);
+
+/* Drawing primitives */
+extern void lcd_draw_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val, uint16_t color);
+extern void lcd_draw_image(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t *data);
 extern void lcd_fill_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
 extern void lcd_fill_screen(uint16_t color);
-extern void lcd_draw_image(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t *data);
 extern void lcd_set_address_window(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1);
-extern uint8_t lcd_begin(void);
-extern void i2c_write_data(uint8_t high, uint8_t low);
-extern void i2c_write_command(uint8_t command, uint8_t high, uint8_t low);
+
+/* Text */
 extern void lcd_write_char(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color, uint16_t bgcolor);
-extern void i2c_burst_transfer(uint8_t *buff, uint32_t length);
-extern void lcd_draw_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val, uint16_t color);
+extern void lcd_write_string(uint16_t x, uint16_t y, char *str, FontDef font, uint16_t color, uint16_t bgcolor);
+
+/* High-level display */
 extern void lcd_display_dashboard(void);
 
 #endif /* __ST7735_H__ */
