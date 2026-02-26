@@ -51,28 +51,13 @@ jobs:
         with:
           name: display
 
-      - name: Create or update releases
+      - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           chmod +x display install.sh
 
-          LATEST_NOTES='Automatically built from main branch.
-
-          ## Install or update
-
-          ```
-          curl -sL https://github.com/${{ github.repository }}/releases/latest/download/install.sh | sudo bash
-          ```'
-
-          # Recreate rolling "latest" release (delete + create to update timestamp)
-          gh release delete latest --yes 2>/dev/null || true
-          git tag -d latest 2>/dev/null || true
-          git push origin :refs/tags/latest 2>/dev/null || true
-          gh release create latest display install.sh --title "Latest Build" --notes "$LATEST_NOTES"
-
-          # Create dated release (YYYY-MM-DD.N)
           TODAY=$(date -u +%Y-%m-%d)
           BUILD=1
           while gh release view "${TODAY}.${BUILD}" >/dev/null 2>&1; do
@@ -80,6 +65,6 @@ jobs:
           done
           TAG="${TODAY}.${BUILD}"
 
-          gh release create "$TAG" display \
+          gh release create "$TAG" display install.sh \
             --title "$TAG" \
             --notes "Built from commit ${GITHUB_SHA::7} on ${TODAY}."
