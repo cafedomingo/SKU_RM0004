@@ -75,15 +75,19 @@ configure_boot() {
         needs_reboot=true
     fi
 
-    # I2C with 400kHz baud rate
-    if ! grep -q "dtparam=i2c_arm=on,i2c_arm_baudrate=400000" "$boot_config"; then
+    # I2C with 400kHz baud rate (supports both combined and separate line formats)
+    if ! grep -q "i2c_arm_baudrate=400000" "$boot_config"; then
         if grep -q "^#dtparam=i2c_arm=on" "$boot_config"; then
-            sed -i "s/^#dtparam=i2c_arm=on.*/dtparam=i2c_arm=on,i2c_arm_baudrate=400000/" "$boot_config"
+            sed -i "s/^#dtparam=i2c_arm=on.*/dtparam=i2c_arm=on/" "$boot_config"
+            sed -i "/^dtparam=i2c_arm=on/a i2c_arm_baudrate=400000" "$boot_config"
         elif grep -q "^dtparam=i2c_arm=on" "$boot_config"; then
-            sed -i "s/^dtparam=i2c_arm=on.*/dtparam=i2c_arm=on,i2c_arm_baudrate=400000/" "$boot_config"
+            sed -i "/^dtparam=i2c_arm=on/a i2c_arm_baudrate=400000" "$boot_config"
         else
-            echo "" >> "$boot_config"
-            echo "dtparam=i2c_arm=on,i2c_arm_baudrate=400000" >> "$boot_config"
+            {
+                echo ""
+                echo "dtparam=i2c_arm=on"
+                echo "i2c_arm_baudrate=400000"
+            } >> "$boot_config"
         fi
         needs_reboot=true
     fi
