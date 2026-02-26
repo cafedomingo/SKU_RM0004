@@ -9,30 +9,41 @@ Display driver for the [UCTRONICS SKU_RM0004](https://github.com/UCTRONICS/SKU_R
 - DietPi update indicator (◆) and APT upgrade count (^N)
 - Refreshes every 5 seconds
 
-## Install
+## Install / Update
+
+```bash
+curl -sL https://github.com/cafedomingo/SKU_RM0004/releases/latest/download/install.sh | sudo bash
+```
+
+The script is idempotent — it handles both first install and updates. On first run it configures I2C, GPIO, and installs a systemd service. On subsequent runs it downloads the latest binary and restarts the service.
+
+To update multiple Pis:
+
+```bash
+for host in pi1 pi2 pi3 pi4; do
+  ssh "$host" 'curl -sL https://github.com/cafedomingo/SKU_RM0004/releases/latest/download/install.sh | sudo bash'
+done
+```
+
+## Development install
+
+To run a locally built binary instead of the release:
 
 ```bash
 git clone https://github.com/cafedomingo/SKU_RM0004.git
 cd SKU_RM0004
-sudo ./deployment_service.sh
+make
+sudo ./install.sh
 ```
 
-This compiles the binary, installs a systemd service, configures I2C, and prompts for a reboot.
-
-## Update
-
-```bash
-cd SKU_RM0004
-git pull
-sudo make clean && sudo make
-sudo systemctl restart uctronics-display.service
-```
+When a `./display` binary exists in the current directory, `install.sh` uses it instead of downloading from GitHub.
 
 ## Uninstall
 
 ```bash
 sudo systemctl disable uctronics-display.service
 sudo rm /etc/systemd/system/uctronics-display.service
+sudo rm -rf /opt/uctronics-lcd
 sudo systemctl daemon-reload
 ```
 
