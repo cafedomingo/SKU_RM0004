@@ -28,20 +28,22 @@ char *get_ip_address(void) {
 
     /* Find the interface that carries the default route */
     fp = fopen("/proc/net/route", "r");
-    if (fp) {
-        /* Skip header line */
-        if (fgets(line, sizeof(line), fp)) {
-            while (fgets(line, sizeof(line), fp)) {
-                if (sscanf(line, "%63s %15s", iface, dest) == 2) {
-                    if (strcmp(dest, "00000000") == 0) {
-                        default_iface = iface;
-                        break;
-                    }
+    if (!fp) {
+        fprintf(stderr, "rpiInfo: failed to open /proc/net/route\n");
+        return "no network";
+    }
+    /* Skip header line */
+    if (fgets(line, sizeof(line), fp)) {
+        while (fgets(line, sizeof(line), fp)) {
+            if (sscanf(line, "%63s %15s", iface, dest) == 2) {
+                if (strcmp(dest, "00000000") == 0) {
+                    default_iface = iface;
+                    break;
                 }
             }
         }
-        fclose(fp);
     }
+    fclose(fp);
 
     if (!default_iface) return "no network";
 
@@ -70,7 +72,10 @@ uint8_t get_ram_percent(void) {
     char buffer[128], label[32];
 
     FILE *fp = fopen("/proc/meminfo", "r");
-    if (!fp) return 0;
+    if (!fp) {
+        fprintf(stderr, "rpiInfo: failed to open /proc/meminfo\n");
+        return 0;
+    }
 
     while (fgets(buffer, sizeof(buffer), fp)) {
         if (sscanf(buffer, "%31s %u", label, &value) != 2) continue;
@@ -91,6 +96,7 @@ uint8_t get_ram_percent(void) {
 static void get_sd_memory(uint32_t *total_gib, uint32_t *used_gib) {
     struct statfs info;
     if (statfs("/", &info) != 0) {
+        fprintf(stderr, "rpiInfo: statfs(\"/\") failed\n");
         *total_gib = 0;
         *used_gib = 0;
         return;
@@ -112,7 +118,10 @@ static void get_hard_disk_memory(uint32_t *total_gib, uint32_t *used_gib) {
     struct statfs info;
 
     FILE *fp = fopen("/proc/mounts", "r");
-    if (!fp) return;
+    if (!fp) {
+        fprintf(stderr, "rpiInfo: failed to open /proc/mounts\n");
+        return;
+    }
 
     while (fgets(line, sizeof(line), fp)) {
         if (sscanf(line, "%255s %255s", device, mountpoint) == 2) {
@@ -156,7 +165,10 @@ uint8_t get_temperature(void) {
     char buf[10];
 
     FILE *fp = fopen("/sys/class/thermal/thermal_zone0/temp", "r");
-    if (!fp) return 0;
+    if (!fp) {
+        fprintf(stderr, "rpiInfo: failed to open thermal_zone0\n");
+        return 0;
+    }
     if (!fgets(buf, sizeof(buf), fp)) {
         fclose(fp);
         return 0;
@@ -175,7 +187,10 @@ uint8_t get_temperature(void) {
 static int read_cpu_stat(unsigned long long *idle, unsigned long long *total) {
     unsigned long long user, nice, system, idle_val, iowait, irq, softirq, steal;
     FILE *fp = fopen("/proc/stat", "r");
-    if (!fp) return -1;
+    if (!fp) {
+        fprintf(stderr, "rpiInfo: failed to open /proc/stat\n");
+        return -1;
+    }
     if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu", &user, &nice, &system, &idle_val, &iowait, &irq,
                &softirq, &steal) != 8) {
         fclose(fp);

@@ -25,6 +25,7 @@ uint8_t lcd_begin(void) {
         return 1;
     }
     if (ioctl(i2cd, I2C_SLAVE_FORCE, I2C_ADDRESS) < 0) {
+        fprintf(stderr, "st7735: ioctl I2C_SLAVE_FORCE failed\n");
         return 1;
     }
     return 0;
@@ -37,7 +38,7 @@ uint8_t lcd_begin(void) {
  */
 void i2c_write_data(uint8_t high, uint8_t low) {
     uint8_t msg[3] = {WRITE_DATA_REG, high, low};
-    write(i2cd, msg, 3);
+    if (write(i2cd, msg, 3) != 3) fprintf(stderr, "st7735: i2c_write_data failed\n");
     usleep(10);
 }
 
@@ -46,7 +47,7 @@ void i2c_write_data(uint8_t high, uint8_t low) {
  */
 void i2c_write_command(uint8_t command, uint8_t high, uint8_t low) {
     uint8_t msg[3] = {command, high, low};
-    write(i2cd, msg, 3);
+    if (write(i2cd, msg, 3) != 3) fprintf(stderr, "st7735: i2c_write_command failed\n");
     usleep(10);
 }
 
@@ -57,13 +58,13 @@ void i2c_burst_transfer(uint8_t *buff, uint32_t length) {
     uint32_t count = 0;
     i2c_write_command(BURST_WRITE_REG, 0x00, 0x01);
     while (length > count) {
-        if ((length - count) > BURST_MAX_LENGTH) {
-            write(i2cd, buff + count, BURST_MAX_LENGTH);
-            count += BURST_MAX_LENGTH;
-        } else {
-            write(i2cd, buff + count, length - count);
-            count += (length - count);
+        uint32_t chunk = ((length - count) > BURST_MAX_LENGTH) ? BURST_MAX_LENGTH : (length - count);
+        ssize_t written = write(i2cd, buff + count, chunk);
+        if (written < 0) {
+            fprintf(stderr, "st7735: burst write failed at offset %u\n", count);
+            break;
         }
+        count += (uint32_t)written;
         usleep(700);
     }
     i2c_write_command(BURST_WRITE_REG, 0x00, 0x00);
