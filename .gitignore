@@ -1,4 +1,3 @@
-build/
 obj/
 display
-.vscode/
+.vscode/*
