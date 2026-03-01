@@ -58,13 +58,8 @@ jobs:
         run: |
           chmod +x display install.sh
 
-          TODAY=$(date -u +%Y-%m-%d)
-          BUILD=1
-          while gh release view "${TODAY}.${BUILD}" >/dev/null 2>&1; do
-            BUILD=$((BUILD + 1))
-          done
-          TAG="${TODAY}.${BUILD}"
+          TAG=$(date -u +%Y.%m.%d.%H%M)
 
           gh release create "$TAG" display install.sh \
             --title "$TAG" \
-            --notes "Built from commit ${GITHUB_SHA::7} on ${TODAY}."
+            --notes "Built from commit ${GITHUB_SHA::7}."
