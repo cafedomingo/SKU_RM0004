@@ -94,7 +94,7 @@ void lcd_display_dashboard(void) {
     snprintf(buf, sizeof(buf), "%3d%%", ramPercent);
     draw_metric(2, 56, "RAM:", buf, ramPercent, color);
 
-    /* Temperature — integer-only F→C conversion (matches Zig approach) */
+    /* Temperature — integer-only F→C back-conversion for bar display */
     uint8_t tempForBar = temp;
     if (TEMPERATURE_TYPE == FAHRENHEIT)
         tempForBar = (uint8_t)((temp > 32 ? temp - 32 : 0) * 10 / 18);
