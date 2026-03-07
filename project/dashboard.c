@@ -33,8 +33,8 @@ static uint16_t temp_threshold_color(uint8_t celsius) {
  */
 static void draw_metric(uint16_t x, uint16_t y, const char *label, const char *value, uint8_t bar_pct, uint16_t color) {
     uint16_t val_x = x + METRIC_BAR_WIDTH - strlen(value) * Font_7x10.width; /* right-align with bar */
-    lcd_write_string(x, y, (char *)label, Font_7x10, ST7735_WHITE, ST7735_BLACK);
-    lcd_write_string(val_x, y, (char *)value, Font_7x10, color, ST7735_BLACK);
+    lcd_write_string(x, y, label, Font_7x10, ST7735_WHITE, ST7735_BLACK);
+    lcd_write_string(val_x, y, value, Font_7x10, color, ST7735_BLACK);
     lcd_draw_bar(x, y + 12, METRIC_BAR_WIDTH, METRIC_BAR_HEIGHT, bar_pct, color);
 }
 
@@ -43,9 +43,6 @@ static void draw_metric(uint16_t x, uint16_t y, const char *label, const char *v
  */
 void lcd_display_dashboard(void) {
     char buf[24];
-    char hostBuf[17];
-    uint8_t tempForBar;
-    uint16_t color;
 
     /* Gather all data */
     uint8_t cpuPercent = get_cpu_percent();
@@ -58,11 +55,11 @@ void lcd_display_dashboard(void) {
     int apt_count = get_apt_update_count();
 
     /* Header: hostname, IP, separator */
-    strncpy(hostBuf, hostname, 16);
-    hostBuf[16] = '\0';
+    char hostBuf[17];
+    snprintf(hostBuf, sizeof(hostBuf), "%s", hostname);
     lcd_write_string(2, 0, hostBuf, Font_8x16, ST7735_WHITE, ST7735_BLACK);
 
-    lcd_write_string(2, 18, (char *)ip, Font_7x10, ST7735_VIOLET, ST7735_BLACK);
+    lcd_write_string(2, 18, ip, Font_7x10, ST7735_VIOLET, ST7735_BLACK);
 
     lcd_fill_rectangle(0, 30, ST7735_WIDTH, 1, ST7735_BLUE);
 
@@ -79,32 +76,34 @@ void lcd_display_dashboard(void) {
     /* APT update count — right-aligned on IP row */
     lcd_fill_rectangle(124, 18, 36, 10, ST7735_BLACK);
     if (apt_count > 0) {
+        int capped = apt_count > 99 ? 99 : apt_count;
         char badge[5];
-        sprintf(badge, "^%d", apt_count > 99 ? 99 : apt_count);
+        snprintf(badge, sizeof(badge), "^%d", capped);
         uint16_t color = (apt_count >= 10) ? ST7735_RED : ST7735_YELLOW;
         uint16_t bx = ST7735_WIDTH - strlen(badge) * Font_7x10.width - 2;
         lcd_write_string(bx, 19, badge, Font_7x10, color, ST7735_BLACK);
     }
 
     /* CPU */
-    color = threshold_color(cpuPercent);
-    sprintf(buf, "%3d%%", cpuPercent);
+    uint16_t color = threshold_color(cpuPercent);
+    snprintf(buf, sizeof(buf), "%3d%%", cpuPercent);
     draw_metric(2, 34, "CPU:", buf, cpuPercent, color);
 
     /* RAM */
     color = threshold_color(ramPercent);
-    sprintf(buf, "%3d%%", ramPercent);
+    snprintf(buf, sizeof(buf), "%3d%%", ramPercent);
     draw_metric(2, 56, "RAM:", buf, ramPercent, color);
 
-    /* Temperature */
-    tempForBar = temp;
-    if (TEMPERATURE_TYPE == FAHRENHEIT) tempForBar = (temp - 32) / 1.8;
+    /* Temperature — integer-only F→C conversion (matches Zig approach) */
+    uint8_t tempForBar = temp;
+    if (TEMPERATURE_TYPE == FAHRENHEIT)
+        tempForBar = (uint8_t)((temp > 32 ? temp - 32 : 0) * 10 / 18);
     color = temp_threshold_color(tempForBar);
-    sprintf(buf, "%3d%c", temp, TEMPERATURE_TYPE == FAHRENHEIT ? 'F' : 'C');
+    snprintf(buf, sizeof(buf), "%3d%c", temp, TEMPERATURE_TYPE == FAHRENHEIT ? 'F' : 'C');
     draw_metric(84, 34, "TEMP:", buf, tempForBar > 100 ? 100 : tempForBar, color);
 
     /* Disk */
     color = threshold_color(diskPercent);
-    sprintf(buf, "%3d%%", diskPercent);
+    snprintf(buf, sizeof(buf), "%3d%%", diskPercent);
     draw_metric(84, 56, "DISK:", buf, diskPercent, color);
 }

@@ -238,7 +238,7 @@ static void lcd_write_char(uint16_t x, uint16_t y, char ch, FontDef font, uint16
 /*
  * Display a string
  */
-void lcd_write_string(uint16_t x, uint16_t y, char *str, FontDef font, uint16_t color, uint16_t bgcolor) {
+void lcd_write_string(uint16_t x, uint16_t y, const char *str, FontDef font, uint16_t color, uint16_t bgcolor) {
 
     while (*str) {
         if (x + font.width >= ST7735_WIDTH) {
