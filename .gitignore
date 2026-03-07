@@ -1,3 +1,11 @@
 obj/
 display
 .vscode/*
+
+# Rust
+rust/target/
+
+# Zig
+zig/zig-out/
+zig/zig-cache/
+zig/.zig-cache/
