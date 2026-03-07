@@ -21,14 +21,13 @@ pub fn get_ip_address() -> String {
         }
     };
 
-    let mut default_iface: Option<String> = None;
-    for (i, line) in route_contents.lines().enumerate() {
-        if i == 0 {
-            continue; // skip header
-        }
-        let fields: Vec<&str> = line.split_whitespace().collect();
-        if fields.len() >= 2 && fields[1] == "00000000" {
-            default_iface = Some(fields[0].to_string());
+    let mut default_iface = None;
+    for line in route_contents.lines().skip(1) {
+        let mut fields = line.split_whitespace();
+        let iface_name = fields.next();
+        let dest = fields.next();
+        if dest == Some("00000000") {
+            default_iface = iface_name.map(str::to_string);
             break;
         }
     }
@@ -94,13 +93,13 @@ pub fn get_ram_percent() -> u8 {
     let mut avail: u64 = 0;
 
     for line in contents.lines() {
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.len() >= 2 {
-            if parts[0] == "MemTotal:" {
-                total = parts[1].parse().unwrap_or(0);
-            } else if parts[0] == "MemAvailable:" {
-                avail = parts[1].parse().unwrap_or(0);
-            }
+        let mut parts = line.split_whitespace();
+        let label = parts.next();
+        let value = parts.next();
+        match (label, value) {
+            (Some("MemTotal:"), Some(v)) => total = v.parse().unwrap_or(0),
+            (Some("MemAvailable:"), Some(v)) => avail = v.parse().unwrap_or(0),
+            _ => {}
         }
     }
 
@@ -138,18 +137,18 @@ fn get_hard_disk_memory() -> (u32, u32) {
     };
 
     for line in contents.lines() {
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.len() >= 2 {
-            let device = parts[0];
-            let mountpoint = parts[1];
-            if device.starts_with("/dev/sda") || device.starts_with("/dev/nvme") {
-                if let Ok(info) = nix::sys::statfs::statfs(mountpoint) {
-                    let block = info.block_size() as u64;
-                    let total = block * info.blocks() as u64;
-                    let used = total - block * info.blocks_free() as u64;
-                    total_gib += (total >> 30) as u32;
-                    used_gib += (used >> 30) as u32;
-                }
+        let mut parts = line.split_whitespace();
+        let (device, mountpoint) = match (parts.next(), parts.next()) {
+            (Some(d), Some(m)) => (d, m),
+            _ => continue,
+        };
+        if device.starts_with("/dev/sda") || device.starts_with("/dev/nvme") {
+            if let Ok(info) = nix::sys::statfs::statfs(mountpoint) {
+                let block = info.block_size() as u64;
+                let total = block * info.blocks() as u64;
+                let used = total - block * info.blocks_free() as u64;
+                total_gib += (total >> 30) as u32;
+                used_gib += (used >> 30) as u32;
             }
         }
     }
@@ -168,12 +167,7 @@ pub fn get_disk_percent() -> u8 {
     if total == 0 {
         return 0;
     }
-    let pct = used * 100 / total;
-    if pct > 100 {
-        100
-    } else {
-        pct as u8
-    }
+    (used * 100 / total).min(100) as u8
 }
 
 /// Get CPU temperature in the configured unit (Celsius or Fahrenheit).
@@ -209,19 +203,20 @@ fn read_cpu_stat() -> Option<(u64, u64)> {
     };
 
     let first_line = contents.lines().next()?;
-    let parts: Vec<&str> = first_line.split_whitespace().collect();
-    if parts.len() < 9 || parts[0] != "cpu" {
+    let mut parts = first_line.split_whitespace();
+    if parts.next() != Some("cpu") {
         return None;
     }
 
-    let user: u64 = parts[1].parse().ok()?;
-    let nice: u64 = parts[2].parse().ok()?;
-    let system: u64 = parts[3].parse().ok()?;
-    let idle_val: u64 = parts[4].parse().ok()?;
-    let iowait: u64 = parts[5].parse().ok()?;
-    let irq: u64 = parts[6].parse().ok()?;
-    let softirq: u64 = parts[7].parse().ok()?;
-    let steal: u64 = parts[8].parse().ok()?;
+    let mut next_val = || -> Option<u64> { parts.next()?.parse().ok() };
+    let user = next_val()?;
+    let nice = next_val()?;
+    let system = next_val()?;
+    let idle_val = next_val()?;
+    let iowait = next_val()?;
+    let irq = next_val()?;
+    let softirq = next_val()?;
+    let steal = next_val()?;
 
     let idle = idle_val + iowait;
     let total = user + nice + system + idle_val + iowait + irq + softirq + steal;

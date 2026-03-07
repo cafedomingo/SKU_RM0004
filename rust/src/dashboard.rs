@@ -52,8 +52,8 @@ pub fn display_dashboard(lcd: &mut Lcd, cpu_tracker: &mut CpuTracker) {
     let apt_count = rpi_info::get_apt_update_count();
 
     // Hostname (truncated to 16 chars)
-    let host_display: String = hostname.chars().take(16).collect();
-    lcd.write_string(2, 0, &host_display, FONT_8X16, st7735::WHITE, st7735::BLACK);
+    let host_display = &hostname[..hostname.len().min(16)];
+    lcd.write_string(2, 0, host_display, FONT_8X16, st7735::WHITE, st7735::BLACK);
 
     // IP address
     lcd.write_string(2, 18, &ip, FONT_7X10, st7735::VIOLET, st7735::BLACK);
