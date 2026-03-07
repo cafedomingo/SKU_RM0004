@@ -1,35 +1,28 @@
 //! Dashboard rendering for the ST7735 LCD display.
 
 use crate::fonts::{FONT_7X10, FONT_8X16};
-use crate::rpi_info::{self, CpuTracker, FAHRENHEIT, TEMPERATURE_TYPE};
+use crate::rpi_info::{self, CpuTracker, TemperatureType, TEMPERATURE_TYPE};
 use crate::st7735::{self, Lcd};
 
 const METRIC_BAR_WIDTH: u16 = 65;
 const METRIC_BAR_HEIGHT: u16 = 6;
 
 fn threshold_color(val: u8) -> u16 {
-    if val < 60 {
-        st7735::GREEN
-    } else if val < 80 {
-        st7735::YELLOW
-    } else if val < 90 {
-        st7735::ORANGE
-    } else {
-        st7735::RED
+    match val {
+        0..=59 => st7735::GREEN,
+        60..=79 => st7735::YELLOW,
+        80..=89 => st7735::ORANGE,
+        _ => st7735::RED,
     }
 }
 
 fn temp_threshold_color(celsius: u8) -> u16 {
-    if celsius < 40 {
-        st7735::CYAN
-    } else if celsius < 50 {
-        st7735::GREEN
-    } else if celsius < 60 {
-        st7735::YELLOW
-    } else if celsius < 70 {
-        st7735::ORANGE
-    } else {
-        st7735::RED
+    match celsius {
+        0..=39 => st7735::CYAN,
+        40..=49 => st7735::GREEN,
+        50..=59 => st7735::YELLOW,
+        60..=69 => st7735::ORANGE,
+        _ => st7735::RED,
     }
 }
 
@@ -74,7 +67,7 @@ pub fn display_dashboard(lcd: &mut Lcd, cpu_tracker: &mut CpuTracker) {
     // APT update badge
     lcd.fill_rectangle(124, 18, 36, 10, st7735::BLACK);
     if apt_count > 0 {
-        let capped = if apt_count > 99 { 99 } else { apt_count };
+        let capped = apt_count.min(99);
         let badge = format!("^{}", capped);
         let color = if apt_count >= 10 { st7735::RED } else { st7735::YELLOW };
         let bx = st7735::WIDTH - (badge.len() as u16) * FONT_7X10.width as u16 - 2;
@@ -92,15 +85,13 @@ pub fn display_dashboard(lcd: &mut Lcd, cpu_tracker: &mut CpuTracker) {
     draw_metric(lcd, 2, 56, "RAM:", &buf, ram_percent, color);
 
     // Temperature metric
-    let temp_for_bar = if TEMPERATURE_TYPE == FAHRENHEIT {
-        ((temp as f32 - 32.0) / 1.8) as u8
-    } else {
-        temp
+    let (temp_for_bar, unit_char) = match TEMPERATURE_TYPE {
+        TemperatureType::Fahrenheit => (((temp as f32 - 32.0) / 1.8) as u8, 'F'),
+        TemperatureType::Celsius => (temp, 'C'),
     };
     let color = temp_threshold_color(temp_for_bar);
-    let unit_char = if TEMPERATURE_TYPE == FAHRENHEIT { 'F' } else { 'C' };
     let buf = format!("{:3}{}", temp, unit_char);
-    let bar_val = if temp_for_bar > 100 { 100 } else { temp_for_bar };
+    let bar_val = temp_for_bar.min(100);
     draw_metric(lcd, 84, 34, "TEMP:", &buf, bar_val, color);
 
     // Disk metric
