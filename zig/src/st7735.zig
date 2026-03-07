@@ -77,17 +77,15 @@ fn i2cWriteCommand(command: u8, high: u8, low: u8) void {
 }
 
 fn i2cBurstTransfer(buff: []const u8) void {
-    var count: u32 = 0;
-    const length: u32 = @intCast(buff.len);
+    var count: usize = 0;
     i2cWriteCommand(BURST_WRITE_REG, 0x00, 0x01);
-    while (length > count) {
-        const remaining = length - count;
-        const chunk: u32 = if (remaining > BURST_MAX_LENGTH) BURST_MAX_LENGTH else remaining;
+    while (count < buff.len) {
+        const chunk = @min(buff.len - count, BURST_MAX_LENGTH);
         const written = posix.write(i2c_fd, buff[count .. count + chunk]) catch |err| {
             log.err("burst write failed at offset {}: {}", .{ count, err });
             break;
         };
-        count += @intCast(written);
+        count += written;
         std.time.sleep(700 * std.time.ns_per_us);
     }
     i2cWriteCommand(BURST_WRITE_REG, 0x00, 0x00);
@@ -126,14 +124,12 @@ pub fn fillRectangle(x: u16, y: u16, w_in: u16, h_in: u16, color_val: u16) void 
     );
 
     var buff: [320]u8 = undefined;
-    var i: u16 = 0;
-    while (i < w) : (i += 1) {
+    for (0..w) |i| {
         buff[i * 2] = @intCast(color_val >> 8);
         buff[i * 2 + 1] = @intCast(color_val & 0xFF);
     }
     const slice = buff[0 .. @as(usize, w) * 2];
-    var row: u16 = h;
-    while (row > 0) : (row -= 1) {
+    for (0..h) |_| {
         i2cBurstTransfer(slice);
     }
 }
@@ -144,8 +140,7 @@ pub fn fillScreen(color_val: u16) void {
 }
 
 pub fn drawBar(x: u16, y: u16, w: u16, h: u16, val: u8, color_val: u16) void {
-    var filled: u16 = @as(u16, val) * w / 100;
-    if (filled > w) filled = w;
+    const filled: u16 = @min(@as(u16, val) * w / 100, w);
     if (filled > 0) fillRectangle(x, y, filled, h, color_val);
     if (filled < w) fillRectangle(x + filled, y, w - filled, h, GRAY);
 }
@@ -156,11 +151,9 @@ fn writeChar(x: u16, y: u16, ch: u8, font: fonts.FontDef, color_val: u16, bgcolo
 
     const char_idx: usize = if (ch >= 32) ch - 32 else 0;
 
-    var i: usize = 0;
-    while (i < font.height) : (i += 1) {
+    for (0..font.height) |i| {
         const b: u16 = font.data[char_idx * font.height + i];
-        var j: usize = 0;
-        while (j < font.width) : (j += 1) {
+        for (0..font.width) |j| {
             const idx = (i * font.width + j) * 2;
             const shifted: u16 = b << @intCast(j);
             const c: u16 = if ((shifted & 0x8000) != 0) color_val else bgcolor;

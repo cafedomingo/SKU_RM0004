@@ -136,12 +136,11 @@ impl Lcd {
         self.set_address_window(x as u8, y as u8, (x + w - 1) as u8, (y + h - 1) as u8);
 
         let mut buff = [0u8; 320];
-        for i in 0..w as usize {
-            buff[i * 2] = (color >> 8) as u8;
-            buff[i * 2 + 1] = (color & 0xFF) as u8;
+        let row_bytes = w as usize * 2;
+        for chunk in buff[..row_bytes].chunks_exact_mut(2) {
+            chunk[0] = (color >> 8) as u8;
+            chunk[1] = (color & 0xFF) as u8;
         }
-
-        let row_bytes = (w as usize) * 2;
         for _ in 0..h {
             self.i2c_burst_transfer(&buff[..row_bytes]);
         }
@@ -155,10 +154,7 @@ impl Lcd {
 
     /// Draw a progress bar with a filled portion and gray remainder.
     pub fn draw_bar(&mut self, x: u16, y: u16, w: u16, h: u16, val: u8, color: u16) {
-        let mut filled = val as u16 * w / 100;
-        if filled > w {
-            filled = w;
-        }
+        let filled = (val as u16 * w / 100).min(w);
         if filled > 0 {
             self.fill_rectangle(x, y, filled, h, color);
         }
