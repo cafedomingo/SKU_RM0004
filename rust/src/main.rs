@@ -11,7 +11,7 @@ use std::time::Duration;
 fn main() {
     eprintln!("display: starting (refresh every {}s)", REFRESH_INTERVAL_SECS);
 
-    let lcd = match st7735::Lcd::begin() {
+    let mut lcd = match st7735::Lcd::begin() {
         Ok(lcd) => lcd,
         Err(()) => {
             eprintln!("display: lcd_begin failed, exiting");
@@ -24,7 +24,7 @@ fn main() {
     let mut cpu_tracker = rpi_info::CpuTracker::new();
 
     loop {
-        dashboard::display_dashboard(&lcd, &mut cpu_tracker);
+        dashboard::display_dashboard(&mut lcd, &mut cpu_tracker);
         thread::sleep(Duration::from_secs(REFRESH_INTERVAL_SECS));
     }
 }

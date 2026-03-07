@@ -111,17 +111,18 @@ pub fn get_ram_percent() -> u8 {
 }
 
 fn get_sd_memory() -> (u32, u32) {
-    let mut info: libc::statfs = unsafe { std::mem::zeroed() };
-    let path = std::ffi::CString::new("/").unwrap();
-    let ret = unsafe { libc::statfs(path.as_ptr(), &mut info) };
-    if ret != 0 {
-        eprintln!("rpiInfo: statfs(\"/\") failed");
-        return (0, 0);
+    match nix::sys::statfs::statfs("/") {
+        Ok(info) => {
+            let block = info.block_size() as u64;
+            let total = block * info.blocks() as u64;
+            let used = total - block * info.blocks_free() as u64;
+            ((total >> 30) as u32, (used >> 30) as u32)
+        }
+        Err(_) => {
+            eprintln!("rpiInfo: statfs(\"/\") failed");
+            (0, 0)
+        }
     }
-    let block = info.f_bsize as u64;
-    let total = block * info.f_blocks;
-    let used = total - block * info.f_bfree;
-    ((total >> 30) as u32, (used >> 30) as u32)
 }
 
 fn get_hard_disk_memory() -> (u32, u32) {
@@ -142,13 +143,10 @@ fn get_hard_disk_memory() -> (u32, u32) {
             let device = parts[0];
             let mountpoint = parts[1];
             if device.starts_with("/dev/sda") || device.starts_with("/dev/nvme") {
-                let mp = std::ffi::CString::new(mountpoint).unwrap();
-                let mut info: libc::statfs = unsafe { std::mem::zeroed() };
-                let ret = unsafe { libc::statfs(mp.as_ptr(), &mut info) };
-                if ret == 0 {
-                    let block = info.f_bsize as u64;
-                    let total = block * info.f_blocks;
-                    let used = total - block * info.f_bfree;
+                if let Ok(info) = nix::sys::statfs::statfs(mountpoint) {
+                    let block = info.block_size() as u64;
+                    let total = block * info.blocks() as u64;
+                    let used = total - block * info.blocks_free() as u64;
                     total_gib += (total >> 30) as u32;
                     used_gib += (used >> 30) as u32;
                 }
@@ -278,14 +276,10 @@ impl CpuTracker {
 
 /// Get the system hostname.
 pub fn get_hostname() -> String {
-    let mut buf = [0u8; 65];
-    let ret = unsafe { libc::gethostname(buf.as_mut_ptr() as *mut libc::c_char, buf.len()) };
-    if ret != 0 {
-        return "unknown".to_string();
+    match nix::sys::utsname::uname() {
+        Ok(info) => info.nodename().to_string_lossy().into_owned(),
+        Err(_) => "unknown".to_string(),
     }
-    // Find null terminator
-    let len = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
-    String::from_utf8_lossy(&buf[..len]).into_owned()
 }
 
 /// Check DietPi update status.

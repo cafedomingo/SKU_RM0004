@@ -2,7 +2,8 @@
 
 use crate::fonts::FontDef;
 use std::fs::OpenOptions;
-use std::os::unix::io::{AsRawFd, RawFd};
+use std::io::Write;
+use std::os::unix::io::AsRawFd;
 use std::thread;
 use std::time::Duration;
 
@@ -50,9 +51,7 @@ pub const fn color565(r: u8, g: u8, b: u8) -> u16 {
 
 /// ST7735 LCD display driver communicating over I2C.
 pub struct Lcd {
-    fd: RawFd,
-    /// Keep the file alive so the fd stays valid.
-    _file: std::fs::File,
+    file: std::fs::File,
 }
 
 impl Lcd {
@@ -66,57 +65,43 @@ impl Lcd {
                 eprintln!("Device I2C-1 failed to initialize");
             })?;
 
-        let fd = file.as_raw_fd();
-
         // SAFETY: ioctl to set I2C slave address. The fd is valid and open.
-        let ret = unsafe { libc::ioctl(fd, I2C_SLAVE_FORCE, I2C_ADDRESS) };
+        let ret = unsafe { libc::ioctl(file.as_raw_fd(), I2C_SLAVE_FORCE, I2C_ADDRESS) };
         if ret < 0 {
             eprintln!("st7735: ioctl I2C_SLAVE_FORCE failed");
             return Err(());
         }
 
-        Ok(Lcd { fd, _file: file })
+        Ok(Lcd { file })
     }
 
-    #[allow(dead_code)]
-    fn i2c_write_data(&self, high: u8, low: u8) {
-        let msg: [u8; 3] = [WRITE_DATA_REG, high, low];
-        let written = unsafe { libc::write(self.fd, msg.as_ptr() as *const libc::c_void, 3) };
-        if written != 3 {
-            eprintln!("st7735: i2c_write_data failed");
+    fn i2c_write(&mut self, buf: &[u8]) {
+        if self.file.write_all(buf).is_err() {
+            eprintln!("st7735: i2c write failed");
         }
         thread::sleep(Duration::from_micros(10));
     }
 
-    fn i2c_write_command(&self, command: u8, high: u8, low: u8) {
-        let msg: [u8; 3] = [command, high, low];
-        let written = unsafe { libc::write(self.fd, msg.as_ptr() as *const libc::c_void, 3) };
-        if written != 3 {
-            eprintln!("st7735: i2c_write_command failed");
-        }
-        thread::sleep(Duration::from_micros(10));
+    fn i2c_write_command(&mut self, command: u8, high: u8, low: u8) {
+        self.i2c_write(&[command, high, low]);
     }
 
-    fn i2c_burst_transfer(&self, buff: &[u8]) {
+    fn i2c_burst_transfer(&mut self, buff: &[u8]) {
         let length = buff.len();
         let mut count: usize = 0;
 
         self.i2c_write_command(BURST_WRITE_REG, 0x00, 0x01);
 
         while length > count {
-            let chunk = if (length - count) > BURST_MAX_LENGTH {
-                BURST_MAX_LENGTH
-            } else {
-                length - count
-            };
+            let chunk = (length - count).min(BURST_MAX_LENGTH);
 
-            let written = unsafe { libc::write(self.fd, buff[count..].as_ptr() as *const libc::c_void, chunk) };
-
-            if written < 0 {
-                eprintln!("st7735: burst write failed at offset {}", count);
-                break;
+            match self.file.write(&buff[count..count + chunk]) {
+                Ok(written) => count += written,
+                Err(_) => {
+                    eprintln!("st7735: burst write failed at offset {}", count);
+                    break;
+                }
             }
-            count += written as usize;
             thread::sleep(Duration::from_micros(700));
         }
 
@@ -124,20 +109,20 @@ impl Lcd {
         self.i2c_write_command(SYNC_REG, 0x00, 0x01);
     }
 
-    fn set_address_window(&self, x0: u8, y0: u8, x1: u8, y1: u8) {
+    fn set_address_window(&mut self, x0: u8, y0: u8, x1: u8, y1: u8) {
         self.i2c_write_command(X_COORDINATE_REG, x0.wrapping_add(X_START), x1.wrapping_add(X_START));
         self.i2c_write_command(Y_COORDINATE_REG, y0.wrapping_add(Y_START), y1.wrapping_add(Y_START));
         self.i2c_write_command(CHAR_DATA_REG, 0x00, 0x00);
         self.i2c_write_command(SYNC_REG, 0x00, 0x01);
     }
 
-    fn draw_image(&self, x: u16, y: u16, w: u16, h: u16, data: &[u8]) {
+    fn draw_image(&mut self, x: u16, y: u16, w: u16, h: u16, data: &[u8]) {
         self.set_address_window(x as u8, y as u8, (x + w - 1) as u8, (y + h - 1) as u8);
         self.i2c_burst_transfer(&data[..((w * h * 2) as usize).min(data.len())]);
     }
 
     /// Fill a rectangle with a solid color.
-    pub fn fill_rectangle(&self, x: u16, y: u16, mut w: u16, mut h: u16, color: u16) {
+    pub fn fill_rectangle(&mut self, x: u16, y: u16, mut w: u16, mut h: u16, color: u16) {
         if x >= WIDTH || y >= HEIGHT {
             return;
         }
@@ -163,13 +148,13 @@ impl Lcd {
     }
 
     /// Fill the entire screen with a solid color.
-    pub fn fill_screen(&self, color: u16) {
+    pub fn fill_screen(&mut self, color: u16) {
         self.fill_rectangle(0, 0, WIDTH, HEIGHT, color);
         self.i2c_write_command(SYNC_REG, 0x00, 0x01);
     }
 
     /// Draw a progress bar with a filled portion and gray remainder.
-    pub fn draw_bar(&self, x: u16, y: u16, w: u16, h: u16, val: u8, color: u16) {
+    pub fn draw_bar(&mut self, x: u16, y: u16, w: u16, h: u16, val: u8, color: u16) {
         let mut filled = val as u16 * w / 100;
         if filled > w {
             filled = w;
@@ -182,7 +167,7 @@ impl Lcd {
         }
     }
 
-    fn write_char(&self, x: u16, y: u16, ch: char, font: FontDef, color: u16, bgcolor: u16) {
+    fn write_char(&mut self, x: u16, y: u16, ch: char, font: FontDef, color: u16, bgcolor: u16) {
         let ch_idx = ch as usize;
         if !(32..=126).contains(&ch_idx) {
             return;
@@ -205,7 +190,7 @@ impl Lcd {
     }
 
     /// Write a string to the display at the given position.
-    pub fn write_string(&self, mut x: u16, mut y: u16, s: &str, font: FontDef, color: u16, bgcolor: u16) {
+    pub fn write_string(&mut self, mut x: u16, mut y: u16, s: &str, font: FontDef, color: u16, bgcolor: u16) {
         for ch in s.chars() {
             if x + font.width as u16 >= WIDTH {
                 x = 0;

@@ -102,27 +102,9 @@ const StatfsResult = struct {
     used_gib: u32,
 };
 
-// Linux statfs64 struct for aarch64
-const Statfs = extern struct {
-    f_type: i64,
-    f_bsize: i64,
-    f_blocks: u64,
-    f_bfree: u64,
-    f_bavail: u64,
-    f_files: u64,
-    f_ffree: u64,
-    f_fsid: [2]i32,
-    f_namelen: i64,
-    f_frsize: i64,
-    f_flags: i64,
-    f_spare: [4]i64,
-};
-
 fn doStatfs(path: [*:0]const u8) ?StatfsResult {
-    var info: Statfs = undefined;
-    // Use raw syscall: SYS_statfs on aarch64 is 43
-    const ret = linux.syscall2(.statfs, @intFromPtr(path), @intFromPtr(&info));
-    if (@as(isize, @bitCast(ret)) != 0) return null;
+    var info: linux.Statfs = undefined;
+    if (linux.statfs(path, &info) != 0) return null;
 
     const block: u64 = @intCast(info.f_bsize);
     const total_bytes: u64 = block * info.f_blocks;
