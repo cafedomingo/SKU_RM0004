@@ -21,62 +21,37 @@ pub fn get_ip_address() -> String {
         }
     };
 
-    let mut default_iface = None;
-    for line in route_contents.lines().skip(1) {
-        let mut fields = line.split_whitespace();
-        let iface_name = fields.next();
-        let dest = fields.next();
-        if dest == Some("00000000") {
-            default_iface = iface_name.map(str::to_string);
-            break;
-        }
-    }
+    let iface_name = route_contents
+        .lines()
+        .skip(1)
+        .find_map(|line| {
+            let mut fields = line.split_whitespace();
+            let name = fields.next()?;
+            if fields.next() == Some("00000000") { Some(name) } else { None }
+        });
 
-    let iface = match default_iface {
-        Some(i) => i,
+    let iface_name = match iface_name {
+        Some(name) => name,
         None => return "no network".to_string(),
     };
 
-    // Use ioctl SIOCGIFADDR to get the interface IP address
-    let fd = unsafe { libc::socket(libc::AF_INET, libc::SOCK_DGRAM, 0) };
-    if fd < 0 {
-        return "no network".to_string();
+    // Look up the interface's IPv4 address using getifaddrs
+    let addrs = match nix::ifaddrs::getifaddrs() {
+        Ok(a) => a,
+        Err(_) => return "no network".to_string(),
+    };
+
+    for ifaddr in addrs {
+        if ifaddr.interface_name == iface_name {
+            if let Some(addr) = ifaddr.address {
+                if let Some(sin) = addr.as_sockaddr_in() {
+                    return std::net::Ipv4Addr::from(sin.ip()).to_string();
+                }
+            }
+        }
     }
 
-    let mut ifr: libc::ifreq = unsafe { std::mem::zeroed() };
-    let iface_bytes = iface.as_bytes();
-    let copy_len = iface_bytes.len().min(libc::IFNAMSIZ - 1);
-    unsafe {
-        std::ptr::copy_nonoverlapping(iface_bytes.as_ptr(), ifr.ifr_name.as_mut_ptr() as *mut u8, copy_len);
-    }
-    ifr.ifr_ifru = unsafe { std::mem::zeroed() };
-    // Set sa_family to AF_INET
-    unsafe {
-        let addr_ptr = &mut ifr.ifr_ifru as *mut _ as *mut libc::sockaddr_in;
-        (*addr_ptr).sin_family = libc::AF_INET as libc::sa_family_t;
-    }
-
-    let ret = unsafe { libc::ioctl(fd, libc::SIOCGIFADDR, &mut ifr) };
-    unsafe {
-        libc::close(fd);
-    }
-
-    if ret != 0 {
-        return "no network".to_string();
-    }
-
-    unsafe {
-        let addr_ptr = &ifr.ifr_ifru as *const _ as *const libc::sockaddr_in;
-        let ip_addr = (*addr_ptr).sin_addr;
-        let raw = u32::from_be(ip_addr.s_addr);
-        format!(
-            "{}.{}.{}.{}",
-            (raw >> 24) & 0xFF,
-            (raw >> 16) & 0xFF,
-            (raw >> 8) & 0xFF,
-            raw & 0xFF
-        )
-    }
+    "no network".to_string()
 }
 
 /// Get RAM usage as a percentage (0-100).
