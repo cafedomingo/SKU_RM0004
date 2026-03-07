@@ -8,10 +8,6 @@ pub const TemperatureType = enum { celsius, fahrenheit };
 pub const temperature_type: TemperatureType = .celsius;
 pub const refresh_interval_secs: u64 = 5;
 
-fn hasPrefix(s: []const u8, prefix: []const u8) bool {
-    return std.mem.startsWith(u8, s, prefix);
-}
-
 pub fn getIpAddress() []const u8 {
     const StaticBuf = struct {
         var iface_buf: [64]u8 = undefined;
@@ -140,7 +136,7 @@ fn getHardDiskMemory() StatfsResult {
         const device = iter.next() orelse continue;
         const mountpoint = iter.next() orelse continue;
 
-        if (hasPrefix(device, "/dev/sda") or hasPrefix(device, "/dev/nvme")) {
+        if (std.mem.startsWith(u8, device, "/dev/sda") or std.mem.startsWith(u8, device, "/dev/nvme")) {
             // Need null-terminated string for statfs syscall
             var mp_buf: [256]u8 = undefined;
             if (mountpoint.len >= mp_buf.len) continue;
@@ -166,8 +162,7 @@ pub fn getDiskPercent() u8 {
     const used = sd.used_gib + disk.used_gib;
 
     if (total == 0) return 0;
-    const pct = used * 100 / total;
-    return @intCast(if (pct > 100) 100 else pct);
+    return @intCast(@min(used * 100 / total, 100));
 }
 
 pub fn getTemperature() u8 {

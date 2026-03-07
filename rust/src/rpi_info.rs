@@ -4,9 +4,9 @@ use std::fs;
 use std::path::Path;
 
 /// Temperature unit configuration.
-pub const CELSIUS: u8 = 0;
-pub const FAHRENHEIT: u8 = 1;
-pub const TEMPERATURE_TYPE: u8 = CELSIUS;
+#[derive(Clone, Copy, PartialEq)]
+pub enum TemperatureType { Celsius, Fahrenheit }
+pub const TEMPERATURE_TYPE: TemperatureType = TemperatureType::Celsius;
 
 /// Dashboard refresh interval in seconds.
 pub const REFRESH_INTERVAL_SECS: u64 = 5;
@@ -43,10 +43,8 @@ pub fn get_ip_address() -> String {
 
     for ifaddr in addrs {
         if ifaddr.interface_name == iface_name {
-            if let Some(addr) = ifaddr.address {
-                if let Some(sin) = addr.as_sockaddr_in() {
-                    return std::net::Ipv4Addr::from(sin.ip()).to_string();
-                }
+            if let Some(sin) = ifaddr.address.as_ref().and_then(|a| a.as_sockaddr_in()) {
+                return std::net::Ipv4Addr::from(sin.ip()).to_string();
             }
         }
     }
@@ -161,10 +159,9 @@ pub fn get_temperature() -> u8 {
     };
 
     let celsius = millideg / 1000;
-    if TEMPERATURE_TYPE == FAHRENHEIT {
-        (celsius * 9 / 5 + 32) as u8
-    } else {
-        celsius as u8
+    match TEMPERATURE_TYPE {
+        TemperatureType::Fahrenheit => (celsius * 9 / 5 + 32) as u8,
+        TemperatureType::Celsius => celsius as u8,
     }
 }
 

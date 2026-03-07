@@ -30,7 +30,6 @@ fn drawMetric(x: u16, y: u16, label: []const u8, value: []const u8, bar_pct: u8,
 
 pub fn displayDashboard() void {
     var buf: [24]u8 = undefined;
-    var host_buf: [17]u8 = undefined;
 
     const cpu_percent = rpi.getCpuPercent();
     const ram_percent = rpi.getRamPercent();
@@ -42,10 +41,7 @@ pub fn displayDashboard() void {
     const apt_count = rpi.getAptUpdateCount();
 
     // Hostname (truncated to 16 chars)
-    const host_len = @min(hostname.len, 16);
-    @memcpy(host_buf[0..host_len], hostname[0..host_len]);
-    host_buf[host_len] = 0;
-    lcd.writeString(2, 0, host_buf[0..host_len], fonts.Font_8x16, lcd.WHITE, lcd.BLACK);
+    lcd.writeString(2, 0, hostname[0..@min(hostname.len, 16)], fonts.Font_8x16, lcd.WHITE, lcd.BLACK);
 
     // IP address
     lcd.writeString(2, 18, ip, fonts.Font_7x10, lcd.VIOLET, lcd.BLACK);
