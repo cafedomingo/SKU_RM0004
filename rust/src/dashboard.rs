@@ -33,7 +33,7 @@ fn temp_threshold_color(celsius: u8) -> u16 {
     }
 }
 
-fn draw_metric(lcd: &Lcd, x: u16, y: u16, label: &str, value: &str, bar_pct: u8, color: u16) {
+fn draw_metric(lcd: &mut Lcd, x: u16, y: u16, label: &str, value: &str, bar_pct: u8, color: u16) {
     let val_x = x + METRIC_BAR_WIDTH - (value.len() as u16) * FONT_7X10.width as u16;
     lcd.write_string(x, y, label, FONT_7X10, st7735::WHITE, st7735::BLACK);
     lcd.write_string(val_x, y, value, FONT_7X10, color, st7735::BLACK);
@@ -41,7 +41,7 @@ fn draw_metric(lcd: &Lcd, x: u16, y: u16, label: &str, value: &str, bar_pct: u8,
 }
 
 /// Render the full dashboard to the LCD display.
-pub fn display_dashboard(lcd: &Lcd, cpu_tracker: &mut CpuTracker) {
+pub fn display_dashboard(lcd: &mut Lcd, cpu_tracker: &mut CpuTracker) {
     let cpu_percent = cpu_tracker.get_cpu_percent();
     let ram_percent = rpi_info::get_ram_percent();
     let temp = rpi_info::get_temperature();
