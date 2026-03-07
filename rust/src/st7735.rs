@@ -26,9 +26,10 @@ pub const WHITE: u16 = 0xFFFF;
 pub const YELLOW: u16 = 0xFFE0;
 
 // I2C constants
-const I2C_ADDRESS: u64 = 0x18;
-const I2C_SLAVE_FORCE: u64 = 0x0706;
+const I2C_ADDRESS: u16 = 0x18;
 const BURST_MAX_LENGTH: usize = 160;
+
+nix::ioctl_write_int_bad!(i2c_set_slave_force, 0x0706);
 
 // Register addresses
 const X_COORDINATE_REG: u8 = 0x2A;
@@ -65,12 +66,10 @@ impl Lcd {
                 eprintln!("Device I2C-1 failed to initialize");
             })?;
 
-        // SAFETY: ioctl to set I2C slave address. The fd is valid and open.
-        let ret = unsafe { libc::ioctl(file.as_raw_fd(), I2C_SLAVE_FORCE, I2C_ADDRESS) };
-        if ret < 0 {
+        // SAFETY: The fd is a valid, open I2C device file.
+        unsafe { i2c_set_slave_force(file.as_raw_fd(), I2C_ADDRESS as _) }.map_err(|_| {
             eprintln!("st7735: ioctl I2C_SLAVE_FORCE failed");
-            return Err(());
-        }
+        })?;
 
         Ok(Lcd { file })
     }
