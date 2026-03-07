@@ -1,6 +1,7 @@
 /*
  * UCTRONICS ST7735 LCD display driver for Raspberry Pi
  */
+#include "dashboard.h"
 #include "rpiInfo.h"
 #include "st7735.h"
 #include <stdio.h>
