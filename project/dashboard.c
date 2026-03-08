@@ -94,12 +94,13 @@ void lcd_display_dashboard(void) {
     snprintf(buf, sizeof(buf), "%3d%%", ramPercent);
     draw_metric(2, 56, "RAM:", buf, ramPercent, color);
 
-    /* Temperature — integer-only F→C back-conversion for bar display */
-    uint8_t tempForBar = temp;
-    if (TEMPERATURE_TYPE == FAHRENHEIT) tempForBar = (uint8_t)((temp > 32 ? temp - 32 : 0) * 10 / 18);
-    color = temp_threshold_color(tempForBar);
-    snprintf(buf, sizeof(buf), "%3d%c", temp, TEMPERATURE_TYPE == FAHRENHEIT ? 'F' : 'C');
-    draw_metric(84, 34, "TEMP:", buf, tempForBar > 100 ? 100 : tempForBar, color);
+    /* Temperature — always Celsius internally, convert to F only for display */
+    color = temp_threshold_color(temp);
+    if (TEMPERATURE_TYPE == FAHRENHEIT)
+        snprintf(buf, sizeof(buf), "%3dF", (int)temp * 9 / 5 + 32);
+    else
+        snprintf(buf, sizeof(buf), "%3dC", temp);
+    draw_metric(84, 34, "TEMP:", buf, temp > 100 ? 100 : temp, color);
 
     /* Disk */
     color = threshold_color(diskPercent);
