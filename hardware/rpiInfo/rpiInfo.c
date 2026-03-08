@@ -164,7 +164,8 @@ char *get_ip_address(void) {
 /*
  * Get network bandwidth usage on the default-route interface.
  * Delta-based: first call returns zeros, subsequent calls return
- * bytes/sec. Resets if the active interface changes between calls.
+ * bytes/sec. Resets if the active interface changes between calls
+ * or if counters regress (driver/link reset).
  */
 net_bandwidth_t get_net_bandwidth(void) {
     static unsigned long long prev_rx = 0, prev_tx = 0;
@@ -179,8 +180,6 @@ net_bandwidth_t get_net_bandwidth(void) {
     if (strcmp(iface, prev_iface) != 0) {
         strncpy(prev_iface, iface, sizeof(prev_iface) - 1);
         prev_iface[sizeof(prev_iface) - 1] = '\0';
-        prev_rx = 0;
-        prev_tx = 0;
         prev_time = (struct timespec){0, 0};
     }
 

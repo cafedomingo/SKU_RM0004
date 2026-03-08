@@ -33,6 +33,7 @@ clean:
 TEST_BIN := $(OBJ)/test_rpiInfo
 TEST_CC  := gcc
 
+.PHONY: test
 test: $(TEST_BIN)
 	./$(TEST_BIN)
 
