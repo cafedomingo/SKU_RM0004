@@ -23,7 +23,14 @@ net_bandwidth_t get_net_bandwidth(void);
 
 /* ── CPU ─────────────────────────────────────────────────────────── */
 
+typedef struct {
+    uint16_t cur_mhz;
+    uint16_t min_mhz;
+    uint16_t max_mhz;
+} cpu_freq_t;
+
 uint8_t get_cpu_percent(void);
+cpu_freq_t get_cpu_freq(void);
 
 /* ── Disk ────────────────────────────────────────────────────────── */
 

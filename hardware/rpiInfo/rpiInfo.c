@@ -65,6 +65,17 @@ static int read_cpu_stat(unsigned long long *idle, unsigned long long *total) {
     return 0;
 }
 
+static int read_sysfs_ulong(const char *path, unsigned long *out) {
+    FILE *fp = fopen(path, "r");
+    if (!fp) return -1;
+    if (fscanf(fp, "%lu", out) != 1) {
+        fclose(fp);
+        return -1;
+    }
+    fclose(fp);
+    return 0;
+}
+
 static int read_net_counter(const char *iface, const char *counter, unsigned long long *out) {
     char path[128];
     snprintf(path, sizeof(path), "/sys/class/net/%s/statistics/%s", iface, counter);
@@ -194,6 +205,23 @@ uint8_t get_cpu_percent(void) {
 
     if (diff_total == 0) return 0;
     return (uint8_t)((100 * (diff_total - diff_idle) + diff_total / 2) / diff_total);
+}
+
+/*
+ * Get CPU frequency (current, min, max) in MHz
+ */
+cpu_freq_t get_cpu_freq(void) {
+    cpu_freq_t freq = {0, 0, 0};
+    unsigned long khz;
+
+    if (read_sysfs_ulong("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq", &khz) == 0)
+        freq.cur_mhz = (uint16_t)(khz / 1000);
+    if (read_sysfs_ulong("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq", &khz) == 0)
+        freq.min_mhz = (uint16_t)(khz / 1000);
+    if (read_sysfs_ulong("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq", &khz) == 0)
+        freq.max_mhz = (uint16_t)(khz / 1000);
+
+    return freq;
 }
 
 /* ── Disk ────────────────────────────────────────────────────────── */
