@@ -224,6 +224,21 @@ cpu_freq_t get_cpu_freq(void) {
     return freq;
 }
 
+/*
+ * Get CPU throttle status as a bitmask (see THROTTLE_* in rpiInfo.h)
+ */
+uint32_t get_cpu_throttle_status(void) {
+    FILE *fp = fopen("/sys/devices/platform/soc/soc:firmware/get_throttled", "r");
+    if (!fp) {
+        fprintf(stderr, "rpiInfo: failed to open get_throttled\n");
+        return 0;
+    }
+    unsigned int val = 0;
+    if (fscanf(fp, "%x", &val) != 1) val = 0;
+    fclose(fp);
+    return (uint32_t)val;
+}
+
 /* ── Disk ────────────────────────────────────────────────────────── */
 
 /*

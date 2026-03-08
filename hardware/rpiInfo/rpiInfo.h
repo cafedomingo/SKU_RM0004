@@ -29,8 +29,24 @@ typedef struct {
     uint16_t max_mhz;
 } cpu_freq_t;
 
+/* Throttle status bitmask — current conditions (bits 0-3) */
+#define THROTTLE_UNDERVOLTAGE    (1 << 0) /* Under-voltage detected */
+#define THROTTLE_FREQ_CAPPED     (1 << 1) /* ARM frequency capped */
+#define THROTTLE_THROTTLED       (1 << 2) /* Currently throttled */
+#define THROTTLE_SOFT_TEMP_LIMIT (1 << 3) /* Soft temperature limit active */
+
+/* Throttle status bitmask — has occurred since boot (bits 16-19) */
+#define THROTTLE_UNDERVOLTAGE_PAST    (1 << 16) /* Under-voltage has occurred */
+#define THROTTLE_FREQ_CAPPED_PAST     (1 << 17) /* Frequency capping has occurred */
+#define THROTTLE_THROTTLED_PAST       (1 << 18) /* Throttling has occurred */
+#define THROTTLE_SOFT_TEMP_LIMIT_PAST (1 << 19) /* Soft temp limit has occurred */
+
+#define THROTTLE_CURRENT_MASK 0x0000000F
+#define THROTTLE_PAST_MASK    0x000F0000
+
 uint8_t get_cpu_percent(void);
 cpu_freq_t get_cpu_freq(void);
+uint32_t get_cpu_throttle_status(void);
 
 /* ── Disk ────────────────────────────────────────────────────────── */
 
