@@ -10,7 +10,32 @@
 #include <sys/vfs.h>
 #include <unistd.h>
 
+/* ── Helpers ─────────────────────────────────────────────────────── */
+
 static inline int has_prefix(const char *s, const char *prefix) { return strncmp(s, prefix, strlen(prefix)) == 0; }
+
+/*
+ * Read aggregate CPU idle and total ticks from /proc/stat
+ */
+static int read_cpu_stat(unsigned long long *idle, unsigned long long *total) {
+    unsigned long long user, nice, system, idle_val, iowait, irq, softirq, steal;
+    FILE *fp = fopen("/proc/stat", "r");
+    if (!fp) {
+        fprintf(stderr, "rpiInfo: failed to open /proc/stat\n");
+        return -1;
+    }
+    if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu", &user, &nice, &system, &idle_val, &iowait, &irq,
+               &softirq, &steal) != 8) {
+        fclose(fp);
+        return -1;
+    }
+    fclose(fp);
+    *idle = idle_val + iowait;
+    *total = user + nice + system + idle_val + iowait + irq + softirq + steal;
+    return 0;
+}
+
+/* ── Network ─────────────────────────────────────────────────────── */
 
 /*
  * Get the IP address of the default-route interface.
@@ -63,32 +88,34 @@ char *get_ip_address(void) {
     return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
 }
 
+/* ── CPU ─────────────────────────────────────────────────────────── */
+
 /*
- * Get RAM usage as a percentage (0-100)
+ * Get CPU usage as a percentage (0-100) via /proc/stat delta
  */
-uint8_t get_ram_percent(void) {
-    unsigned int value = 0;
-    unsigned int total = 0, avail = 0;
-    char buffer[128], label[32];
+uint8_t get_cpu_percent(void) {
+    static unsigned long long prev_idle = 0, prev_total = 0;
+    static int initialized = 0;
+    unsigned long long idle, total;
 
-    FILE *fp = fopen("/proc/meminfo", "r");
-    if (!fp) {
-        fprintf(stderr, "rpiInfo: failed to open /proc/meminfo\n");
-        return 0;
+    if (!initialized) {
+        if (read_cpu_stat(&prev_idle, &prev_total) != 0) return 0;
+        usleep(100000);
+        initialized = 1;
     }
 
-    while (fgets(buffer, sizeof(buffer), fp)) {
-        if (sscanf(buffer, "%31s %u", label, &value) != 2) continue;
-        if (strcmp(label, "MemTotal:") == 0)
-            total = value;
-        else if (strcmp(label, "MemAvailable:") == 0)
-            avail = value;
-    }
-    fclose(fp);
+    if (read_cpu_stat(&idle, &total) != 0) return 0;
 
-    if (total == 0) return 0;
-    return (uint8_t)((uint64_t)(total - avail) * 100 / total);
+    unsigned long long diff_idle = idle - prev_idle;
+    unsigned long long diff_total = total - prev_total;
+    prev_idle = idle;
+    prev_total = total;
+
+    if (diff_total == 0) return 0;
+    return (uint8_t)((100 * (diff_total - diff_idle) + diff_total / 2) / diff_total);
 }
+
+/* ── Disk ────────────────────────────────────────────────────────── */
 
 /*
  * Get SD card usage in GiB
@@ -157,6 +184,35 @@ uint8_t get_disk_percent(void) {
     return (uint8_t)(pct > 100 ? 100 : pct);
 }
 
+/* ── System ──────────────────────────────────────────────────────── */
+
+/*
+ * Get RAM usage as a percentage (0-100)
+ */
+uint8_t get_ram_percent(void) {
+    unsigned int value = 0;
+    unsigned int total = 0, avail = 0;
+    char buffer[128], label[32];
+
+    FILE *fp = fopen("/proc/meminfo", "r");
+    if (!fp) {
+        fprintf(stderr, "rpiInfo: failed to open /proc/meminfo\n");
+        return 0;
+    }
+
+    while (fgets(buffer, sizeof(buffer), fp)) {
+        if (sscanf(buffer, "%31s %u", label, &value) != 2) continue;
+        if (strcmp(label, "MemTotal:") == 0)
+            total = value;
+        else if (strcmp(label, "MemAvailable:") == 0)
+            avail = value;
+    }
+    fclose(fp);
+
+    if (total == 0) return 0;
+    return (uint8_t)((uint64_t)(total - avail) * 100 / total);
+}
+
 /*
  * Get CPU temperature in Celsius.
  */
@@ -180,52 +236,6 @@ uint8_t get_temperature(void) {
 }
 
 /*
- * Read aggregate CPU idle and total ticks from /proc/stat
- */
-static int read_cpu_stat(unsigned long long *idle, unsigned long long *total) {
-    unsigned long long user, nice, system, idle_val, iowait, irq, softirq, steal;
-    FILE *fp = fopen("/proc/stat", "r");
-    if (!fp) {
-        fprintf(stderr, "rpiInfo: failed to open /proc/stat\n");
-        return -1;
-    }
-    if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu", &user, &nice, &system, &idle_val, &iowait, &irq,
-               &softirq, &steal) != 8) {
-        fclose(fp);
-        return -1;
-    }
-    fclose(fp);
-    *idle = idle_val + iowait;
-    *total = user + nice + system + idle_val + iowait + irq + softirq + steal;
-    return 0;
-}
-
-/*
- * Get CPU usage as a percentage (0-100) via /proc/stat delta
- */
-uint8_t get_cpu_percent(void) {
-    static unsigned long long prev_idle = 0, prev_total = 0;
-    static int initialized = 0;
-    unsigned long long idle, total;
-
-    if (!initialized) {
-        if (read_cpu_stat(&prev_idle, &prev_total) != 0) return 0;
-        usleep(100000);
-        initialized = 1;
-    }
-
-    if (read_cpu_stat(&idle, &total) != 0) return 0;
-
-    unsigned long long diff_idle = idle - prev_idle;
-    unsigned long long diff_total = total - prev_total;
-    prev_idle = idle;
-    prev_total = total;
-
-    if (diff_total == 0) return 0;
-    return (uint8_t)((100 * (diff_total - diff_idle) + diff_total / 2) / diff_total);
-}
-
-/*
  * Get hostname
  */
 char *get_hostname(void) {
@@ -236,6 +246,8 @@ char *get_hostname(void) {
     hostname[sizeof(hostname) - 1] = '\0';
     return hostname;
 }
+
+/* ── DietPi ──────────────────────────────────────────────────────── */
 
 /*
  * Get DietPi core update status
