@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
+#include <time.h>
 #include <unistd.h>
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
@@ -64,6 +65,36 @@ static int read_cpu_stat(unsigned long long *idle, unsigned long long *total) {
     return 0;
 }
 
+static int read_net_counter(const char *iface, const char *counter, unsigned long long *out) {
+    char path[128];
+    snprintf(path, sizeof(path), "/sys/class/net/%s/statistics/%s", iface, counter);
+    FILE *fp = fopen(path, "r");
+    if (!fp) return -1;
+    if (fscanf(fp, "%llu", out) != 1) {
+        fclose(fp);
+        return -1;
+    }
+    fclose(fp);
+    return 0;
+}
+
+/*
+ * Get elapsed seconds since prev_time and update it
+ */
+static double get_elapsed_secs(struct timespec *prev_time) {
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    if (prev_time->tv_sec == 0 && prev_time->tv_nsec == 0) {
+        *prev_time = now;
+        return 0.0;
+    }
+
+    double elapsed = (now.tv_sec - prev_time->tv_sec) + (now.tv_nsec - prev_time->tv_nsec) / 1e9;
+    *prev_time = now;
+    return elapsed;
+}
+
 /* ── Network ─────────────────────────────────────────────────────── */
 
 /*
@@ -94,6 +125,48 @@ char *get_ip_address(void) {
     close(fd);
 
     return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+}
+
+/*
+ * Get network bandwidth usage on the default-route interface.
+ * Delta-based: first call returns zeros, subsequent calls return
+ * bytes/sec. Resets if the active interface changes between calls.
+ */
+net_bandwidth_t get_net_bandwidth(void) {
+    static unsigned long long prev_rx = 0, prev_tx = 0;
+    static struct timespec prev_time = {0, 0};
+    static char prev_iface[64] = "";
+    net_bandwidth_t result = {0, 0};
+
+    char iface[64];
+    if (get_default_iface(iface, sizeof(iface)) != 0) return result;
+
+    /* Reset state if the interface changed */
+    if (strcmp(iface, prev_iface) != 0) {
+        strncpy(prev_iface, iface, sizeof(prev_iface) - 1);
+        prev_iface[sizeof(prev_iface) - 1] = '\0';
+        prev_rx = 0;
+        prev_tx = 0;
+        prev_time = (struct timespec){0, 0};
+    }
+
+    unsigned long long rx, tx;
+    if (read_net_counter(iface, "rx_bytes", &rx) != 0) return result;
+    if (read_net_counter(iface, "tx_bytes", &tx) != 0) return result;
+
+    double elapsed = get_elapsed_secs(&prev_time);
+
+    if (elapsed <= 0.0 || rx < prev_rx || tx < prev_tx) {
+        prev_rx = rx;
+        prev_tx = tx;
+        return result;
+    }
+
+    result.rx_bytes_per_sec = (uint64_t)((rx - prev_rx) / elapsed);
+    result.tx_bytes_per_sec = (uint64_t)((tx - prev_tx) / elapsed);
+    prev_rx = rx;
+    prev_tx = tx;
+    return result;
 }
 
 /* ── CPU ─────────────────────────────────────────────────────────── */

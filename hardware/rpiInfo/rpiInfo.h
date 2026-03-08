@@ -13,7 +13,13 @@
 
 /* ── Network ─────────────────────────────────────────────────────── */
 
+typedef struct {
+    uint64_t rx_bytes_per_sec;
+    uint64_t tx_bytes_per_sec;
+} net_bandwidth_t;
+
 char *get_ip_address(void);
+net_bandwidth_t get_net_bandwidth(void);
 
 /* ── CPU ─────────────────────────────────────────────────────────── */
 
