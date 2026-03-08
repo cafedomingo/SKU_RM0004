@@ -50,7 +50,15 @@ uint32_t get_cpu_throttle_status(void);
 
 /* ── Disk ────────────────────────────────────────────────────────── */
 
+typedef struct {
+    uint64_t read_bytes_per_sec;
+    uint64_t write_bytes_per_sec;
+    uint32_t read_iops;
+    uint32_t write_iops;
+} disk_io_t;
+
 uint8_t get_disk_percent(void);
+disk_io_t get_disk_io(void);
 
 /* ── System ──────────────────────────────────────────────────────── */
 

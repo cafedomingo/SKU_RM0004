@@ -65,6 +65,28 @@ static int read_cpu_stat(unsigned long long *idle, unsigned long long *total) {
     return 0;
 }
 
+/*
+ * Check if a /proc/diskstats device name is a whole disk (not a partition).
+ * Matches: sda, sdb, mmcblk0, mmcblk1, nvme0n1, nvme1n1
+ * Rejects: sda1, mmcblk0p1, nvme0n1p1
+ */
+static int is_whole_disk(const char *name) {
+    size_t len = strlen(name);
+
+    /* sd[a-z] — exactly 3 chars */
+    if (len == 3 && name[0] == 's' && name[1] == 'd' && name[2] >= 'a' && name[2] <= 'z') return 1;
+
+    /* mmcblk[0-9] — exactly 7 chars */
+    if (len == 7 && has_prefix(name, "mmcblk") && name[6] >= '0' && name[6] <= '9') return 1;
+
+    /* nvme[0-9]n[0-9] — exactly 7 chars */
+    if (len == 7 && has_prefix(name, "nvme") && name[4] >= '0' && name[4] <= '9' && name[5] == 'n' && name[6] >= '0' &&
+        name[6] <= '9')
+        return 1;
+
+    return 0;
+}
+
 static int read_sysfs_ulong(const char *path, unsigned long *out) {
     FILE *fp = fopen(path, "r");
     if (!fp) return -1;
@@ -306,6 +328,69 @@ uint8_t get_disk_percent(void) {
     if (total == 0) return 0;
     uint32_t pct = used * 100 / total;
     return (uint8_t)(pct > 100 ? 100 : pct);
+}
+
+/*
+ * Get disk I/O throughput and IOPS aggregated across all disks.
+ * Delta-based: first call returns zeros, subsequent calls return
+ * rates per second. Resets on counter regression (device reset).
+ */
+disk_io_t get_disk_io(void) {
+    static unsigned long long prev_sectors_read = 0, prev_sectors_written = 0;
+    static unsigned long long prev_reads = 0, prev_writes = 0;
+    static struct timespec prev_time = {0, 0};
+    disk_io_t result = {0, 0, 0, 0};
+
+    unsigned long long tot_reads = 0, tot_sectors_read = 0;
+    unsigned long long tot_writes = 0, tot_sectors_written = 0;
+
+    FILE *fp = fopen("/proc/diskstats", "r");
+    if (!fp) {
+        fprintf(stderr, "rpiInfo: failed to open /proc/diskstats\n");
+        return result;
+    }
+
+    char line[256];
+    while (fgets(line, sizeof(line), fp)) {
+        unsigned int major, minor;
+        char name[64];
+        unsigned long long reads, reads_merged, sectors_r, ms_reading;
+        unsigned long long writes, writes_merged, sectors_w;
+
+        if (sscanf(line, " %u %u %63s %llu %llu %llu %llu %llu %llu %llu", &major, &minor, name, &reads, &reads_merged,
+                   &sectors_r, &ms_reading, &writes, &writes_merged, &sectors_w) < 10)
+            continue;
+
+        if (!is_whole_disk(name)) continue;
+
+        tot_reads += reads;
+        tot_sectors_read += sectors_r;
+        tot_writes += writes;
+        tot_sectors_written += sectors_w;
+    }
+    fclose(fp);
+
+    double elapsed = get_elapsed_secs(&prev_time);
+
+    if (elapsed <= 0.0 || tot_sectors_read < prev_sectors_read || tot_sectors_written < prev_sectors_written ||
+        tot_reads < prev_reads || tot_writes < prev_writes) {
+        prev_sectors_read = tot_sectors_read;
+        prev_sectors_written = tot_sectors_written;
+        prev_reads = tot_reads;
+        prev_writes = tot_writes;
+        return result;
+    }
+
+    result.read_bytes_per_sec = (uint64_t)(((tot_sectors_read - prev_sectors_read) * 512) / elapsed);
+    result.write_bytes_per_sec = (uint64_t)(((tot_sectors_written - prev_sectors_written) * 512) / elapsed);
+    result.read_iops = (uint32_t)((tot_reads - prev_reads) / elapsed);
+    result.write_iops = (uint32_t)((tot_writes - prev_writes) / elapsed);
+
+    prev_sectors_read = tot_sectors_read;
+    prev_sectors_written = tot_sectors_written;
+    prev_reads = tot_reads;
+    prev_writes = tot_writes;
+    return result;
 }
 
 /* ── System ──────────────────────────────────────────────────────── */
