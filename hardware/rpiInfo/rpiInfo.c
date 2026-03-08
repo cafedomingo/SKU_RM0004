@@ -15,6 +15,35 @@
 static inline int has_prefix(const char *s, const char *prefix) { return strncmp(s, prefix, strlen(prefix)) == 0; }
 
 /*
+ * Find the default-route network interface name
+ */
+static int get_default_iface(char *buf, size_t buflen) {
+    FILE *fp;
+    char line[256], iface[64], dest[16];
+
+    fp = fopen("/proc/net/route", "r");
+    if (!fp) {
+        fprintf(stderr, "rpiInfo: failed to open /proc/net/route\n");
+        return -1;
+    }
+    /* Skip header line */
+    if (fgets(line, sizeof(line), fp)) {
+        while (fgets(line, sizeof(line), fp)) {
+            if (sscanf(line, "%63s %15s", iface, dest) == 2) {
+                if (strcmp(dest, "00000000") == 0) {
+                    strncpy(buf, iface, buflen - 1);
+                    buf[buflen - 1] = '\0';
+                    fclose(fp);
+                    return 0;
+                }
+            }
+        }
+    }
+    fclose(fp);
+    return -1;
+}
+
+/*
  * Read aggregate CPU idle and total ticks from /proc/stat
  */
 static int read_cpu_stat(unsigned long long *idle, unsigned long long *total) {
@@ -45,38 +74,17 @@ static int read_cpu_stat(unsigned long long *idle, unsigned long long *total) {
  * Inspired by darkgrue/SKU_RM0004.
  */
 char *get_ip_address(void) {
-    FILE *fp;
-    char line[256], iface[64], dest[16];
-    char *default_iface = NULL;
+    char iface[64];
     int fd;
     struct ifreq ifr;
 
-    /* Find the interface that carries the default route */
-    fp = fopen("/proc/net/route", "r");
-    if (!fp) {
-        fprintf(stderr, "rpiInfo: failed to open /proc/net/route\n");
-        return "no network";
-    }
-    /* Skip header line */
-    if (fgets(line, sizeof(line), fp)) {
-        while (fgets(line, sizeof(line), fp)) {
-            if (sscanf(line, "%63s %15s", iface, dest) == 2) {
-                if (strcmp(dest, "00000000") == 0) {
-                    default_iface = iface;
-                    break;
-                }
-            }
-        }
-    }
-    fclose(fp);
-
-    if (!default_iface) return "no network";
+    if (get_default_iface(iface, sizeof(iface)) != 0) return "no network";
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) return "no network";
 
     ifr.ifr_addr.sa_family = AF_INET;
-    strncpy(ifr.ifr_name, default_iface, IFNAMSIZ - 1);
+    strncpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
     ifr.ifr_name[IFNAMSIZ - 1] = '\0';
 
     if (ioctl(fd, SIOCGIFADDR, &ifr) != 0) {
