@@ -159,7 +159,6 @@ uint8_t get_disk_percent(void) {
 
 /*
  * Get CPU temperature in Celsius.
- * Fahrenheit conversion is handled at display time in dashboard.c.
  */
 uint8_t get_temperature(void) {
     unsigned int millideg;

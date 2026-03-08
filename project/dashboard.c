@@ -94,7 +94,7 @@ void lcd_display_dashboard(void) {
     snprintf(buf, sizeof(buf), "%3d%%", ramPercent);
     draw_metric(2, 56, "RAM:", buf, ramPercent, color);
 
-    /* Temperature — always Celsius internally, convert to F only for display */
+    /* Temperature */
     color = temp_threshold_color(temp);
     if (TEMPERATURE_TYPE == FAHRENHEIT)
         snprintf(buf, sizeof(buf), "%3dF", (int)temp * 9 / 5 + 32);
