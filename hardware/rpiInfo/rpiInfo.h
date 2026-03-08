@@ -65,6 +65,7 @@ disk_io_t get_disk_io(void);
 uint8_t get_ram_percent(void);
 uint8_t get_temperature(void);
 char *get_hostname(void);
+uint32_t get_uptime_secs(void);
 
 /* ── DietPi ──────────────────────────────────────────────────────── */
 

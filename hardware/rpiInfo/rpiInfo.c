@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <sys/sysinfo.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
 #include <time.h>
@@ -454,6 +455,15 @@ char *get_hostname(void) {
     }
     hostname[sizeof(hostname) - 1] = '\0';
     return hostname;
+}
+
+/*
+ * Get system uptime in seconds
+ */
+uint32_t get_uptime_secs(void) {
+    struct sysinfo si;
+    if (sysinfo(&si) != 0) return 0;
+    return (uint32_t)si.uptime;
 }
 
 /* ── DietPi ──────────────────────────────────────────────────────── */
