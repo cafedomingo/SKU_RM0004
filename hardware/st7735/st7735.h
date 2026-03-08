@@ -32,6 +32,6 @@ extern void lcd_fill_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, u
 extern void lcd_fill_screen(uint16_t color);
 
 /* Text */
-extern void lcd_write_string(uint16_t x, uint16_t y, char *str, FontDef font, uint16_t color, uint16_t bgcolor);
+extern void lcd_write_string(uint16_t x, uint16_t y, const char *str, FontDef font, uint16_t color, uint16_t bgcolor);
 
 #endif /* __ST7735_H__ */

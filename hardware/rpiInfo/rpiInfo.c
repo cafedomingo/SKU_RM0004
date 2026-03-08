@@ -158,7 +158,7 @@ uint8_t get_disk_percent(void) {
 }
 
 /*
- * Get CPU temperature in configured units (C or F)
+ * Get CPU temperature in Celsius.
  */
 uint8_t get_temperature(void) {
     unsigned int millideg;
@@ -176,9 +176,7 @@ uint8_t get_temperature(void) {
     fclose(fp);
     if (sscanf(buf, "%u", &millideg) != 1) return 0;
 
-    unsigned int celsius = millideg / 1000;
-    if (TEMPERATURE_TYPE == FAHRENHEIT) return (uint8_t)(celsius * 9 / 5 + 32);
-    return (uint8_t)celsius;
+    return (uint8_t)(millideg / 1000);
 }
 
 /*
