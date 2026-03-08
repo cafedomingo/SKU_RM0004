@@ -85,13 +85,12 @@ pub fn display_dashboard(lcd: &mut Lcd, cpu_tracker: &mut CpuTracker) {
     draw_metric(lcd, 2, 56, "RAM:", &buf, ram_percent, color);
 
     // Temperature metric
-    let (temp_for_bar, unit_char) = match TEMPERATURE_TYPE {
-        TemperatureType::Fahrenheit => (((temp as f32 - 32.0) / 1.8) as u8, 'F'),
-        TemperatureType::Celsius => (temp, 'C'),
+    let color = temp_threshold_color(temp);
+    let buf = match TEMPERATURE_TYPE {
+        TemperatureType::Fahrenheit => format!("{:3}F", temp as u32 * 9 / 5 + 32),
+        TemperatureType::Celsius => format!("{:3}C", temp),
     };
-    let color = temp_threshold_color(temp_for_bar);
-    let buf = format!("{:3}{}", temp, unit_char);
-    let bar_val = temp_for_bar.min(100);
+    let bar_val = temp.min(100);
     draw_metric(lcd, 84, 34, "TEMP:", &buf, bar_val, color);
 
     // Disk metric

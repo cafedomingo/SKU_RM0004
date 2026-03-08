@@ -179,11 +179,7 @@ pub fn getTemperature() u8 {
     const trimmed = std.mem.trimRight(u8, buf[0..bytes_read], " \t\n\r");
     const millideg = std.fmt.parseInt(u32, trimmed, 10) catch return 0;
 
-    const celsius: u8 = @intCast(millideg / 1000);
-    if (temperature_type == .fahrenheit) {
-        return @intCast(@as(u32, celsius) * 9 / 5 + 32);
-    }
-    return celsius;
+    return @intCast(millideg / 1000);
 }
 
 const CpuState = struct {

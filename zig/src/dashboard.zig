@@ -86,14 +86,11 @@ pub fn displayDashboard() void {
 
     // Temperature metric
     {
-        var temp_for_bar = temp;
-        if (rpi.temperature_type == .fahrenheit) {
-            temp_for_bar = @intCast((@as(u32, temp) -| 32) * 10 / 18);
-        }
-        const color = tempThresholdColor(temp_for_bar);
+        const color = tempThresholdColor(temp);
+        const display_temp: u32 = if (rpi.temperature_type == .fahrenheit) @as(u32, temp) * 9 / 5 + 32 else temp;
         const suffix: u8 = if (rpi.temperature_type == .fahrenheit) 'F' else 'C';
-        const val = std.fmt.bufPrint(&buf, "{d:>3}{c}", .{ temp, suffix }) catch "???C";
-        const bar_val: u8 = if (temp_for_bar > 100) 100 else temp_for_bar;
+        const val = std.fmt.bufPrint(&buf, "{d:>3}{c}", .{ display_temp, suffix }) catch "???C";
+        const bar_val: u8 = if (temp > 100) 100 else temp;
         drawMetric(84, 34, "TEMP:", val, bar_val, color);
     }
 

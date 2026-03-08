@@ -143,7 +143,7 @@ pub fn get_disk_percent() -> u8 {
     (used * 100 / total).min(100) as u8
 }
 
-/// Get CPU temperature in the configured unit (Celsius or Fahrenheit).
+/// Get CPU temperature in Celsius.
 pub fn get_temperature() -> u8 {
     let contents = match fs::read_to_string("/sys/class/thermal/thermal_zone0/temp") {
         Ok(c) => c,
@@ -158,11 +158,7 @@ pub fn get_temperature() -> u8 {
         Err(_) => return 0,
     };
 
-    let celsius = millideg / 1000;
-    match TEMPERATURE_TYPE {
-        TemperatureType::Fahrenheit => (celsius * 9 / 5 + 32) as u8,
-        TemperatureType::Celsius => celsius as u8,
-    }
+    (millideg / 1000) as u8
 }
 
 fn read_cpu_stat() -> Option<(u64, u64)> {
