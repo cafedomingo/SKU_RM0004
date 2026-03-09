@@ -255,16 +255,14 @@ uint32_t get_cpu_throttle_status(void) {
     if (fd < 0) return 0;
 
     /* Mailbox property buffer for GET_THROTTLED (tag 0x00030046) */
-    uint32_t buf[8] __attribute__((aligned(16))) = {
-        sizeof(buf),    /* buffer size */
-        0x00000000,     /* request code */
-        0x00030046,     /* tag: GET_THROTTLED */
-        4,              /* value buffer size */
-        0,              /* request/response indicator */
-        0,              /* value (filled by firmware) */
-        0,              /* end tag */
-        0
-    };
+    uint32_t buf[8] __attribute__((aligned(16))) = {sizeof(buf), /* buffer size */
+                                                    0x00000000,  /* request code */
+                                                    0x00030046,  /* tag: GET_THROTTLED */
+                                                    4,           /* value buffer size */
+                                                    0,           /* request/response indicator */
+                                                    0,           /* value (filled by firmware) */
+                                                    0,           /* end tag */
+                                                    0};
 
     int ret = ioctl(fd, _IOWR(100, 0, char *), buf);
     close(fd);
