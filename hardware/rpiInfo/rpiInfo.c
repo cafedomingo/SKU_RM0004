@@ -68,42 +68,22 @@ static int read_cpu_stat(unsigned long long *idle, unsigned long long *total) {
 
 /*
  * Check if a /proc/diskstats device name is a whole disk (not a partition).
- * Matches: sda, sdb, mmcblk0, mmcblk10, nvme0n1, nvme10n1
- * Rejects: sda1, mmcblk0p1, nvme0n1p1
+ * Matches: sda, mmcblk0, nvme0n1.  Rejects: sda1, mmcblk0p1, nvme0n1p1.
  *
- * Partition naming: sd partitions add digits (sda1), mmcblk/nvme
- * partitions add 'p' + digits (mmcblk0p1, nvme0n1p1). So a whole
- * disk is one where the suffix after the prefix is all digits (sd)
- * or digits-'n'-digits with no trailing 'p' (nvme/mmcblk).
+ * sd partitions append a digit (sda1); mmcblk/nvme partitions append 'p'
+ * followed by a digit (mmcblk0p1, nvme0n1p1).
  */
 static int is_whole_disk(const char *name) {
-    const char *p;
+    size_t len = strlen(name);
 
-    /* sd[a-z] with no trailing digits (partition number) */
-    if (name[0] == 's' && name[1] == 'd' && name[2] >= 'a' && name[2] <= 'z' && name[3] == '\0') return 1;
+    /* sd[a-z] — exactly 3 chars, partition would be sda1 (4+) */
+    if (has_prefix(name, "sd") && len == 3) return 1;
 
-    /* mmcblk[0-9]+ with no trailing 'p' (partition suffix) */
-    if (has_prefix(name, "mmcblk")) {
-        p = name + 6;
-        if (*p < '0' || *p > '9') return 0;
-        while (*p >= '0' && *p <= '9')
-            p++;
-        return *p == '\0';
-    }
+    /* mmcblk[0-9]... — partition adds 'p', so reject if 'p' present */
+    if (has_prefix(name, "mmcblk")) return strchr(name + 6, 'p') == NULL;
 
-    /* nvme[0-9]+n[0-9]+ with no trailing 'p' (partition suffix) */
-    if (has_prefix(name, "nvme")) {
-        p = name + 4;
-        if (*p < '0' || *p > '9') return 0;
-        while (*p >= '0' && *p <= '9')
-            p++;
-        if (*p != 'n') return 0;
-        p++;
-        if (*p < '0' || *p > '9') return 0;
-        while (*p >= '0' && *p <= '9')
-            p++;
-        return *p == '\0';
-    }
+    /* nvme[0-9]+n[0-9]+ — partition adds 'p', same check */
+    if (has_prefix(name, "nvme")) return strchr(name + 4, 'p') == NULL;
 
     return 0;
 }
