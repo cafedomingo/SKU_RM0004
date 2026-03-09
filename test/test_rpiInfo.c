@@ -20,7 +20,7 @@ static int tests_failed = 0;
 static void test_cpu_percent(void) {
     /* Delta-based: may return 0 on first call if idle ticks haven't changed */
     uint8_t pct = get_cpu_percent();
-    ASSERT(pct >= 0 && pct <= 100, "get_cpu_percent returns 0-100");
+    ASSERT(pct <= 100, "get_cpu_percent returns 0-100");
 }
 
 static void test_ram_percent(void) {
