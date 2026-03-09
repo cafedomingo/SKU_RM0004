@@ -68,22 +68,42 @@ static int read_cpu_stat(unsigned long long *idle, unsigned long long *total) {
 
 /*
  * Check if a /proc/diskstats device name is a whole disk (not a partition).
- * Matches: sda, sdb, mmcblk0, mmcblk1, nvme0n1, nvme1n1
+ * Matches: sda, sdb, mmcblk0, mmcblk10, nvme0n1, nvme10n1
  * Rejects: sda1, mmcblk0p1, nvme0n1p1
+ *
+ * Partition naming: sd partitions add digits (sda1), mmcblk/nvme
+ * partitions add 'p' + digits (mmcblk0p1, nvme0n1p1). So a whole
+ * disk is one where the suffix after the prefix is all digits (sd)
+ * or digits-'n'-digits with no trailing 'p' (nvme/mmcblk).
  */
 static int is_whole_disk(const char *name) {
-    size_t len = strlen(name);
+    const char *p;
 
-    /* sd[a-z] — exactly 3 chars */
-    if (len == 3 && name[0] == 's' && name[1] == 'd' && name[2] >= 'a' && name[2] <= 'z') return 1;
+    /* sd[a-z] with no trailing digits (partition number) */
+    if (name[0] == 's' && name[1] == 'd' && name[2] >= 'a' && name[2] <= 'z' && name[3] == '\0') return 1;
 
-    /* mmcblk[0-9] — exactly 7 chars */
-    if (len == 7 && has_prefix(name, "mmcblk") && name[6] >= '0' && name[6] <= '9') return 1;
+    /* mmcblk[0-9]+ with no trailing 'p' (partition suffix) */
+    if (has_prefix(name, "mmcblk")) {
+        p = name + 6;
+        if (*p < '0' || *p > '9') return 0;
+        while (*p >= '0' && *p <= '9')
+            p++;
+        return *p == '\0';
+    }
 
-    /* nvme[0-9]n[0-9] — exactly 7 chars */
-    if (len == 7 && has_prefix(name, "nvme") && name[4] >= '0' && name[4] <= '9' && name[5] == 'n' && name[6] >= '0' &&
-        name[6] <= '9')
-        return 1;
+    /* nvme[0-9]+n[0-9]+ with no trailing 'p' (partition suffix) */
+    if (has_prefix(name, "nvme")) {
+        p = name + 4;
+        if (*p < '0' || *p > '9') return 0;
+        while (*p >= '0' && *p <= '9')
+            p++;
+        if (*p != 'n') return 0;
+        p++;
+        if (*p < '0' || *p > '9') return 0;
+        while (*p >= '0' && *p <= '9')
+            p++;
+        return *p == '\0';
+    }
 
     return 0;
 }

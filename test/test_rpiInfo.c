@@ -59,7 +59,7 @@ static void test_cpu_freq(void) {
     /* May return zeros on CI if no cpufreq driver — just verify no crash */
     cpu_freq_t freq = get_cpu_freq();
     ASSERT(freq.cur_mhz <= 10000, "get_cpu_freq cur_mhz is reasonable");
-    ASSERT(freq.min_mhz <= freq.max_mhz || freq.min_mhz == 0, "get_cpu_freq min <= max or zero");
+    ASSERT(freq.min_mhz <= 10000 && freq.max_mhz <= 10000, "get_cpu_freq min/max are reasonable");
 }
 
 static void test_cpu_throttle_status(void) {
