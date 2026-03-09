@@ -426,21 +426,8 @@ uint8_t get_ram_percent(void) {
  * Get CPU temperature in Celsius.
  */
 uint8_t get_temperature(void) {
-    unsigned int millideg;
-    char buf[10];
-
-    FILE *fp = fopen("/sys/class/thermal/thermal_zone0/temp", "r");
-    if (!fp) {
-        fprintf(stderr, "rpiInfo: failed to open thermal_zone0\n");
-        return 0;
-    }
-    if (!fgets(buf, sizeof(buf), fp)) {
-        fclose(fp);
-        return 0;
-    }
-    fclose(fp);
-    if (sscanf(buf, "%u", &millideg) != 1) return 0;
-
+    unsigned long millideg;
+    if (read_sysfs_ulong("/sys/class/thermal/thermal_zone0/temp", &millideg) != 0) return 0;
     return (uint8_t)(millideg / 1000);
 }
 
