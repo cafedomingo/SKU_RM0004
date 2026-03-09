@@ -2,11 +2,11 @@
  * UCTRONICS ST7735 LCD display driver for Raspberry Pi
  */
 #include "dashboard.h"
+#include "log.h"
 #include "rpiInfo.h"
 #include "st7735.h"
 #include <arpa/inet.h>
 #include <errno.h>
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -16,32 +16,29 @@
 static void check_i2c_speed(void) {
     FILE *f = fopen(I2C_CLOCK_FREQ_PATH, "rb");
     if (!f) {
-        fprintf(stderr, "display: WARNING: could not open %s: %s\n", I2C_CLOCK_FREQ_PATH, strerror(errno));
+        LOG_WARN("could not open %s: %s", I2C_CLOCK_FREQ_PATH, strerror(errno));
         return;
     }
     uint32_t freq_be;
     if (fread(&freq_be, sizeof(freq_be), 1, f) != 1) {
         fclose(f);
-        fprintf(stderr, "display: WARNING: could not read %s\n", I2C_CLOCK_FREQ_PATH);
+        LOG_WARN("could not read %s", I2C_CLOCK_FREQ_PATH);
         return;
     }
     fclose(f);
     uint32_t freq = ntohl(freq_be);
     if (freq == I2C_EXPECTED_HZ) {
-        fprintf(stderr, "display: I2C bus speed: %u Hz\n", freq);
+        LOG_INFO("I2C bus speed: %u Hz", freq);
     } else {
-        fprintf(stderr,
-                "display: WARNING: I2C bus speed is %u Hz"
-                " (expected %u Hz)\n",
-                freq, I2C_EXPECTED_HZ);
+        LOG_WARN("I2C bus speed is %u Hz (expected %u Hz)", freq, I2C_EXPECTED_HZ);
     }
 }
 
 int main(void) {
-    fprintf(stderr, "display: starting (refresh every %ds)\n", REFRESH_INTERVAL_SECS);
+    LOG_INFO("starting (refresh every %ds)", REFRESH_INTERVAL_SECS);
     check_i2c_speed();
     if (lcd_begin()) {
-        fprintf(stderr, "display: lcd_begin failed, exiting\n");
+        LOG_ERROR("lcd_begin failed, exiting");
         return 1;
     }
     lcd_fill_screen(ST7735_BLACK);
