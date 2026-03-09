@@ -8,9 +8,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#define I2C_EXPECTED_HZ 400000
-#define I2C_CLOCK_FREQ_PATH \
-    "/proc/device-tree/soc/i2c@7e804000/clock-frequency"
+#define I2C_EXPECTED_HZ     400000
+#define I2C_CLOCK_FREQ_PATH "/proc/device-tree/soc/i2c@7e804000/clock-frequency"
 
 static void check_i2c_speed(void) {
     FILE *f = fopen(I2C_CLOCK_FREQ_PATH, "rb");
