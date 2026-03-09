@@ -30,7 +30,17 @@ clean:
 	rm -rf $(OBJ)
 	rm -rf $(TARGET)
 
-FMT_SRCS = find $(SRCDIRS) -type f \( -name '*.c' -o -name '*.h' \) -print0
+TEST_BIN := $(OBJ)/test_rpiInfo
+TEST_CC  := gcc
+
+.PHONY: test
+test: $(TEST_BIN)
+	./$(TEST_BIN)
+
+$(TEST_BIN): test/test_rpiInfo.c hardware/rpiInfo/rpiInfo.c hardware/rpiInfo/rpiInfo.h
+	$(TEST_CC) $(CFLAGS) -I hardware/rpiInfo -o $@ test/test_rpiInfo.c hardware/rpiInfo/rpiInfo.c
+
+FMT_SRCS = find $(SRCDIRS) test/ -type f \( -name '*.c' -o -name '*.h' \) -print0
 
 format:
 	$(FMT_SRCS) | xargs -0 clang-format -i

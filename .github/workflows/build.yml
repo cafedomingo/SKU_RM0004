@@ -18,6 +18,14 @@ jobs:
       - name: Lint shell scripts
         run: shellcheck install.sh
 
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run integration tests
+        run: make test
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -36,7 +44,7 @@ jobs:
           path: display
 
   release:
-    needs: [lint, build]
+    needs: [lint, test, build]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
