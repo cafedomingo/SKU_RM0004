@@ -5,7 +5,9 @@
 #include "rpiInfo.h"
 #include "st7735.h"
 #include <arpa/inet.h>
+#include <errno.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #define I2C_EXPECTED_HZ     400000
@@ -14,13 +16,13 @@
 static void check_i2c_speed(void) {
     FILE *f = fopen(I2C_CLOCK_FREQ_PATH, "rb");
     if (!f) {
-        fprintf(stderr, "display: WARNING: could not read I2C bus speed\n");
+        fprintf(stderr, "display: WARNING: could not open %s: %s\n", I2C_CLOCK_FREQ_PATH, strerror(errno));
         return;
     }
     uint32_t freq_be;
     if (fread(&freq_be, sizeof(freq_be), 1, f) != 1) {
         fclose(f);
-        fprintf(stderr, "display: WARNING: could not read I2C bus speed\n");
+        fprintf(stderr, "display: WARNING: could not read %s\n", I2C_CLOCK_FREQ_PATH);
         return;
     }
     fclose(f);
