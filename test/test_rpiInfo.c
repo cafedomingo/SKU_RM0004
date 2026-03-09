@@ -64,10 +64,15 @@ static void test_cpu_freq(void) {
 }
 
 static void test_cpu_throttle_status(void) {
-    /* Returns 0 on non-Pi hardware (no firmware sysfs) — just verify no crash */
     uint32_t status = get_cpu_throttle_status();
-    (void)status;
-    ASSERT(1, "get_cpu_throttle_status does not crash");
+    if (access("/dev/vcio", R_OK | W_OK) == 0) {
+        /* On a real Pi with permissions, the result is a valid throttle bitmask.
+         * Only the defined bits (0-3, 16-19) should be set. */
+        ASSERT((status & ~0x000F000Fu) == 0, "get_cpu_throttle_status returns valid bitmask");
+    } else {
+        (void)status;
+        ASSERT(1, "get_cpu_throttle_status does not crash (no vcio access)");
+    }
 }
 
 static void test_dietpi_update_status(void) {

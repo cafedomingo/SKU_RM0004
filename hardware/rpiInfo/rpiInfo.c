@@ -1,5 +1,6 @@
 #include "rpiInfo.h"
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <net/if.h>
 #include <netinet/in.h>
 #include <stdio.h>
@@ -250,43 +251,54 @@ cpu_freq_t get_cpu_freq(void) {
  * Get CPU throttle status as a bitmask (see THROTTLE_* in rpiInfo.h)
  */
 uint32_t get_cpu_throttle_status(void) {
-    FILE *fp = fopen("/sys/devices/platform/soc/soc:firmware/get_throttled", "r");
-    if (!fp) {
-        fprintf(stderr, "rpiInfo: failed to open get_throttled\n");
-        return 0;
-    }
-    unsigned int val = 0;
-    if (fscanf(fp, "%x", &val) != 1) val = 0;
-    fclose(fp);
-    return (uint32_t)val;
+    int fd = open("/dev/vcio", O_RDWR);
+    if (fd < 0) return 0;
+
+    /* Mailbox property buffer for GET_THROTTLED (tag 0x00030046) */
+    uint32_t buf[8] __attribute__((aligned(16))) = {
+        sizeof(buf),    /* buffer size */
+        0x00000000,     /* request code */
+        0x00030046,     /* tag: GET_THROTTLED */
+        4,              /* value buffer size */
+        0,              /* request/response indicator */
+        0,              /* value (filled by firmware) */
+        0,              /* end tag */
+        0
+    };
+
+    int ret = ioctl(fd, _IOWR(100, 0, char *), buf);
+    close(fd);
+
+    if (ret < 0 || buf[1] != 0x80000000) return 0;
+    return buf[5];
 }
 
 /* ── Disk ────────────────────────────────────────────────────────── */
 
 /*
- * Get SD card usage in GiB
+ * Get SD card usage in MiB
  */
-static void get_sd_memory(uint32_t *total_gib, uint32_t *used_gib) {
+static void get_sd_memory(uint32_t *total_mib, uint32_t *used_mib) {
     struct statfs info;
     if (statfs("/", &info) != 0) {
         fprintf(stderr, "rpiInfo: statfs(\"/\") failed\n");
-        *total_gib = 0;
-        *used_gib = 0;
+        *total_mib = 0;
+        *used_mib = 0;
         return;
     }
     unsigned long long block = info.f_bsize;
     unsigned long long total = block * info.f_blocks;
     unsigned long long used = total - block * info.f_bfree;
-    *total_gib = (uint32_t)(total >> 30);
-    *used_gib = (uint32_t)(used >> 30);
+    *total_mib = (uint32_t)(total >> 20);
+    *used_mib = (uint32_t)(used >> 20);
 }
 
 /*
- * Get hard disk usage in GiB via /proc/mounts + statfs
+ * Get hard disk usage in MiB via /proc/mounts + statfs
  */
-static void get_hard_disk_memory(uint32_t *total_gib, uint32_t *used_gib) {
-    *total_gib = 0;
-    *used_gib = 0;
+static void get_hard_disk_memory(uint32_t *total_mib, uint32_t *used_mib) {
+    *total_mib = 0;
+    *used_mib = 0;
     char line[512], device[256], mountpoint[256];
     struct statfs info;
 
@@ -303,8 +315,8 @@ static void get_hard_disk_memory(uint32_t *total_gib, uint32_t *used_gib) {
                     unsigned long long block = info.f_bsize;
                     unsigned long long total = block * info.f_blocks;
                     unsigned long long used = total - (block * info.f_bfree);
-                    *total_gib += (uint32_t)(total >> 30);
-                    *used_gib += (uint32_t)(used >> 30);
+                    *total_mib += (uint32_t)(total >> 20);
+                    *used_mib += (uint32_t)(used >> 20);
                 }
             }
         }
