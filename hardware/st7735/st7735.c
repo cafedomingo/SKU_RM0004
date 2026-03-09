@@ -1,8 +1,8 @@
 #include "st7735.h"
+#include "log.h"
 #include <fcntl.h>
 #include <linux/i2c-dev.h>
 #include <linux/i2c.h>
-#include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -100,11 +100,11 @@ uint8_t lcd_begin(void) {
 
     i2cd = open(i2c_path, O_RDWR);
     if (i2cd < 0) {
-        fprintf(stderr, "Device I2C-1 failed to initialize\n");
+        LOG_ERROR("I2C-1 failed to initialize");
         return 1;
     }
     if (ioctl(i2cd, I2C_SLAVE_FORCE, I2C_ADDRESS) < 0) {
-        fprintf(stderr, "st7735: ioctl I2C_SLAVE_FORCE failed\n");
+        LOG_ERROR("ioctl I2C_SLAVE_FORCE failed");
         return 1;
     }
     return 0;
@@ -117,7 +117,7 @@ uint8_t lcd_begin(void) {
  */
 static void i2c_write_data(uint8_t high, uint8_t low) {
     uint8_t msg[3] = {WRITE_DATA_REG, high, low};
-    if (write(i2cd, msg, 3) != 3) fprintf(stderr, "st7735: i2c_write_data failed\n");
+    if (write(i2cd, msg, 3) != 3) LOG_ERROR("i2c_write_data failed");
     usleep(10);
 }
 
@@ -126,7 +126,7 @@ static void i2c_write_data(uint8_t high, uint8_t low) {
  */
 static void i2c_write_command(uint8_t command, uint8_t high, uint8_t low) {
     uint8_t msg[3] = {command, high, low};
-    if (write(i2cd, msg, 3) != 3) fprintf(stderr, "st7735: i2c_write_command failed\n");
+    if (write(i2cd, msg, 3) != 3) LOG_ERROR("i2c_write_command failed");
     usleep(10);
 }
 
@@ -140,7 +140,7 @@ static void i2c_burst_transfer(uint8_t *buff, uint32_t length) {
         uint32_t chunk = ((length - count) > BURST_MAX_LENGTH) ? BURST_MAX_LENGTH : (length - count);
         ssize_t written = write(i2cd, buff + count, chunk);
         if (written < 0) {
-            fprintf(stderr, "st7735: burst write failed at offset %u\n", count);
+            LOG_ERROR("burst write failed at offset %u", count);
             break;
         }
         count += (uint32_t)written;

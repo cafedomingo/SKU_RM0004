@@ -38,7 +38,7 @@ test: $(TEST_BIN)
 	./$(TEST_BIN)
 
 $(TEST_BIN): test/test_rpiInfo.c hardware/rpiInfo/rpiInfo.c hardware/rpiInfo/rpiInfo.h
-	$(TEST_CC) $(CFLAGS) -I hardware/rpiInfo -o $@ test/test_rpiInfo.c hardware/rpiInfo/rpiInfo.c
+	$(TEST_CC) $(CFLAGS) -I hardware/rpiInfo -I project/ -o $@ test/test_rpiInfo.c hardware/rpiInfo/rpiInfo.c
 
 FMT_SRCS = find $(SRCDIRS) test/ -type f \( -name '*.c' -o -name '*.h' \) -print0
 

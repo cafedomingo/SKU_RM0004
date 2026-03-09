@@ -1,9 +1,9 @@
 #include "rpiInfo.h"
+#include "log.h"
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <net/if.h>
 #include <netinet/in.h>
-#include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -26,7 +26,7 @@ static int get_default_iface(char *buf, size_t buflen) {
 
     fp = fopen("/proc/net/route", "r");
     if (!fp) {
-        fprintf(stderr, "rpiInfo: failed to open /proc/net/route\n");
+        LOG_ERROR("failed to open /proc/net/route");
         return -1;
     }
     /* Skip header line */
@@ -53,7 +53,7 @@ static int read_cpu_stat(unsigned long long *idle, unsigned long long *total) {
     unsigned long long user, nice, system, idle_val, iowait, irq, softirq, steal;
     FILE *fp = fopen("/proc/stat", "r");
     if (!fp) {
-        fprintf(stderr, "rpiInfo: failed to open /proc/stat\n");
+        LOG_ERROR("failed to open /proc/stat");
         return -1;
     }
     if (fscanf(fp, "cpu %llu %llu %llu %llu %llu %llu %llu %llu", &user, &nice, &system, &idle_val, &iowait, &irq,
@@ -279,7 +279,7 @@ uint32_t get_cpu_throttle_status(void) {
 static void get_sd_memory(uint32_t *total_mib, uint32_t *used_mib) {
     struct statfs info;
     if (statfs("/", &info) != 0) {
-        fprintf(stderr, "rpiInfo: statfs(\"/\") failed\n");
+        LOG_ERROR("statfs(\"/\") failed");
         *total_mib = 0;
         *used_mib = 0;
         return;
@@ -302,7 +302,7 @@ static void get_hard_disk_memory(uint32_t *total_mib, uint32_t *used_mib) {
 
     FILE *fp = fopen("/proc/mounts", "r");
     if (!fp) {
-        fprintf(stderr, "rpiInfo: failed to open /proc/mounts\n");
+        LOG_ERROR("failed to open /proc/mounts");
         return;
     }
 
@@ -356,7 +356,7 @@ disk_io_t get_disk_io(void) {
 
     FILE *fp = fopen("/proc/diskstats", "r");
     if (!fp) {
-        fprintf(stderr, "rpiInfo: failed to open /proc/diskstats\n");
+        LOG_ERROR("failed to open /proc/diskstats");
         return result;
     }
 
@@ -415,7 +415,7 @@ uint8_t get_ram_percent(void) {
 
     FILE *fp = fopen("/proc/meminfo", "r");
     if (!fp) {
-        fprintf(stderr, "rpiInfo: failed to open /proc/meminfo\n");
+        LOG_ERROR("failed to open /proc/meminfo");
         return 0;
     }
 
