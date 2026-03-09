@@ -18,6 +18,7 @@ static int tests_failed = 0;
     } while (0)
 
 static void test_cpu_percent(void) {
+    /* Delta-based: may return 0 on first call if idle ticks haven't changed */
     uint8_t pct = get_cpu_percent();
     ASSERT(pct <= 100, "get_cpu_percent returns 0-100");
 }
