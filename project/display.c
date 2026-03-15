@@ -53,11 +53,19 @@ int main(void) {
     lcd_fill_screen(ST7735_BLACK);
 
     runtime_config_t cfg;
-    uint8_t scroll_offset = 0;
+    char prev_screen[16] = "";
+    uint16_t scroll_px = 0;
+    uint16_t scroll_total = DIAG_TOTAL_ROWS * Font_7x10.height;
     long last_refresh_ms = 0;
 
     while (1) {
         load_runtime_config(&cfg);
+
+        /* Clear display on screen change */
+        if (strcmp(cfg.screen, prev_screen) != 0) {
+            lcd_fill_screen(ST7735_BLACK);
+            snprintf(prev_screen, sizeof(prev_screen), "%s", cfg.screen);
+        }
 
         if (strcmp(cfg.screen, SCREEN_DIAGNOSTIC) == 0) {
             long refresh_ms = cfg.refresh * 1000L;
@@ -65,10 +73,10 @@ int main(void) {
                 diag_refresh_data();
                 last_refresh_ms = now_ms();
             }
-            lcd_display_diagnostic(scroll_offset);
-            scroll_offset = (scroll_offset + 1) % DIAG_TOTAL_ROWS;
+            lcd_display_diagnostic(scroll_px);
+            scroll_px = (scroll_px + DIAG_SCROLL_STEP) % scroll_total;
         } else {
-            scroll_offset = 0;
+            scroll_px = 0;
             last_refresh_ms = 0;
             long before = now_ms();
             lcd_display_dashboard();

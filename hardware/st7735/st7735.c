@@ -10,21 +10,16 @@
 /* I2C configuration */
 #define I2C_ADDRESS      0x18
 #define BURST_MAX_LENGTH 160
+#define BURST_DELAY_US   450
 
-/* Display coordinate limits */
-#define X_COORDINATE_MAX 160
-#define X_COORDINATE_MIN 0
-#define Y_COORDINATE_MAX 80
-#define Y_COORDINATE_MIN 0
-
-/* I2C register addresses */
-#define X_COORDINATE_REG   0X2A
-#define Y_COORDINATE_REG   0X2B
-#define CHAR_DATA_REG      0X2C
-#define SCAN_DIRECTION_REG 0x36
+/* I2C bridge register addresses */
 #define WRITE_DATA_REG     0x00
-#define BURST_WRITE_REG    0X01
-#define SYNC_REG           0X03
+#define BURST_WRITE_REG    0x01
+#define SYNC_REG           0x03
+#define X_COORDINATE_REG   0x2A
+#define Y_COORDINATE_REG   0x2B
+#define CHAR_DATA_REG      0x2C
+#define SCAN_DIRECTION_REG 0x36
 
 /* MADCTL flags */
 #define ST7735_MADCTL_MY  0x80
@@ -96,9 +91,7 @@ static int i2cd;
  * Returns 0 on success, 1 on failure.
  */
 uint8_t lcd_begin(void) {
-    char i2c_path[] = "/dev/i2c-1";
-
-    i2cd = open(i2c_path, O_RDWR);
+    i2cd = open("/dev/i2c-1", O_RDWR);
     if (i2cd < 0) {
         LOG_ERROR("I2C-1 failed to initialize");
         return 1;
@@ -113,15 +106,6 @@ uint8_t lcd_begin(void) {
 /* I2C transport */
 
 /*
- * Write a two-byte data value over I2C.
- */
-static void i2c_write_data(uint8_t high, uint8_t low) {
-    uint8_t msg[3] = {WRITE_DATA_REG, high, low};
-    if (write(i2cd, msg, 3) != 3) LOG_ERROR("i2c_write_data failed");
-    usleep(10);
-}
-
-/*
  * Write a command with a two-byte argument over I2C.
  */
 static void i2c_write_command(uint8_t command, uint8_t high, uint8_t low) {
@@ -131,21 +115,38 @@ static void i2c_write_command(uint8_t command, uint8_t high, uint8_t low) {
 }
 
 /*
- * Transfer a large buffer over I2C in BURST_MAX_LENGTH-byte chunks.
+ * Set the display address window for subsequent pixel writes.
  */
-static void i2c_burst_transfer(uint8_t *buff, uint32_t length) {
+static void lcd_set_address_window(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1) {
+    i2c_write_command(X_COORDINATE_REG, x0 + ST7735_XSTART, x1 + ST7735_XSTART);
+    i2c_write_command(Y_COORDINATE_REG, y0 + ST7735_YSTART, y1 + ST7735_YSTART);
+    i2c_write_command(CHAR_DATA_REG, 0x00, 0x00);
+    i2c_write_command(SYNC_REG, 0x00, 0x01);
+}
+
+/*
+ * Burst transfer: open once, send data in chunks, close once.
+ * The ST7735 auto-increments through the address window, so all
+ * data sent within a burst session fills the window sequentially.
+ */
+static void burst_begin(void) { i2c_write_command(BURST_WRITE_REG, 0x00, 0x01); }
+
+static void burst_send(const uint8_t *buf, uint32_t length) {
     uint32_t count = 0;
-    i2c_write_command(BURST_WRITE_REG, 0x00, 0x01);
-    while (length > count) {
-        uint32_t chunk = ((length - count) > BURST_MAX_LENGTH) ? BURST_MAX_LENGTH : (length - count);
-        ssize_t written = write(i2cd, buff + count, chunk);
+    while (count < length) {
+        uint32_t chunk = length - count;
+        if (chunk > BURST_MAX_LENGTH) chunk = BURST_MAX_LENGTH;
+        ssize_t written = write(i2cd, buf + count, chunk);
         if (written < 0) {
             LOG_ERROR("burst write failed at offset %u", count);
             break;
         }
         count += (uint32_t)written;
-        usleep(450);
+        usleep(BURST_DELAY_US);
     }
+}
+
+static void burst_end(void) {
     i2c_write_command(BURST_WRITE_REG, 0x00, 0x00);
     i2c_write_command(SYNC_REG, 0x00, 0x01);
 }
@@ -153,118 +154,104 @@ static void i2c_burst_transfer(uint8_t *buff, uint32_t length) {
 /* Drawing primitives */
 
 /*
- * Set display coordinates
- */
-static void lcd_set_address_window(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1) {
-    /* col address set */
-    i2c_write_command(X_COORDINATE_REG, x0 + ST7735_XSTART, x1 + ST7735_XSTART);
-    /* row address set */
-    i2c_write_command(Y_COORDINATE_REG, y0 + ST7735_YSTART, y1 + ST7735_YSTART);
-    /* write to RAM */
-    i2c_write_command(CHAR_DATA_REG, 0x00, 0x00);
-
-    i2c_write_command(SYNC_REG, 0x00, 0x01);
-}
-
-/*
- * Draw a rectangular image from a raw pixel buffer.
- */
-static void lcd_draw_image(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t *data) {
-    lcd_set_address_window(x, y, x + w - 1, y + h - 1);
-    i2c_burst_transfer(data, sizeof(uint16_t) * w * h);
-}
-
-/*
- * Fill rectangle
+ * Fill a rectangle with a solid color.
  */
 void lcd_fill_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color) {
-    uint8_t buff[320] = {0};
-    uint16_t count = 0;
-    /* clipping */
-    if ((x >= ST7735_WIDTH) || (y >= ST7735_HEIGHT)) return;
-    if ((x + w) >= ST7735_WIDTH) w = ST7735_WIDTH - x;
-    if ((y + h) >= ST7735_HEIGHT) h = ST7735_HEIGHT - y;
-    lcd_set_address_window(x, y, x + w - 1, y + h - 1);
+    if (x >= ST7735_WIDTH || y >= ST7735_HEIGHT) return;
+    if (x + w > ST7735_WIDTH) w = ST7735_WIDTH - x;
+    if (y + h > ST7735_HEIGHT) h = ST7735_HEIGHT - y;
 
-    for (count = 0; count < w; count++) {
-        buff[count * 2] = color >> 8;
-        buff[count * 2 + 1] = color & 0xFF;
+    uint8_t row[ST7735_WIDTH * 2];
+    for (uint16_t i = 0; i < w; i++) {
+        row[i * 2] = color >> 8;
+        row[i * 2 + 1] = color & 0xFF;
     }
-    for (y = h; y > 0; y--) {
-        i2c_burst_transfer(buff, sizeof(uint16_t) * w);
-    }
+
+    lcd_set_address_window(x, y, x + w - 1, y + h - 1);
+    burst_begin();
+    for (uint16_t r = 0; r < h; r++)
+        burst_send(row, w * 2);
+    burst_end();
 }
+
+/*
+ * Fill the entire screen with a solid color.
+ */
+void lcd_fill_screen(uint16_t color) { lcd_fill_rectangle(0, 0, ST7735_WIDTH, ST7735_HEIGHT, color); }
 
 /*
  * Send a pre-rendered full-screen pixel buffer in a single I2C burst.
  */
 void lcd_draw_fullscreen(uint8_t *buf) {
     lcd_set_address_window(0, 0, ST7735_WIDTH - 1, ST7735_HEIGHT - 1);
-    i2c_burst_transfer(buf, ST7735_WIDTH * ST7735_HEIGHT * 2);
+    burst_begin();
+    burst_send(buf, ST7735_WIDTH * ST7735_HEIGHT * 2);
+    burst_end();
 }
 
 /*
- * Fill screen
- */
-void lcd_fill_screen(uint16_t color) {
-    lcd_fill_rectangle(0, 0, ST7735_WIDTH, ST7735_HEIGHT, color);
-    i2c_write_command(SYNC_REG, 0x00, 0x01);
-}
-
-/*
- * Draw a small horizontal progress bar (0-100%).
+ * Draw a horizontal progress bar (0-100%).
  */
 void lcd_draw_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val, uint16_t color) {
+    if (x >= ST7735_WIDTH || y >= ST7735_HEIGHT) return;
+    if (x + w > ST7735_WIDTH) w = ST7735_WIDTH - x;
+    if (y + h > ST7735_HEIGHT) h = ST7735_HEIGHT - y;
+
     uint16_t filled = (uint16_t)val * w / 100;
     if (filled > w) filled = w;
-    if (filled > 0) lcd_fill_rectangle(x, y, filled, h, color);
-    if (filled < w) lcd_fill_rectangle(x + filled, y, w - filled, h, ST7735_GRAY);
+
+    /* Build one row with both colors */
+    uint8_t row[ST7735_WIDTH * 2];
+    for (uint16_t i = 0; i < filled; i++) {
+        row[i * 2] = color >> 8;
+        row[i * 2 + 1] = color & 0xFF;
+    }
+    for (uint16_t i = filled; i < w; i++) {
+        row[i * 2] = ST7735_GRAY >> 8;
+        row[i * 2 + 1] = ST7735_GRAY & 0xFF;
+    }
+
+    /* Single address window, single burst for the whole bar */
+    lcd_set_address_window(x, y, x + w - 1, y + h - 1);
+    burst_begin();
+    for (uint16_t r = 0; r < h; r++)
+        burst_send(row, w * 2);
+    burst_end();
 }
 
 /* Text */
 
 /*
- * Display a single character
- */
-static void lcd_write_char(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color, uint16_t bgcolor) {
-    uint8_t buff[16 * 26 * 2]; /* max font size: 16x26 */
-    uint32_t i, b, j, idx;
-
-    for (i = 0; i < font.height; i++) {
-        b = font.data[(ch - 32) * font.height + i];
-        for (j = 0; j < font.width; j++) {
-            idx = (i * font.width + j) * 2;
-            uint16_t c = ((b << j) & 0x8000) ? color : bgcolor;
-            buff[idx] = c >> 8;
-            buff[idx + 1] = c & 0xFF;
-        }
-    }
-
-    lcd_draw_image(x, y, font.width, font.height, buff);
-}
-
-/*
- * Display a string
+ * Render a string and send it as a single I2C burst.
  */
 void lcd_write_string(uint16_t x, uint16_t y, const char *str, FontDef font, uint16_t color, uint16_t bgcolor) {
+    /* Count how many characters fit on this line */
+    uint16_t len = 0;
+    while (str[len] && x + (len + 1) * font.width <= ST7735_WIDTH)
+        len++;
+    if (len == 0) return;
 
-    while (*str) {
-        if (x + font.width >= ST7735_WIDTH) {
-            x = 0;
-            y += font.height;
-            if (y + font.height >= ST7735_HEIGHT) {
-                break;
-            }
+    uint16_t w = len * font.width;
+    uint16_t h = font.height;
 
-            if (*str == ' ') {
-                /* skip spaces in the beginning of the new line */
-                str++;
-                continue;
+    /* Render all characters into one buffer */
+    uint8_t buf[ST7735_WIDTH * 26 * 2]; /* max: full width × tallest font */
+    for (uint16_t c = 0; c < len; c++) {
+        uint16_t cx = c * font.width;
+        char ch = (str[c] >= 32 && str[c] < 127) ? str[c] : '?';
+        for (uint16_t row = 0; row < h; row++) {
+            uint16_t bits = font.data[(ch - 32) * h + row];
+            for (uint16_t col = 0; col < font.width; col++) {
+                uint16_t px = ((bits << col) & 0x8000) ? color : bgcolor;
+                uint32_t off = (row * w + cx + col) * 2;
+                buf[off] = px >> 8;
+                buf[off + 1] = px & 0xFF;
             }
         }
-
-        lcd_write_char(x, y, *str, font, color, bgcolor);
-        x += font.width;
-        str++;
     }
+
+    lcd_set_address_window(x, y, x + w - 1, y + h - 1);
+    burst_begin();
+    burst_send(buf, w * h * 2);
+    burst_end();
 }
