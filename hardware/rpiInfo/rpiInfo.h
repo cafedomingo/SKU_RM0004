@@ -19,6 +19,7 @@ typedef struct {
 } net_bandwidth_t;
 
 char *get_ip_address(void);
+char *get_ip6_suffix(void);
 net_bandwidth_t get_net_bandwidth(void);
 
 /* ── CPU ─────────────────────────────────────────────────────────── */
