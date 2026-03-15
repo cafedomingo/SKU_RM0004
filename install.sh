@@ -75,20 +75,23 @@ configure_boot() {
         needs_reboot=true
     fi
 
-    # I2C with 400kHz baud rate (supports both combined and separate line formats)
-    if ! grep -q "i2c_arm_baudrate=400000" "$boot_config"; then
-        if grep -q "^#dtparam=i2c_arm=on" "$boot_config"; then
-            sed -i "s/^#dtparam=i2c_arm=on.*/dtparam=i2c_arm=on/" "$boot_config"
-            sed -i "/^dtparam=i2c_arm=on/a i2c_arm_baudrate=400000" "$boot_config"
-        elif grep -q "^dtparam=i2c_arm=on" "$boot_config"; then
-            sed -i "/^dtparam=i2c_arm=on/a i2c_arm_baudrate=400000" "$boot_config"
-        else
-            {
-                echo ""
-                echo "dtparam=i2c_arm=on"
-                echo "i2c_arm_baudrate=400000"
-            } >> "$boot_config"
+    # I2C with 400kHz baud rate (must use dtparam= prefix for baudrate to take effect)
+    if grep -q "i2c_arm_baudrate=400000" "$boot_config"; then
+        # Fix bare i2c_arm_baudrate lines (missing dtparam= prefix) left by older installs
+        if grep -q "^i2c_arm_baudrate=" "$boot_config"; then
+            sed -i '/^i2c_arm_baudrate=/d' "$boot_config"
+            sed -i 's/^dtparam=i2c_arm=on.*/dtparam=i2c_arm=on,i2c_arm_baudrate=400000/' "$boot_config"
+            needs_reboot=true
         fi
+    elif grep -q "^#dtparam=i2c_arm=on" "$boot_config"; then
+        sed -i "s/^#dtparam=i2c_arm=on.*/dtparam=i2c_arm=on,i2c_arm_baudrate=400000/" "$boot_config"
+        needs_reboot=true
+    elif grep -q "^dtparam=i2c_arm=on" "$boot_config"; then
+        sed -i "s/^dtparam=i2c_arm=on.*/dtparam=i2c_arm=on,i2c_arm_baudrate=400000/" "$boot_config"
+        needs_reboot=true
+    else
+        echo "" >> "$boot_config"
+        echo "dtparam=i2c_arm=on,i2c_arm_baudrate=400000" >> "$boot_config"
         needs_reboot=true
     fi
 
@@ -125,6 +128,19 @@ install_binary() {
     fi
 
     chmod +x "${INSTALL_DIR}/${BINARY}"
+}
+
+# --- Config file ---
+
+install_config() {
+    if [ ! -f /etc/uctronics-display.conf ]; then
+        log "Creating default config at /etc/uctronics-display.conf"
+        cat > /etc/uctronics-display.conf <<CONF
+# UCTRONICS LCD display configuration
+screen=dashboard
+refresh=5
+CONF
+    fi
 }
 
 # --- Systemd service ---
@@ -165,6 +181,7 @@ if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
 fi
 
 install_binary
+install_config
 install_service
 
 if [ "$needs_reboot" = true ]; then

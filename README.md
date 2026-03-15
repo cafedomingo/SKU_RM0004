@@ -49,9 +49,23 @@ sudo systemctl daemon-reload
 
 ## Configuration
 
-Settings are in `hardware/rpiInfo/rpiInfo.h`. Rebuild after changing.
+Runtime settings are in `/etc/uctronics-display.conf` (created on first install):
+
+```ini
+# Screen to display: "dashboard" or "diagnostic"
+screen=dashboard
+
+# Refresh interval in seconds (1-30)
+refresh=5
+```
+
+Changes take effect on the next refresh cycle — no restart required.
+
+The diagnostic screen shows detailed system metrics across two pages that alternate each refresh cycle: system overview (hostname, IPs, CPU, temperature, RAM, throttle) and I/O (disk, network, IOPS, update status).
+
+Compile-time settings are in `hardware/rpiInfo/rpiInfo.h`. Rebuild after changing.
 
 ```c
 #define TEMPERATURE_TYPE  CELSIUS    // or FAHRENHEIT
-#define REFRESH_INTERVAL_SECS  5     // seconds between updates
+#define REFRESH_INTERVAL_SECS  5     // default refresh interval
 ```

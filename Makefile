@@ -22,8 +22,12 @@ VPATH := $(SRCDIRS)
 
 $(TARGET):$(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
+DEPS := $(OBJS:.o=.d)
+
 $(OBJS) : obj/%.o : %.c
-	$(CC) $(CFLAGS) -c $(INCLUDE) -o $@ $<
+	$(CC) $(CFLAGS) -MMD -MP -c $(INCLUDE) -o $@ $<
+
+-include $(DEPS)
 
 
 clean:

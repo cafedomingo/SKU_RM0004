@@ -2,12 +2,14 @@
  * UCTRONICS ST7735 LCD display driver for Raspberry Pi
  */
 #include "dashboard.h"
+#include "diagnostic.h"
 #include "log.h"
-#include "rpiInfo.h"
+#include "runtime_config.h"
 #include "st7735.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #define I2C_EXPECTED_HZ     400000
@@ -34,17 +36,47 @@ static void check_i2c_speed(void) {
     }
 }
 
+static long now_ms(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000L + ts.tv_nsec / 1000000L;
+}
+
 int main(void) {
-    LOG_INFO("starting (refresh every %ds)", REFRESH_INTERVAL_SECS);
+    LOG_INFO("starting");
     check_i2c_speed();
     if (lcd_begin()) {
         LOG_ERROR("lcd_begin failed, exiting");
         return 1;
     }
     lcd_fill_screen(ST7735_BLACK);
+
+    runtime_config_t cfg;
+    char prev_screen[16] = "";
+    int diag_page = 0;
+
     while (1) {
-        lcd_display_dashboard();
-        sleep(REFRESH_INTERVAL_SECS);
+        load_runtime_config(&cfg);
+
+        /* Clear display on screen change */
+        if (strcmp(cfg.screen, prev_screen) != 0) {
+            lcd_fill_screen(ST7735_BLACK);
+            snprintf(prev_screen, sizeof(prev_screen), "%s", cfg.screen);
+            diag_page = 0;
+        }
+
+        if (strcmp(cfg.screen, SCREEN_DIAGNOSTIC) == 0) {
+            if (diag_page == 0) diag_refresh_data();
+            lcd_display_diagnostic_page(diag_page);
+            diag_page = (diag_page + 1) % DIAG_NUM_PAGES;
+            sleep(cfg.refresh);
+        } else {
+            diag_page = 0;
+            long before = now_ms();
+            lcd_display_dashboard();
+            long elapsed_s = (now_ms() - before) / 1000;
+            if (elapsed_s < cfg.refresh) sleep(cfg.refresh - elapsed_s);
+        }
     }
     return 0;
 }

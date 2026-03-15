@@ -2,6 +2,7 @@
 #include "log.h"
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <ifaddrs.h>
 #include <net/if.h>
 #include <netinet/in.h>
 #include <string.h>
@@ -160,6 +161,65 @@ char *get_ip_address(void) {
     close(fd);
 
     return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+}
+
+/*
+ * Get the host suffix of the first global-scope IPv6 address on the
+ * default-route interface.  Uses the netmask to determine prefix length
+ * and returns only the host portion, prefixed with "::".
+ * Returns "no IPv6" on failure.
+ */
+char *get_ip6_suffix(void) {
+    static char buf[INET6_ADDRSTRLEN + 3];
+    char iface[64];
+    if (get_default_iface(iface, sizeof(iface)) != 0) return "no IPv6";
+
+    struct ifaddrs *ifa_list, *ifa;
+    if (getifaddrs(&ifa_list) != 0) return "no IPv6";
+
+    char *result = "no IPv6";
+    for (ifa = ifa_list; ifa; ifa = ifa->ifa_next) {
+        if (!ifa->ifa_addr || ifa->ifa_addr->sa_family != AF_INET6) continue;
+        if (strcmp(ifa->ifa_name, iface) != 0) continue;
+
+        struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)ifa->ifa_addr;
+        if (IN6_IS_ADDR_LINKLOCAL(&sa6->sin6_addr)) continue;
+
+        /* Count prefix length from netmask */
+        if (!ifa->ifa_netmask) continue;
+        struct sockaddr_in6 *mask = (struct sockaddr_in6 *)ifa->ifa_netmask;
+        uint8_t *m = mask->sin6_addr.s6_addr;
+        int prefix = 0;
+        for (int i = 0; i < 16; i++) {
+            if (m[i] == 0xFF) {
+                prefix += 8;
+                continue;
+            }
+            for (int b = 7; b >= 0; b--) {
+                if (m[i] & (1 << b))
+                    prefix++;
+                else
+                    break;
+            }
+            break;
+        }
+
+        /* Format host groups (those after the prefix) */
+        uint8_t *a = sa6->sin6_addr.s6_addr;
+        int first_group = prefix / 16;
+        char *p = buf;
+        char *end = buf + sizeof(buf);
+        p += snprintf(p, end - p, "::");
+        for (int g = first_group; g < 8 && p < end; g++) {
+            if (g > first_group) p += snprintf(p, end - p, ":");
+            p += snprintf(p, end - p, "%x", (a[g * 2] << 8) | a[g * 2 + 1]);
+        }
+        result = buf;
+        break;
+    }
+
+    freeifaddrs(ifa_list);
+    return result;
 }
 
 /*
@@ -481,7 +541,11 @@ int get_dietpi_update_status(void) {
 int get_apt_update_count(void) {
     int count = 0;
     FILE *fp = fopen("/run/dietpi/.apt_updates", "r");
-    if (!fp) return -1;
+    if (!fp) {
+        /* On DietPi, missing file means no updates available */
+        if (access("/boot/dietpi/.version", F_OK) == 0) return 0;
+        return -1;
+    }
     if (fscanf(fp, "%d", &count) != 1) count = 0;
     fclose(fp);
     return count;
