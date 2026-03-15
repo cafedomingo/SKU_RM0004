@@ -4,7 +4,6 @@
 #include "dashboard.h"
 #include "diagnostic.h"
 #include "log.h"
-#include "rpiInfo.h"
 #include "runtime_config.h"
 #include "st7735.h"
 #include <arpa/inet.h>
@@ -54,9 +53,7 @@ int main(void) {
 
     runtime_config_t cfg;
     char prev_screen[16] = "";
-    uint16_t scroll_px = 0;
-    uint16_t scroll_total = DIAG_TOTAL_ROWS * Font_7x10.height;
-    long last_refresh_ms = 0;
+    int diag_page = 0;
 
     while (1) {
         load_runtime_config(&cfg);
@@ -65,19 +62,16 @@ int main(void) {
         if (strcmp(cfg.screen, prev_screen) != 0) {
             lcd_fill_screen(ST7735_BLACK);
             snprintf(prev_screen, sizeof(prev_screen), "%s", cfg.screen);
+            diag_page = 0;
         }
 
         if (strcmp(cfg.screen, SCREEN_DIAGNOSTIC) == 0) {
-            long refresh_ms = cfg.refresh * 1000L;
-            if (now_ms() - last_refresh_ms >= refresh_ms) {
-                diag_refresh_data();
-                last_refresh_ms = now_ms();
-            }
-            lcd_display_diagnostic(scroll_px);
-            scroll_px = (scroll_px + DIAG_SCROLL_STEP) % scroll_total;
+            if (diag_page == 0) diag_refresh_data();
+            lcd_display_diagnostic_page(diag_page);
+            diag_page = (diag_page + 1) % DIAG_NUM_PAGES;
+            sleep(cfg.refresh);
         } else {
-            scroll_px = 0;
-            last_refresh_ms = 0;
+            diag_page = 0;
             long before = now_ms();
             lcd_display_dashboard();
             long elapsed_s = (now_ms() - before) / 1000;

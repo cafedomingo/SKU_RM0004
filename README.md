@@ -61,7 +61,7 @@ refresh=5
 
 Changes take effect on the next refresh cycle — no restart required.
 
-The diagnostic screen is a scrolling text view showing CPU frequency, temperature, throttle status, network bandwidth, disk I/O, and update status.
+The diagnostic screen shows detailed system metrics across two pages that alternate each refresh cycle: system overview (hostname, IPs, CPU, temperature, RAM, throttle) and I/O (disk, network, IOPS, update status).
 
 Compile-time settings are in `hardware/rpiInfo/rpiInfo.h`. Rebuild after changing.
 

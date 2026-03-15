@@ -6,19 +6,20 @@
 #include <string.h>
 
 typedef struct {
-    char text[24];
-    uint16_t color;
+    char label[12];
+    char value[24];
+    uint16_t color; /* value color; labels are always gray */
 } diag_row_t;
 
 static diag_row_t rows[DIAG_TOTAL_ROWS];
 
-static void format_bytes(uint64_t bps, char *buf, size_t len) {
+static void format_rate(uint64_t bps, char *buf, size_t len) {
     if (bps >= 1048576)
-        snprintf(buf, len, "%.1f MB/s", (double)bps / 1048576.0);
+        snprintf(buf, len, "%.1fM", (double)bps / 1048576.0);
     else if (bps >= 1024)
-        snprintf(buf, len, "%.1f KB/s", (double)bps / 1024.0);
+        snprintf(buf, len, "%.1fK", (double)bps / 1024.0);
     else
-        snprintf(buf, len, "%lu B/s", (unsigned long)bps);
+        snprintf(buf, len, "%luB", (unsigned long)bps);
 }
 
 static void format_uptime(uint32_t secs, char *buf, size_t len) {
@@ -26,134 +27,166 @@ static void format_uptime(uint32_t secs, char *buf, size_t len) {
     uint32_t h = (secs % 86400) / 3600;
     uint32_t m = (secs % 3600) / 60;
     if (d > 0)
-        snprintf(buf, len, "%ud %uh %um", d, h, m);
+        snprintf(buf, len, "%ud %uh", d, h);
     else if (h > 0)
         snprintf(buf, len, "%uh %um", h, m);
     else
         snprintf(buf, len, "%um", m);
 }
 
-static void set_row(int idx, uint16_t color, const char *fmt, ...) {
+static uint16_t threshold_color(uint8_t val) {
+    if (val < 60) return ST7735_GREEN;
+    if (val < 80) return ST7735_YELLOW;
+    if (val < 90) return ST7735_ORANGE;
+    return ST7735_RED;
+}
+
+static uint16_t temp_color(uint8_t celsius) {
+    if (celsius < 50) return ST7735_GREEN;
+    if (celsius < 60) return ST7735_YELLOW;
+    if (celsius < 70) return ST7735_ORANGE;
+    return ST7735_RED;
+}
+
+/*
+ * Set a row with a left-aligned label and a right-aligned value.
+ * If label is empty, the value is rendered left-aligned instead (for header rows).
+ */
+static void set_row(int idx, const char *label, uint16_t color, const char *fmt, ...) {
+    snprintf(rows[idx].label, sizeof(rows[idx].label), "%s", label);
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(rows[idx].text, sizeof(rows[idx].text), fmt, ap);
+    vsnprintf(rows[idx].value, sizeof(rows[idx].value), fmt, ap);
     va_end(ap);
     rows[idx].color = color;
 }
 
-static void set_separator(int idx) {
-    snprintf(rows[idx].text, sizeof(rows[idx].text), "--------------------");
-    rows[idx].color = ST7735_GRAY;
-}
-
 void diag_refresh_data(void) {
-    char tmp[24];
+    char r[12], w[12];
     int i = 0;
 
-    /* System info */
-    set_row(i++, ST7735_WHITE, "%s", get_hostname());
-    set_row(i++, ST7735_VIOLET, "IP: %s", get_ip_address());
+    /* Page 1: System overview */
+    set_row(i++, "", ST7735_WHITE, "%s", get_hostname());
+    set_row(i++, "", ST7735_VIOLET, "%s", get_ip_address());
+    set_row(i++, "", ST7735_VIOLET, "%s", get_ip6_suffix());
 
-    uint32_t up = get_uptime_secs();
-    format_uptime(up, tmp, sizeof(tmp));
-    set_row(i++, ST7735_WHITE, "Up: %s", tmp);
+    format_uptime(get_uptime_secs(), r, sizeof(r));
+    set_row(i++, "Uptime", ST7735_WHITE, "%s", r);
 
-    set_separator(i++);
-
-    /* CPU / thermal / RAM */
     uint8_t cpu = get_cpu_percent();
     cpu_freq_t freq = get_cpu_freq();
-    set_row(i++, ST7735_GREEN, "CPU: %3d%%  %dMHz", cpu, freq.cur_mhz);
-    set_row(i++, ST7735_GREEN, "Freq: %d-%d MHz", freq.min_mhz, freq.max_mhz);
+    set_row(i++, "CPU", threshold_color(cpu), "%d%% %dMHz", cpu, freq.cur_mhz);
 
     uint8_t temp = get_temperature();
-    int fahr = (int)temp * 9 / 5 + 32;
-    set_row(i++, ST7735_CYAN, "Temp: %dC / %dF", temp, fahr);
+    set_row(i++, "Temp", temp_color(temp), "%dC / %dF", temp, (int)temp * 9 / 5 + 32);
 
     uint8_t ram = get_ram_percent();
-    set_row(i++, ST7735_GREEN, "RAM: %3d%%", ram);
+    set_row(i++, "RAM", threshold_color(ram), "%d%%", ram);
 
     uint32_t thr = get_cpu_throttle_status();
-    if ((thr & THROTTLE_CURRENT_MASK) == 0 && (thr & THROTTLE_PAST_MASK) == 0)
-        set_row(i++, ST7735_GREEN, "Throttle: OK");
-    else if ((thr & THROTTLE_CURRENT_MASK) != 0)
-        set_row(i++, ST7735_RED, "Throttle: ACTIVE");
+    if ((thr & THROTTLE_CURRENT_MASK) != 0)
+        set_row(i++, "Throttle", ST7735_RED, "ACTIVE");
+    else if ((thr & THROTTLE_PAST_MASK) != 0)
+        set_row(i++, "Throttle", ST7735_YELLOW, "past");
     else
-        set_row(i++, ST7735_YELLOW, "Throttle: past");
+        set_row(i++, "Throttle", ST7735_GREEN, "OK");
 
-    set_separator(i++);
-
-    /* Network */
-    net_bandwidth_t net = get_net_bandwidth();
-    format_bytes(net.rx_bytes_per_sec, tmp, sizeof(tmp));
-    set_row(i++, ST7735_CYAN, "Net RX: %s", tmp);
-    format_bytes(net.tx_bytes_per_sec, tmp, sizeof(tmp));
-    set_row(i++, ST7735_CYAN, "Net TX: %s", tmp);
-
-    set_separator(i++);
-
-    /* Disk */
+    /* Page 2: I/O + Updates */
     uint8_t disk = get_disk_percent();
-    set_row(i++, ST7735_GREEN, "Disk: %3d%%", disk);
+    set_row(i++, "Disk", threshold_color(disk), "%d%%", disk);
+
+    net_bandwidth_t net = get_net_bandwidth();
+    format_rate(net.rx_bytes_per_sec, r, sizeof(r));
+    format_rate(net.tx_bytes_per_sec, w, sizeof(w));
+    set_row(i++, "Net RX", ST7735_WHITE, "%s", r);
+    set_row(i++, "Net TX", ST7735_WHITE, "%s", w);
 
     disk_io_t dio = get_disk_io();
-    format_bytes(dio.read_bytes_per_sec, tmp, sizeof(tmp));
-    set_row(i++, ST7735_GREEN, "IO R: %s", tmp);
-    format_bytes(dio.write_bytes_per_sec, tmp, sizeof(tmp));
-    set_row(i++, ST7735_GREEN, "IO W: %s", tmp);
-    set_row(i++, ST7735_GREEN, "IOPS R: %u", dio.read_iops);
-    set_row(i++, ST7735_GREEN, "IOPS W: %u", dio.write_iops);
+    format_rate(dio.read_bytes_per_sec, r, sizeof(r));
+    format_rate(dio.write_bytes_per_sec, w, sizeof(w));
+    set_row(i++, "IO R/W", ST7735_WHITE, "%s/%s", r, w);
+    set_row(i++, "IOPS R/W", ST7735_WHITE, "%u/%u", dio.read_iops, dio.write_iops);
 
-    set_separator(i++);
-
-    /* DietPi */
     int ds = get_dietpi_update_status();
-    if (ds == 0)
-        set_row(i++, ST7735_GRAY, "DietPi: N/A");
+    if (ds == 2)
+        set_row(i++, "DietPi", ST7735_RED, "update!");
     else if (ds == 1)
-        set_row(i++, ST7735_GREEN, "DietPi: OK");
+        set_row(i++, "DietPi", ST7735_GREEN, "OK");
     else
-        set_row(i++, ST7735_RED, "DietPi: update!");
+        set_row(i++, "DietPi", ST7735_GRAY, "N/A");
 
     int apt = get_apt_update_count();
-    if (apt < 0)
-        set_row(i++, ST7735_GRAY, "APT: N/A");
+    if (apt > 0)
+        set_row(i++, "APT", ST7735_YELLOW, "%d updates", apt);
     else if (apt == 0)
-        set_row(i++, ST7735_GREEN, "APT: up to date");
+        set_row(i++, "APT", ST7735_GREEN, "up to date");
     else
-        set_row(i++, ST7735_YELLOW, "APT: %d updates", apt);
+        set_row(i++, "APT", ST7735_GRAY, "N/A");
 }
 
-void lcd_display_diagnostic(uint8_t scroll_offset) {
-    static uint8_t fb[ST7735_WIDTH * ST7735_HEIGHT * 2];
-    uint16_t w = ST7735_WIDTH;
-    uint16_t row_h = Font_7x10.height;
+/*
+ * Page layout (max 8 rows per page):
+ *   Page 0: System identity + CPU/thermal/RAM  (rows 0-7)
+ *   Page 1: I/O + Updates                      (rows 8-14)
+ */
+static const int page_start[DIAG_NUM_PAGES] = {0, 8};
+static const int page_len[DIAG_NUM_PAGES] = {8, 7};
 
-    /* Clear framebuffer to black */
+/*
+ * Render a single character into the framebuffer at (x, y).
+ */
+static void fb_putchar(uint8_t *fb, uint16_t x, uint16_t y, char ch, uint16_t color) {
+    if (ch < 32 || ch >= 127) ch = '?';
+    uint16_t row_h = Font_7x10.height;
+    for (uint16_t row = 0; row < row_h; row++) {
+        uint16_t bits = Font_7x10.data[(ch - 32) * row_h + row];
+        for (uint16_t col = 0; col < Font_7x10.width; col++) {
+            if ((bits << col) & 0x8000) {
+                uint32_t off = ((y + row) * ST7735_WIDTH + x + col) * 2;
+                fb[off] = color >> 8;
+                fb[off + 1] = color & 0xFF;
+            }
+        }
+    }
+}
+
+void lcd_display_diagnostic_page(int page) {
+    static uint8_t fb[ST7735_WIDTH * ST7735_HEIGHT * 2];
+    uint16_t row_h = Font_7x10.height;
+    uint16_t char_w = Font_7x10.width;
+    int first = page_start[page];
+    int count = page_len[page];
+
     memset(fb, 0, sizeof(fb));
 
-    /* Render each visible row into the framebuffer */
-    for (int v = 0; v < DIAG_VISIBLE_ROWS; v++) {
-        int idx = (scroll_offset + v) % DIAG_TOTAL_ROWS;
+    for (int v = 0; v < count; v++) {
+        int idx = first + v;
         uint16_t y = (uint16_t)(v * row_h);
-        const char *str = rows[idx].text;
+        const char *label = rows[idx].label;
+        const char *value = rows[idx].value;
         uint16_t color = rows[idx].color;
 
-        uint16_t x = 0;
-        while (*str && x + Font_7x10.width <= w) {
-            uint16_t b;
-            for (uint16_t row = 0; row < row_h; row++) {
-                b = Font_7x10.data[(*str - 32) * row_h + row];
-                for (uint16_t col = 0; col < Font_7x10.width; col++) {
-                    if ((b << col) & 0x8000) {
-                        uint32_t off = ((y + row) * w + x + col) * 2;
-                        fb[off] = color >> 8;
-                        fb[off + 1] = color & 0xFF;
-                    }
-                }
+        if (label[0] == '\0') {
+            /* Header row: value rendered left-aligned in its color */
+            uint16_t x = 0;
+            while (*value && x + char_w <= ST7735_WIDTH) {
+                fb_putchar(fb, x, y, *value++, color);
+                x += char_w;
             }
-            x += Font_7x10.width;
-            str++;
+        } else {
+            /* Label left-aligned in gray */
+            uint16_t x = 0;
+            while (*label && x + char_w <= ST7735_WIDTH) {
+                fb_putchar(fb, x, y, *label++, ST7735_GRAY);
+                x += char_w;
+            }
+            /* Value right-aligned in color (fall back to left-align if too wide) */
+            uint16_t vlen = strlen(value);
+            uint16_t vx = (vlen * char_w <= ST7735_WIDTH) ? ST7735_WIDTH - vlen * char_w : 0;
+            while (*value && vx + char_w <= ST7735_WIDTH) {
+                fb_putchar(fb, vx, y, *value++, color);
+                vx += char_w;
+            }
         }
     }
 

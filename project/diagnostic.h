@@ -3,11 +3,10 @@
 
 #include <stdint.h>
 
-#define DIAG_VISIBLE_ROWS 8
-#define DIAG_TOTAL_ROWS   21
-#define DIAG_SCROLL_SECS  1
+#define DIAG_TOTAL_ROWS 15
+#define DIAG_NUM_PAGES  2
 
 void diag_refresh_data(void);
-void lcd_display_diagnostic(uint8_t scroll_offset);
+void lcd_display_diagnostic_page(int page);
 
 #endif /* __DIAGNOSTIC_H__ */
