@@ -541,7 +541,11 @@ int get_dietpi_update_status(void) {
 int get_apt_update_count(void) {
     int count = 0;
     FILE *fp = fopen("/run/dietpi/.apt_updates", "r");
-    if (!fp) return -1;
+    if (!fp) {
+        /* On DietPi, missing file means no updates available */
+        if (access("/boot/dietpi/.version", F_OK) == 0) return 0;
+        return -1;
+    }
     if (fscanf(fp, "%d", &count) != 1) count = 0;
     fclose(fp);
     return count;
