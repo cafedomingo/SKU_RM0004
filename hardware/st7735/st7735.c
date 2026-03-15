@@ -144,7 +144,7 @@ static void i2c_burst_transfer(uint8_t *buff, uint32_t length) {
             break;
         }
         count += (uint32_t)written;
-        usleep(700);
+        usleep(450);
     }
     i2c_write_command(BURST_WRITE_REG, 0x00, 0x00);
     i2c_write_command(SYNC_REG, 0x00, 0x01);
@@ -193,6 +193,14 @@ void lcd_fill_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t
     for (y = h; y > 0; y--) {
         i2c_burst_transfer(buff, sizeof(uint16_t) * w);
     }
+}
+
+/*
+ * Send a pre-rendered full-screen pixel buffer in a single I2C burst.
+ */
+void lcd_draw_fullscreen(uint8_t *buf) {
+    lcd_set_address_window(0, 0, ST7735_WIDTH - 1, ST7735_HEIGHT - 1);
+    i2c_burst_transfer(buf, ST7735_WIDTH * ST7735_HEIGHT * 2);
 }
 
 /*

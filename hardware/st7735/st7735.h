@@ -31,6 +31,9 @@ extern void lcd_draw_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t
 extern void lcd_fill_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
 extern void lcd_fill_screen(uint16_t color);
 
+/* Bulk transfer */
+extern void lcd_draw_fullscreen(uint8_t *buf);
+
 /* Text */
 extern void lcd_write_string(uint16_t x, uint16_t y, const char *str, FontDef font, uint16_t color, uint16_t bgcolor);
 
