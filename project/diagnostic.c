@@ -1,6 +1,7 @@
 #include "diagnostic.h"
 #include "rpiInfo.h"
 #include "st7735.h"
+#include "theme.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -34,20 +35,6 @@ static void format_uptime(uint32_t secs, char *buf, size_t len) {
         snprintf(buf, len, "%um", m);
 }
 
-static uint16_t threshold_color(uint8_t val) {
-    if (val < 60) return ST7735_GREEN;
-    if (val < 80) return ST7735_YELLOW;
-    if (val < 90) return ST7735_ORANGE;
-    return ST7735_RED;
-}
-
-static uint16_t temp_color(uint8_t celsius) {
-    if (celsius < 50) return ST7735_GREEN;
-    if (celsius < 60) return ST7735_YELLOW;
-    if (celsius < 70) return ST7735_ORANGE;
-    return ST7735_RED;
-}
-
 /*
  * Set a row with a left-aligned label and a right-aligned value.
  * If label is empty, the value is rendered left-aligned instead (for header rows).
@@ -66,62 +53,62 @@ void diag_refresh_data(void) {
     int i = 0;
 
     /* Page 1: System overview */
-    set_row(i++, "", ST7735_WHITE, "%s", get_hostname());
-    set_row(i++, "", ST7735_VIOLET, "%s", get_ip_address());
-    set_row(i++, "", ST7735_VIOLET, "%s", get_ip6_suffix());
+    set_row(i++, "", theme.fg, "%s", get_hostname());
+    set_row(i++, "", theme.ip, "%s", get_ip_address());
+    set_row(i++, "", theme.ip, "%s", get_ip6_suffix());
 
     format_uptime(get_uptime_secs(), r, sizeof(r));
-    set_row(i++, "Uptime", ST7735_WHITE, "%s", r);
+    set_row(i++, "Uptime", theme.fg, "%s", r);
 
     uint8_t cpu = get_cpu_percent();
     cpu_freq_t freq = get_cpu_freq();
-    set_row(i++, "CPU", threshold_color(cpu), "%d%% %dMHz", cpu, freq.cur_mhz);
+    set_row(i++, "CPU", threshold_color(cpu, TH_CPU_WARN, TH_CPU_CRIT), "%d%% %dMHz", cpu, freq.cur_mhz);
 
     uint8_t temp = get_temperature();
-    set_row(i++, "Temp", temp_color(temp), "%dC / %dF", temp, (int)temp * 9 / 5 + 32);
+    set_row(i++, "Temp", temp_ramp_color(temp), "%dC / %dF", temp, (int)temp * 9 / 5 + 32);
 
     uint8_t ram = get_ram_percent();
-    set_row(i++, "RAM", threshold_color(ram), "%d%%", ram);
+    set_row(i++, "RAM", threshold_color(ram, TH_RAM_WARN, TH_RAM_CRIT), "%d%%", ram);
 
     uint32_t thr = get_cpu_throttle_status();
     if ((thr & THROTTLE_CURRENT_MASK) != 0)
-        set_row(i++, "Throttle", ST7735_RED, "ACTIVE");
+        set_row(i++, "Throttle", theme.crit, "ACTIVE");
     else if ((thr & THROTTLE_PAST_MASK) != 0)
-        set_row(i++, "Throttle", ST7735_YELLOW, "past");
+        set_row(i++, "Throttle", theme.warn, "past");
     else
-        set_row(i++, "Throttle", ST7735_GREEN, "OK");
+        set_row(i++, "Throttle", theme.ok, "OK");
 
     /* Page 2: I/O + Updates */
     uint8_t disk = get_disk_percent();
-    set_row(i++, "Disk", threshold_color(disk), "%d%%", disk);
+    set_row(i++, "Disk", threshold_color(disk, TH_DISK_WARN, TH_DISK_CRIT), "%d%%", disk);
 
     net_bandwidth_t net = get_net_bandwidth();
     format_rate(net.rx_bytes_per_sec, r, sizeof(r));
     format_rate(net.tx_bytes_per_sec, w, sizeof(w));
-    set_row(i++, "Net RX", ST7735_WHITE, "%s", r);
-    set_row(i++, "Net TX", ST7735_WHITE, "%s", w);
+    set_row(i++, "Net RX", theme.fg, "%s", r);
+    set_row(i++, "Net TX", theme.fg, "%s", w);
 
     disk_io_t dio = get_disk_io();
     format_rate(dio.read_bytes_per_sec, r, sizeof(r));
     format_rate(dio.write_bytes_per_sec, w, sizeof(w));
-    set_row(i++, "IO R/W", ST7735_WHITE, "%s/%s", r, w);
-    set_row(i++, "IOPS R/W", ST7735_WHITE, "%u/%u", dio.read_iops, dio.write_iops);
+    set_row(i++, "IO R/W", theme.fg, "%s/%s", r, w);
+    set_row(i++, "IOPS R/W", theme.fg, "%u/%u", dio.read_iops, dio.write_iops);
 
     int ds = get_dietpi_update_status();
     if (ds == 2)
-        set_row(i++, "DietPi", ST7735_RED, "update!");
+        set_row(i++, "DietPi", theme.alert, "update!");
     else if (ds == 1)
-        set_row(i++, "DietPi", ST7735_GREEN, "OK");
+        set_row(i++, "DietPi", theme.ok, "OK");
     else
-        set_row(i++, "DietPi", ST7735_GRAY, "N/A");
+        set_row(i++, "DietPi", theme.sep, "N/A");
 
     int apt = get_apt_update_count();
     if (apt > 0)
-        set_row(i++, "APT", ST7735_YELLOW, "%d updates", apt);
+        set_row(i++, "APT", theme.warn, "%d updates", apt);
     else if (apt == 0)
-        set_row(i++, "APT", ST7735_GREEN, "up to date");
+        set_row(i++, "APT", theme.ok, "up to date");
     else
-        set_row(i++, "APT", ST7735_GRAY, "N/A");
+        set_row(i++, "APT", theme.sep, "N/A");
 }
 
 /*
