@@ -37,4 +37,10 @@ extern void lcd_draw_fullscreen(uint8_t *buf);
 /* Text */
 extern void lcd_write_string(uint16_t x, uint16_t y, const char *str, FontDef font, uint16_t color, uint16_t bgcolor);
 
+/* Framebuffer drawing primitives */
+extern void lcd_fb_pixel(uint8_t *fb, uint16_t x, uint16_t y, uint16_t color);
+extern void lcd_fb_rect(uint8_t *fb, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
+extern void lcd_fb_char(uint8_t *fb, uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color);
+extern void lcd_fb_string(uint8_t *fb, uint16_t x, uint16_t y, const char *str, FontDef font, uint16_t color);
+
 #endif /* __ST7735_H__ */

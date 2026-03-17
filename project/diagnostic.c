@@ -132,24 +132,6 @@ void diag_refresh_data(void) {
 static const int page_start[DIAG_NUM_PAGES] = {0, 8};
 static const int page_len[DIAG_NUM_PAGES] = {8, 7};
 
-/*
- * Render a single character into the framebuffer at (x, y).
- */
-static void fb_putchar(uint8_t *fb, uint16_t x, uint16_t y, char ch, uint16_t color) {
-    if (ch < 32 || ch >= 127) ch = '?';
-    uint16_t row_h = Font_7x10.height;
-    for (uint16_t row = 0; row < row_h; row++) {
-        uint16_t bits = Font_7x10.data[(ch - 32) * row_h + row];
-        for (uint16_t col = 0; col < Font_7x10.width; col++) {
-            if ((bits << col) & 0x8000) {
-                uint32_t off = ((y + row) * ST7735_WIDTH + x + col) * 2;
-                fb[off] = color >> 8;
-                fb[off + 1] = color & 0xFF;
-            }
-        }
-    }
-}
-
 void lcd_display_diagnostic_page(int page) {
     static uint8_t fb[ST7735_WIDTH * ST7735_HEIGHT * 2];
     uint16_t row_h = Font_7x10.height;
@@ -168,25 +150,14 @@ void lcd_display_diagnostic_page(int page) {
 
         if (label[0] == '\0') {
             /* Header row: value rendered left-aligned in its color */
-            uint16_t x = 0;
-            while (*value && x + char_w <= ST7735_WIDTH) {
-                fb_putchar(fb, x, y, *value++, color);
-                x += char_w;
-            }
+            lcd_fb_string(fb, 0, y, value, Font_7x10, color);
         } else {
             /* Label left-aligned in gray */
-            uint16_t x = 0;
-            while (*label && x + char_w <= ST7735_WIDTH) {
-                fb_putchar(fb, x, y, *label++, ST7735_GRAY);
-                x += char_w;
-            }
+            lcd_fb_string(fb, 0, y, label, Font_7x10, ST7735_GRAY);
             /* Value right-aligned in color (fall back to left-align if too wide) */
             uint16_t vlen = strlen(value);
             uint16_t vx = (vlen * char_w <= ST7735_WIDTH) ? ST7735_WIDTH - vlen * char_w : 0;
-            while (*value && vx + char_w <= ST7735_WIDTH) {
-                fb_putchar(fb, vx, y, *value++, color);
-                vx += char_w;
-            }
+            lcd_fb_string(fb, vx, y, value, Font_7x10, color);
         }
     }
 
