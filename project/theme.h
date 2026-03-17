@@ -25,9 +25,6 @@ extern const Theme theme;
 #define TH_DIO_WARN 524288   /* 512 KB/s */
 #define TH_DIO_CRIT 5242880  /* 5 MB/s */
 
-/* APT badge: warn→crit color threshold */
-#define TH_APT_CRIT 10
-
 /* Temperature ramp breakpoints (Celsius) */
 #define TEMP_COLD 30
 #define TEMP_COOL 50
@@ -35,6 +32,7 @@ extern const Theme theme;
 #define TEMP_HOT  85
 
 uint16_t threshold_color(uint32_t value, uint32_t warn_th, uint32_t crit_th);
+uint16_t lerp_color(uint16_t a, uint16_t b, float t);
 uint16_t temp_ramp_color(uint8_t temp_c);
 
 #endif /* __THEME_H__ */
