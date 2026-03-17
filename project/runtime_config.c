@@ -30,7 +30,9 @@ static void parse_config(runtime_config_t *cfg) {
         if (nl) *nl = '\0';
 
         if (strcmp(line, "screen") == 0) {
-            if (strcmp(val, SCREEN_DASHBOARD) != 0 && strcmp(val, SCREEN_DIAGNOSTIC) != 0) continue;
+            if (strcmp(val, SCREEN_DASHBOARD) != 0 && strcmp(val, SCREEN_DIAGNOSTIC) != 0 &&
+                strcmp(val, SCREEN_SPARKLINE) != 0)
+                continue;
             strncpy(cfg->screen, val, sizeof(cfg->screen));
             cfg->screen[sizeof(cfg->screen) - 1] = '\0';
         } else if (strcmp(line, "refresh") == 0) {
