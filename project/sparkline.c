@@ -196,9 +196,110 @@ static void draw_freq_disk(const SystemData *d) {
                   threshold_color(d->disk_pct, TH_DISK_WARN, TH_DISK_CRIT));
 }
 
+/*
+ * Draw a single sparkline chart (13 bars growing upward from ROW_SPARK_BOT).
+ */
+static void draw_sparkline(uint16_t start_x, const uint8_t *history, uint32_t warn_th, uint32_t crit_th) {
+    for (int i = 0; i < SPARKLINE_HISTORY; i++) {
+        uint8_t val = history[i];
+        if (val == 0) continue;
+        int col_height = (int)round(val * SPARK_HEIGHT / 100.0);
+        if (col_height < 1) col_height = 1;
+        uint16_t cx = start_x + i * (SPARK_BAR_W + SPARK_BAR_GAP);
+        uint16_t cy = ROW_SPARK_TOP + SPARK_HEIGHT - col_height;
+        uint16_t color = threshold_color(val, warn_th, crit_th);
+        lcd_fb_rect(fb, cx, cy, SPARK_BAR_W, col_height, color);
+    }
+}
+
+/*
+ * CPU N% (left) and RAM N% (right) at y=58.
+ */
+static void draw_cpu_ram_values(const SystemData *d) {
+    /* CPU label + value */
+    lcd_fb_string(fb, COL_LEFT_X, ROW_CPU_RAM, "CPU", Font_7x10, theme.fg);
+    char buf[5];
+    snprintf(buf, sizeof(buf), "%u%%", d->cpu_pct);
+    lcd_fb_string(fb, COL_LEFT_X + 3 * Font_7x10.width + 1, ROW_CPU_RAM, buf, Font_7x10,
+                  threshold_color(d->cpu_pct, TH_CPU_WARN, TH_CPU_CRIT));
+
+    /* RAM label + value */
+    lcd_fb_string(fb, COL_RIGHT_X, ROW_CPU_RAM, "RAM", Font_7x10, theme.fg);
+    snprintf(buf, sizeof(buf), "%u%%", d->ram_pct);
+    lcd_fb_string(fb, COL_RIGHT_X + 3 * Font_7x10.width + 1, ROW_CPU_RAM, buf, Font_7x10,
+                  threshold_color(d->ram_pct, TH_RAM_WARN, TH_RAM_CRIT));
+}
+
+/*
+ * Pixel-art down arrow: 5px wide x 7px tall, drawn at (x, y+2) to center in 10px row.
+ */
+static void draw_arrow_down(uint16_t x, uint16_t y, uint16_t color) {
+    uint16_t by = y + 2;
+    /* Stem: 1px wide x 4px */
+    for (int r = 0; r < 4; r++)
+        lcd_fb_pixel(fb, x + 2, by + r, color);
+    /* Bar: 5px wide */
+    for (int c = 0; c < 5; c++)
+        lcd_fb_pixel(fb, x + c, by + 4, color);
+    /* Mid: 3px wide */
+    for (int c = 1; c < 4; c++)
+        lcd_fb_pixel(fb, x + c, by + 5, color);
+    /* Tip: 1px */
+    lcd_fb_pixel(fb, x + 2, by + 6, color);
+}
+
+/*
+ * Pixel-art up arrow: 5px wide x 7px tall, drawn at (x, y+2) to center in 10px row.
+ */
+static void draw_arrow_up(uint16_t x, uint16_t y, uint16_t color) {
+    uint16_t by = y + 2;
+    /* Tip: 1px */
+    lcd_fb_pixel(fb, x + 2, by, color);
+    /* Mid: 3px wide */
+    for (int c = 1; c < 4; c++)
+        lcd_fb_pixel(fb, x + c, by + 1, color);
+    /* Bar: 5px wide */
+    for (int c = 0; c < 5; c++)
+        lcd_fb_pixel(fb, x + c, by + 2, color);
+    /* Stem: 1px wide x 4px */
+    for (int r = 3; r < 7; r++)
+        lcd_fb_pixel(fb, x + 2, by + r, color);
+}
+
+/*
+ * I/O row (y=69): net ↓↑ left column, disk R/W right column.
+ */
+static void draw_io_row(const SystemData *d) {
+    char buf[6];
+
+    /* Network: ↓rx ↑tx */
+    draw_arrow_down(0, ROW_IO, theme.fg);
+    format_rate(d->net_rx, buf, sizeof(buf));
+    lcd_fb_string(fb, 7, ROW_IO, buf, Font_7x10, threshold_color(d->net_rx, TH_NET_WARN, TH_NET_CRIT));
+
+    draw_arrow_up(38, ROW_IO, theme.fg);
+    format_rate(d->net_tx, buf, sizeof(buf));
+    lcd_fb_string(fb, 45, ROW_IO, buf, Font_7x10, threshold_color(d->net_tx, TH_NET_WARN, TH_NET_CRIT));
+
+    /* Disk: R/W */
+    lcd_fb_char(fb, 82, ROW_IO, 'R', Font_7x10, theme.fg);
+    format_rate(d->disk_read, buf, sizeof(buf));
+    lcd_fb_string(fb, 89, ROW_IO, buf, Font_7x10, threshold_color(d->disk_read, TH_DIO_WARN, TH_DIO_CRIT));
+
+    lcd_fb_char(fb, 120, ROW_IO, 'W', Font_7x10, theme.fg);
+    format_rate(d->disk_write, buf, sizeof(buf));
+    lcd_fb_string(fb, 127, ROW_IO, buf, Font_7x10, threshold_color(d->disk_write, TH_DIO_WARN, TH_DIO_CRIT));
+}
+
 void lcd_display_sparkline(sparkline_state_t *state) {
     SystemData data;
     collect_data(&data);
+
+    /* Update sparkline history */
+    memmove(state->cpu_history, state->cpu_history + 1, SPARKLINE_HISTORY - 1);
+    state->cpu_history[SPARKLINE_HISTORY - 1] = data.cpu_pct;
+    memmove(state->ram_history, state->ram_history + 1, SPARKLINE_HISTORY - 1);
+    state->ram_history[SPARKLINE_HISTORY - 1] = data.ram_pct;
 
     /* Fill background */
     uint16_t bg = theme.bg;
@@ -213,6 +314,12 @@ void lcd_display_sparkline(sparkline_state_t *state) {
     draw_uptime_temp(&data);
     draw_freq_disk(&data);
     lcd_fb_rect(fb, 0, ROW_DIVIDER, ST7735_WIDTH, 1, theme.sep);
+
+    /* Live activity zone (bottom half) */
+    draw_sparkline(COL_LEFT_X, state->cpu_history, TH_CPU_WARN, TH_CPU_CRIT);
+    draw_sparkline(COL_RIGHT_X, state->ram_history, TH_RAM_WARN, TH_RAM_CRIT);
+    draw_cpu_ram_values(&data);
+    draw_io_row(&data);
 
     lcd_draw_fullscreen(fb);
 }
