@@ -107,6 +107,95 @@ static void fb_string_right(uint8_t *buf, uint16_t rx, uint16_t y, const char *s
     lcd_fb_string(buf, x, y, str, Font_7x10, color);
 }
 
+/*
+ * Row 1 (y=1): ticker cycling hostname/ipv4/ipv6 + alert badges on right.
+ */
+static void draw_ticker(sparkline_state_t *state, const SystemData *d) {
+    /* Advance ticker */
+    state->ticker_phase++;
+    int max_phase = d->has_ipv6 ? 3 : 2;
+    if (state->ticker_phase >= max_phase) state->ticker_phase = 0;
+
+    switch (state->ticker_phase) {
+    case 0:
+        lcd_fb_string(fb, 0, ROW_TICKER, d->hostname, Font_7x10, theme.fg);
+        break;
+    case 1:
+        lcd_fb_string(fb, 0, ROW_TICKER, d->ipv4, Font_7x10, theme.ip);
+        break;
+    case 2:
+        lcd_fb_string(fb, 0, ROW_TICKER, d->ipv6, Font_7x10, theme.ip);
+        break;
+    }
+
+    /* Alert badges — build from right edge inward */
+    uint16_t ax = ST7735_WIDTH; /* next available x (moving left) */
+
+    /* APT badge: ^N */
+    if (d->apt_count > 0) {
+        char badge[5];
+        int capped = d->apt_count > 99 ? 99 : d->apt_count;
+        snprintf(badge, sizeof(badge), "^%d", capped);
+        uint16_t color = (d->apt_count >= 10) ? theme.crit : theme.warn;
+        uint16_t bw = strlen(badge) * Font_7x10.width;
+        ax -= bw;
+        lcd_fb_string(fb, ax, ROW_TICKER, badge, Font_7x10, color);
+    }
+
+    /* DietPi diamond (4x4 pixel art, 3px gap left of APT badge) */
+    if (d->dietpi_update) {
+        ax -= 3; /* gap */
+        uint16_t dx = ax - 4;
+        lcd_fb_pixel(fb, dx + 1, ROW_TICKER + 3, theme.alert);
+        lcd_fb_pixel(fb, dx + 2, ROW_TICKER + 3, theme.alert);
+        lcd_fb_pixel(fb, dx + 0, ROW_TICKER + 4, theme.alert);
+        lcd_fb_pixel(fb, dx + 1, ROW_TICKER + 4, theme.alert);
+        lcd_fb_pixel(fb, dx + 2, ROW_TICKER + 4, theme.alert);
+        lcd_fb_pixel(fb, dx + 3, ROW_TICKER + 4, theme.alert);
+        lcd_fb_pixel(fb, dx + 0, ROW_TICKER + 5, theme.alert);
+        lcd_fb_pixel(fb, dx + 1, ROW_TICKER + 5, theme.alert);
+        lcd_fb_pixel(fb, dx + 2, ROW_TICKER + 5, theme.alert);
+        lcd_fb_pixel(fb, dx + 3, ROW_TICKER + 5, theme.alert);
+        lcd_fb_pixel(fb, dx + 1, ROW_TICKER + 6, theme.alert);
+        lcd_fb_pixel(fb, dx + 2, ROW_TICKER + 6, theme.alert);
+    }
+}
+
+/*
+ * Row 2 (y=12): uptime left, temperature right-aligned.
+ */
+static void draw_uptime_temp(const SystemData *d) {
+    lcd_fb_string(fb, 0, ROW_UPTIME, d->uptime, Font_7x10, theme.fg);
+
+    char temp_str[6];
+    snprintf(temp_str, sizeof(temp_str), "%uC", d->temp_c);
+    fb_string_right(fb, ST7735_WIDTH - 1, ROW_UPTIME, temp_str, temp_ramp_color(d->temp_c));
+}
+
+/*
+ * Row 3 (y=23): frequency+throttle left, D:N% right-aligned.
+ */
+static void draw_freq_disk(const SystemData *d) {
+    /* Frequency */
+    char freq_str[10];
+    snprintf(freq_str, sizeof(freq_str), "%uMHz", d->freq_mhz);
+    lcd_fb_string(fb, 0, ROW_FREQ, freq_str, Font_7x10, theme.fg);
+    if (d->throttled) {
+        uint16_t bang_x = strlen(freq_str) * Font_7x10.width;
+        lcd_fb_char(fb, bang_x, ROW_FREQ, '!', Font_7x10, theme.alert);
+    }
+
+    /* Disk: "D:N%" right-aligned */
+    char disk_val[5];
+    snprintf(disk_val, sizeof(disk_val), "%u%%", d->disk_pct);
+    uint16_t lbl_w = 2 * Font_7x10.width; /* "D:" */
+    uint16_t val_w = strlen(disk_val) * Font_7x10.width;
+    uint16_t dx = COL_RIGHT_X + COL_WIDTH - lbl_w - val_w;
+    lcd_fb_string(fb, dx, ROW_FREQ, "D:", Font_7x10, theme.fg);
+    lcd_fb_string(fb, dx + lbl_w, ROW_FREQ, disk_val, Font_7x10,
+                  threshold_color(d->disk_pct, TH_DISK_WARN, TH_DISK_CRIT));
+}
+
 void lcd_display_sparkline(sparkline_state_t *state) {
     SystemData data;
     collect_data(&data);
@@ -118,6 +207,12 @@ void lcd_display_sparkline(sparkline_state_t *state) {
         fb[i] = hi;
         fb[i + 1] = lo;
     }
+
+    /* System state zone (top half) */
+    draw_ticker(state, &data);
+    draw_uptime_temp(&data);
+    draw_freq_disk(&data);
+    lcd_fb_rect(fb, 0, ROW_DIVIDER, ST7735_WIDTH, 1, theme.sep);
 
     lcd_draw_fullscreen(fb);
 }
