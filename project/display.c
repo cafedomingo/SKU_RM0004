@@ -65,6 +65,7 @@ int main(void) {
             lcd_fill_screen(ST7735_BLACK);
             snprintf(prev_screen, sizeof(prev_screen), "%s", cfg.screen);
             diag_page = 0;
+            sparkline_invalidate();
         }
 
         if (strcmp(cfg.screen, SCREEN_DIAGNOSTIC) == 0) {

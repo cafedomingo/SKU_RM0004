@@ -47,6 +47,39 @@ typedef struct {
 } SystemData;
 
 static uint8_t fb[ST7735_WIDTH * ST7735_HEIGHT * 2];
+static uint8_t prev_fb[ST7735_WIDTH * ST7735_HEIGHT * 2];
+static bool first_frame = true;
+
+/*
+ * Compare current and previous framebuffers row-by-row, coalesce adjacent
+ * dirty rows into full-width strips, and send only those strips to the display.
+ * On first frame, send everything.
+ */
+static void flush_dirty(void) {
+    if (first_frame) {
+        lcd_draw_fullscreen(fb);
+        memcpy(prev_fb, fb, sizeof(fb));
+        first_frame = false;
+        return;
+    }
+
+    int row_bytes = ST7735_WIDTH * 2;
+    int dirty_start = -1;
+
+    for (int y = 0; y <= ST7735_HEIGHT; y++) {
+        bool dirty = (y < ST7735_HEIGHT) && memcmp(fb + y * row_bytes, prev_fb + y * row_bytes, row_bytes) != 0;
+        if (dirty && dirty_start < 0) {
+            dirty_start = y;
+        } else if (!dirty && dirty_start >= 0) {
+            lcd_draw_region(fb, 0, dirty_start, ST7735_WIDTH, y - dirty_start);
+            dirty_start = -1;
+        }
+    }
+
+    memcpy(prev_fb, fb, sizeof(fb));
+}
+
+void sparkline_invalidate(void) { first_frame = true; }
 
 static void collect_data(SystemData *d) {
     d->cpu_pct = get_cpu_percent();
@@ -321,5 +354,5 @@ void lcd_display_sparkline(sparkline_state_t *state) {
     draw_cpu_ram_values(&data);
     draw_io_row(&data);
 
-    lcd_draw_fullscreen(fb);
+    flush_dirty();
 }
