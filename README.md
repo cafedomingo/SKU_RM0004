@@ -7,6 +7,7 @@ Display driver for the [UCTRONICS SKU_RM0004](https://github.com/UCTRONICS/SKU_R
 - Hostname and auto-detected IP address
 - CPU, RAM, temperature, and disk usage with color-coded bars
 - DietPi update indicator (◆) and APT upgrade count (^N)
+- Three screen modes: dashboard (single-page bars), diagnostic (two-page detail), and sparkline (live CPU/RAM history charts with I/O rates)
 - Refreshes every 5 seconds
 
 ## Install / Update
@@ -52,7 +53,7 @@ sudo systemctl daemon-reload
 Runtime settings are in `/etc/uctronics-display.conf` (created on first install):
 
 ```ini
-# Screen to display: "dashboard" or "diagnostic"
+# Screen to display: "dashboard", "diagnostic", or "sparkline"
 screen=dashboard
 
 # Refresh interval in seconds (1-30)
@@ -61,7 +62,9 @@ refresh=5
 
 Changes take effect on the next refresh cycle — no restart required.
 
-The diagnostic screen shows detailed system metrics across two pages that alternate each refresh cycle: system overview (hostname, IPs, CPU, temperature, RAM, throttle) and I/O (disk, network, IOPS, update status).
+The **diagnostic** screen shows detailed system metrics across two pages that alternate each refresh cycle: system overview (hostname, IPs, CPU, temperature, RAM, throttle) and I/O (disk, network, IOPS, update status).
+
+The **sparkline** screen shows a compact live view with CPU and RAM bar charts that scroll over time, plus network and disk I/O rates, temperature, frequency, and alert badges.
 
 Compile-time settings are in `hardware/rpiInfo/rpiInfo.h`. Rebuild after changing.
 
