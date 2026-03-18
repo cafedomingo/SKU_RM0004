@@ -18,7 +18,6 @@
 #define ROW_FREQ      23
 #define ROW_DIVIDER   33
 #define ROW_SPARK_TOP 35
-#define ROW_SPARK_BOT 56
 #define SPARK_HEIGHT  22
 #define ROW_CPU_RAM   58
 #define ROW_IO        69
@@ -79,7 +78,8 @@ static void collect_data(SystemData *d) {
     uint32_t hours = (secs % 86400) / 3600;
     snprintf(d->uptime, sizeof(d->uptime), "%ud %uh", days, hours);
 
-    d->apt_count = (uint8_t)(get_apt_update_count() > 0 ? get_apt_update_count() : 0);
+    int apt = get_apt_update_count();
+    d->apt_count = (uint8_t)(apt > 0 ? apt : 0);
     d->dietpi_update = (get_dietpi_update_status() == 2);
 
     uint32_t thr = get_cpu_throttle_status();
@@ -270,7 +270,7 @@ static void draw_arrow_up(uint16_t x, uint16_t y, uint16_t color) {
  * I/O row (y=69): net ↓↑ left column, disk R/W right column.
  */
 static void draw_io_row(const SystemData *d) {
-    char buf[6];
+    char buf[8];
 
     /* Network: ↓rx ↑tx */
     draw_arrow_down(0, ROW_IO, theme.fg);
