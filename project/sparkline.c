@@ -211,7 +211,10 @@ static void draw_uptime_temp(const SystemData *d) {
 static void draw_freq_disk(const SystemData *d) {
     /* Frequency */
     char freq_str[10];
-    snprintf(freq_str, sizeof(freq_str), "%uMHz", d->freq_mhz);
+    if (d->freq_mhz >= 1000)
+        snprintf(freq_str, sizeof(freq_str), "%.1fGHz", d->freq_mhz / 1000.0);
+    else
+        snprintf(freq_str, sizeof(freq_str), "%uMHz", d->freq_mhz);
     lcd_fb_string(fb, 0, ROW_FREQ, freq_str, Font_7x10, theme.fg);
     if (d->throttled) {
         uint16_t bang_x = strlen(freq_str) * Font_7x10.width;
