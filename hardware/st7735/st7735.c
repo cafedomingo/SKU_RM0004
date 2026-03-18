@@ -190,6 +190,26 @@ void lcd_draw_fullscreen(uint8_t *buf) {
 }
 
 /*
+ * Send a rectangular region from a full-screen framebuffer.
+ * For full-width strips the data is contiguous, so it goes as one burst.
+ */
+void lcd_draw_region(uint8_t *buf, uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
+    if (x >= ST7735_WIDTH || y >= ST7735_HEIGHT) return;
+    if (x + w > ST7735_WIDTH) w = ST7735_WIDTH - x;
+    if (y + h > ST7735_HEIGHT) h = ST7735_HEIGHT - y;
+
+    lcd_set_address_window(x, y, x + w - 1, y + h - 1);
+    burst_begin();
+    if (x == 0 && w == ST7735_WIDTH) {
+        burst_send(buf + y * ST7735_WIDTH * 2, w * h * 2);
+    } else {
+        for (uint16_t row = y; row < y + h; row++)
+            burst_send(buf + (row * ST7735_WIDTH + x) * 2, w * 2);
+    }
+    burst_end();
+}
+
+/*
  * Draw a horizontal progress bar (0-100%).
  */
 void lcd_draw_bar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val, uint16_t color) {

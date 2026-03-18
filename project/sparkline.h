@@ -12,5 +12,6 @@ typedef struct {
 } sparkline_state_t;
 
 void lcd_display_sparkline(sparkline_state_t *state);
+void sparkline_invalidate(void);
 
 #endif /* __SPARKLINE_H__ */
