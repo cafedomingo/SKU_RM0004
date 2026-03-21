@@ -4,24 +4,27 @@
   <!-- Black screen -->
   <path d="m0 0h160v80h-160z" shape-rendering="crispEdges"/>
 
-  <!-- Row 1 (y=1): Ticker + badges -->
+  <!-- Row 1 (y=1): Ticker -->
   <text dominant-baseline="hanging" fill="#ffffff" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="77" x="0" y="1">raspberrypi</text>
+
+  <!-- Row 2 (y=12): Uptime + update badges -->
+  <text dominant-baseline="hanging" fill="#ffffff" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="35" x="0" y="12">7d 3h</text>
+  <!-- APT badge ^3 -->
+  <text dominant-baseline="hanging" fill="#d0bc00" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="14" x="146" y="12">^3</text>
   <!-- DietPi diamond -->
   <g fill="#ff8059" shape-rendering="crispEdges">
-    <path d="m147 2h2v1h-2z"/>
-    <path d="m146 3h4v1h-4z"/>
-    <path d="m146 4h4v1h-4z"/>
-    <path d="m147 5h2v1h-2z"/>
+    <path d="m138 14h2v1h-2z"/>
+    <path d="m137 15h4v1h-4z"/>
+    <path d="m136 16h6v1h-6z"/>
+    <path d="m136 17h6v1h-6z"/>
+    <path d="m137 18h4v1h-4z"/>
+    <path d="m138 19h2v1h-2z"/>
   </g>
-  <!-- APT badge ^3 -->
-  <text dominant-baseline="hanging" fill="#d0bc00" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="14" x="152" y="1">^3</text>
 
-  <!-- Row 2 (y=12): Uptime + Temperature -->
-  <text dominant-baseline="hanging" fill="#ffffff" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="35" x="0" y="12">7d 3h</text>
-  <text dominant-baseline="hanging" fill="#d0bc00" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="21" x="139" y="12">52C</text>
-
-  <!-- Row 3 (y=23): Frequency + Disk -->
+  <!-- Row 3 (y=23): Frequency + Temperature | Disk -->
   <text dominant-baseline="hanging" fill="#ffffff" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="42" x="0" y="23">2.0GHz</text>
+  <text dominant-baseline="hanging" fill="#d0bc00" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="21" x="97" y="23">52C</text>
+  <text dominant-baseline="hanging" fill="#3a3a3a" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="7" x="120" y="23">|</text>
   <text dominant-baseline="hanging" fill="#ffffff" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="14" x="125" y="23">D:</text>
   <text dominant-baseline="hanging" fill="#44bc44" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="21" x="139" y="23">45%</text>
 
@@ -75,7 +78,7 @@
 
   <!-- Row 9 (y=69): I/O rates -->
   <!-- Down arrow (5x7 pixel art) -->
-  <g fill="#44bc44" shape-rendering="crispEdges">
+  <g fill="#ffffff" shape-rendering="crispEdges">
     <path d="m2 71h1v4h-1z"/>
     <path d="m0 75h5v1h-5z"/>
     <path d="m1 76h3v1h-3z"/>
@@ -83,7 +86,7 @@
   </g>
   <text dominant-baseline="hanging" fill="#44bc44" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="28" x="7" y="69">1.2M</text>
   <!-- Up arrow -->
-  <g fill="#44bc44" shape-rendering="crispEdges">
+  <g fill="#ffffff" shape-rendering="crispEdges">
     <path d="m40 71h1v1h-1z"/>
     <path d="m39 72h3v1h-3z"/>
     <path d="m38 73h5v1h-5z"/>
