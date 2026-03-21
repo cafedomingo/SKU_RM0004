@@ -234,36 +234,27 @@ static void draw_cpu_ram_values(const SystemData *d) {
 /*
  * Pixel-art down arrow: 5px wide x 7px tall, drawn at (x, y+2) to center in 10px row.
  */
-static void draw_arrow_down(uint16_t x, uint16_t y, uint16_t color) {
-    uint16_t by = y + 2;
-    /* Stem: 1px wide x 4px */
-    for (int r = 0; r < 4; r++)
-        lcd_fb_pixel(fb, x + 2, by + r, color);
-    /* Bar: 5px wide */
-    for (int c = 0; c < 5; c++)
-        lcd_fb_pixel(fb, x + c, by + 4, color);
-    /* Mid: 3px wide */
-    for (int c = 1; c < 4; c++)
-        lcd_fb_pixel(fb, x + c, by + 5, color);
-    /* Tip: 1px */
-    lcd_fb_pixel(fb, x + 2, by + 6, color);
-}
-
 /*
- * Pixel-art up arrow: 5px wide x 7px tall, drawn at (x, y+2) to center in 10px row.
+ * Pixel-art arrow: 5px wide x 6px tall. dir > 0 = down, dir <= 0 = up.
+ * Down arrow offset by y+1, up arrow by y+2 to align with text baseline.
  */
-static void draw_arrow_up(uint16_t x, uint16_t y, uint16_t color) {
-    uint16_t by = y + 2;
-    /* Tip: 1px */
-    lcd_fb_pixel(fb, x + 2, by, color);
-    /* Mid: 3px wide */
+static void draw_arrow(uint16_t x, uint16_t y, int dir, uint16_t color) {
+    uint16_t by = y + (dir > 0 ? 1 : 2);
+    /* Row offsets: tip=0, mid=1, bar=2, stem=3-5 for "up" order */
+    int tip = 0, mid = 1, bar = 2, stem_start = 3, stem_end = 5;
+    if (dir > 0) {
+        tip = 5;
+        mid = 4;
+        bar = 3;
+        stem_start = 0;
+        stem_end = 2;
+    }
+    lcd_fb_pixel(fb, x + 2, by + tip, color);
     for (int c = 1; c < 4; c++)
-        lcd_fb_pixel(fb, x + c, by + 1, color);
-    /* Bar: 5px wide */
+        lcd_fb_pixel(fb, x + c, by + mid, color);
     for (int c = 0; c < 5; c++)
-        lcd_fb_pixel(fb, x + c, by + 2, color);
-    /* Stem: 1px wide x 4px */
-    for (int r = 3; r < 7; r++)
+        lcd_fb_pixel(fb, x + c, by + bar, color);
+    for (int r = stem_start; r <= stem_end; r++)
         lcd_fb_pixel(fb, x + 2, by + r, color);
 }
 
@@ -274,11 +265,11 @@ static void draw_io_row(const SystemData *d) {
     char buf[8];
 
     /* Network: ↓rx ↑tx */
-    draw_arrow_down(0, ROW_IO, theme.fg);
+    draw_arrow(0, ROW_IO, 1, theme.fg);
     format_rate(d->net_rx, buf, sizeof(buf));
     lcd_fb_string(fb, 7, ROW_IO, buf, Font_7x10, threshold_color(d->net_rx, TH_NET_WARN, TH_NET_CRIT));
 
-    draw_arrow_up(38, ROW_IO, theme.fg);
+    draw_arrow(38, ROW_IO, -1, theme.fg);
     format_rate(d->net_tx, buf, sizeof(buf));
     lcd_fb_string(fb, 45, ROW_IO, buf, Font_7x10, threshold_color(d->net_tx, TH_NET_WARN, TH_NET_CRIT));
 
