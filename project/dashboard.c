@@ -1,4 +1,5 @@
 #include "dashboard.h"
+#include "format.h"
 #include "rpiInfo.h"
 #include "st7735.h"
 #include "theme.h"
@@ -50,10 +51,8 @@ void lcd_display_dashboard(void) {
 
     /* APT update count — right-aligned on IP row */
     lcd_fill_rectangle(124, 18, 36, 10, theme.bg);
-    if (apt_count > 0) {
-        int capped = apt_count > 99 ? 99 : apt_count;
-        char badge[5];
-        snprintf(badge, sizeof(badge), "^%d", capped);
+    char badge[5];
+    if (format_apt_badge(apt_count, badge, sizeof(badge))) {
         uint16_t color = (apt_count >= 10) ? theme.crit : theme.warn;
         uint16_t bx = ST7735_WIDTH - strlen(badge) * Font_7x10.width - 2;
         lcd_write_string(bx, 19, badge, Font_7x10, color, theme.bg);
@@ -71,10 +70,7 @@ void lcd_display_dashboard(void) {
 
     /* Temperature */
     color = temp_ramp_color(temp);
-    if (TEMPERATURE_TYPE == FAHRENHEIT)
-        snprintf(buf, sizeof(buf), "%3dF", (int)temp * 9 / 5 + 32);
-    else
-        snprintf(buf, sizeof(buf), "%3dC", temp);
+    format_temp(temp, buf, sizeof(buf));
     draw_metric(84, 34, "TEMP:", buf, temp > 100 ? 100 : temp, color);
 
     /* Disk */

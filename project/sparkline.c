@@ -147,10 +147,8 @@ static void draw_uptime_updates(const SystemData *d) {
     uint16_t ax = ST7735_WIDTH;
 
     /* APT badge: ^N */
-    if (d->apt_count > 0) {
-        char badge[5];
-        int capped = d->apt_count > 99 ? 99 : d->apt_count;
-        snprintf(badge, sizeof(badge), "^%d", capped);
+    char badge[5];
+    if (format_apt_badge(d->apt_count, badge, sizeof(badge))) {
         uint16_t color = (d->apt_count >= 10) ? theme.crit : theme.warn;
         uint16_t bw = strlen(badge) * Font_7x10.width;
         ax -= bw;
@@ -189,7 +187,7 @@ static void draw_freq_disk(const SystemData *d) {
 
     /* Temperature | pipe */
     char temp_str[6];
-    snprintf(temp_str, sizeof(temp_str), "%uC", d->temp_c);
+    format_temp(d->temp_c, temp_str, sizeof(temp_str));
     uint16_t temp_w = strlen(temp_str) * Font_7x10.width;
     uint16_t pipe_x = dx - 2 - Font_7x10.width - 2;
     lcd_fb_char(fb, pipe_x + 2, ROW_FREQ, '|', Font_7x10, theme.sep);
