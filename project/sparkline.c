@@ -116,12 +116,6 @@ static void collect_data(SystemData *d) {
     d->throttled = (thr & THROTTLE_THROTTLED) != 0;
 }
 
-static void fb_string_right(uint8_t *buf, uint16_t rx, uint16_t y, const char *str, uint16_t color) {
-    uint16_t w = strlen(str) * Font_7x10.width;
-    uint16_t x = (rx + 1 >= w) ? rx + 1 - w : 0;
-    lcd_fb_string(buf, x, y, str, Font_7x10, color);
-}
-
 /*
  * Row 1 (y=1): ticker cycling hostname/ipv4/ipv6 + alert badges on right.
  */
@@ -142,9 +136,22 @@ static void draw_ticker(sparkline_state_t *state, const SystemData *d) {
         lcd_fb_string(fb, 0, ROW_TICKER, d->ipv6, Font_7x10, theme.ip);
         break;
     }
+}
 
-    /* Alert badges — build from right edge inward */
-    uint16_t ax = ST7735_WIDTH; /* next available x (moving left) */
+/*
+ * Row 2 (y=12): uptime left, update badges + temperature right-aligned.
+ */
+static void draw_uptime_temp(const SystemData *d) {
+    lcd_fb_string(fb, 0, ROW_UPTIME, d->uptime, Font_7x10, theme.fg);
+
+    /* Build right side from the edge inward: temp, then badges */
+    char temp_str[6];
+    snprintf(temp_str, sizeof(temp_str), "%uC", d->temp_c);
+    uint16_t temp_w = strlen(temp_str) * Font_7x10.width;
+    uint16_t tx = ST7735_WIDTH - temp_w;
+    lcd_fb_string(fb, tx, ROW_UPTIME, temp_str, Font_7x10, temp_ramp_color(d->temp_c));
+
+    uint16_t ax = tx; /* next available x (moving left) */
 
     /* APT badge: ^N */
     if (d->apt_count > 0) {
@@ -153,38 +160,27 @@ static void draw_ticker(sparkline_state_t *state, const SystemData *d) {
         snprintf(badge, sizeof(badge), "^%d", capped);
         uint16_t color = (d->apt_count >= 10) ? theme.crit : theme.warn;
         uint16_t bw = strlen(badge) * Font_7x10.width;
-        ax -= bw;
-        lcd_fb_string(fb, ax, ROW_TICKER, badge, Font_7x10, color);
+        ax -= bw + 2;
+        lcd_fb_string(fb, ax, ROW_UPTIME, badge, Font_7x10, color);
     }
 
-    /* DietPi diamond (4x4 pixel art, 3px gap left of APT badge) */
+    /* DietPi diamond (4x4 pixel art) */
     if (d->dietpi_update) {
         ax -= 3; /* gap */
         uint16_t dx = ax - 4;
-        lcd_fb_pixel(fb, dx + 1, ROW_TICKER + 3, theme.alert);
-        lcd_fb_pixel(fb, dx + 2, ROW_TICKER + 3, theme.alert);
-        lcd_fb_pixel(fb, dx + 0, ROW_TICKER + 4, theme.alert);
-        lcd_fb_pixel(fb, dx + 1, ROW_TICKER + 4, theme.alert);
-        lcd_fb_pixel(fb, dx + 2, ROW_TICKER + 4, theme.alert);
-        lcd_fb_pixel(fb, dx + 3, ROW_TICKER + 4, theme.alert);
-        lcd_fb_pixel(fb, dx + 0, ROW_TICKER + 5, theme.alert);
-        lcd_fb_pixel(fb, dx + 1, ROW_TICKER + 5, theme.alert);
-        lcd_fb_pixel(fb, dx + 2, ROW_TICKER + 5, theme.alert);
-        lcd_fb_pixel(fb, dx + 3, ROW_TICKER + 5, theme.alert);
-        lcd_fb_pixel(fb, dx + 1, ROW_TICKER + 6, theme.alert);
-        lcd_fb_pixel(fb, dx + 2, ROW_TICKER + 6, theme.alert);
+        lcd_fb_pixel(fb, dx + 1, ROW_UPTIME + 3, theme.alert);
+        lcd_fb_pixel(fb, dx + 2, ROW_UPTIME + 3, theme.alert);
+        lcd_fb_pixel(fb, dx + 0, ROW_UPTIME + 4, theme.alert);
+        lcd_fb_pixel(fb, dx + 1, ROW_UPTIME + 4, theme.alert);
+        lcd_fb_pixel(fb, dx + 2, ROW_UPTIME + 4, theme.alert);
+        lcd_fb_pixel(fb, dx + 3, ROW_UPTIME + 4, theme.alert);
+        lcd_fb_pixel(fb, dx + 0, ROW_UPTIME + 5, theme.alert);
+        lcd_fb_pixel(fb, dx + 1, ROW_UPTIME + 5, theme.alert);
+        lcd_fb_pixel(fb, dx + 2, ROW_UPTIME + 5, theme.alert);
+        lcd_fb_pixel(fb, dx + 3, ROW_UPTIME + 5, theme.alert);
+        lcd_fb_pixel(fb, dx + 1, ROW_UPTIME + 6, theme.alert);
+        lcd_fb_pixel(fb, dx + 2, ROW_UPTIME + 6, theme.alert);
     }
-}
-
-/*
- * Row 2 (y=12): uptime left, temperature right-aligned.
- */
-static void draw_uptime_temp(const SystemData *d) {
-    lcd_fb_string(fb, 0, ROW_UPTIME, d->uptime, Font_7x10, theme.fg);
-
-    char temp_str[6];
-    snprintf(temp_str, sizeof(temp_str), "%uC", d->temp_c);
-    fb_string_right(fb, ST7735_WIDTH - 1, ROW_UPTIME, temp_str, temp_ramp_color(d->temp_c));
 }
 
 /*
