@@ -1,4 +1,5 @@
 #include "sparkline.h"
+#include "format.h"
 #include "rpiInfo.h"
 #include "st7735.h"
 #include "theme.h"
@@ -105,11 +106,7 @@ static void collect_data(SystemData *d) {
     d->has_ipv6 = (strcmp(ip6, "no IPv6") != 0);
     snprintf(d->ipv6, sizeof(d->ipv6), "%s", ip6);
 
-    /* Format uptime as "Nd Nh" */
-    uint32_t secs = get_uptime_secs();
-    uint32_t days = secs / 86400;
-    uint32_t hours = (secs % 86400) / 3600;
-    snprintf(d->uptime, sizeof(d->uptime), "%ud %uh", days, hours);
+    format_uptime(get_uptime_secs(), d->uptime, sizeof(d->uptime));
 
     int apt = get_apt_update_count();
     d->apt_count = (uint8_t)(apt > 0 ? apt : 0);
@@ -117,21 +114,6 @@ static void collect_data(SystemData *d) {
 
     uint32_t thr = get_cpu_throttle_status();
     d->throttled = (thr & THROTTLE_THROTTLED) != 0;
-}
-
-static void format_rate(uint32_t bytes, char *buf, size_t len) {
-    if (bytes >= 10485760)
-        snprintf(buf, len, "%uM", bytes / 1048576);
-    else if (bytes >= 1048576)
-        snprintf(buf, len, "%.1fM", bytes / 1048576.0);
-    else if (bytes >= 10240)
-        snprintf(buf, len, "%uK", bytes / 1024);
-    else if (bytes >= 1024)
-        snprintf(buf, len, "%.1fK", bytes / 1024.0);
-    else if (bytes > 0)
-        snprintf(buf, len, "%uB", bytes);
-    else
-        snprintf(buf, len, "0B");
 }
 
 static void fb_string_right(uint8_t *buf, uint16_t rx, uint16_t y, const char *str, uint16_t color) {
@@ -211,10 +193,7 @@ static void draw_uptime_temp(const SystemData *d) {
 static void draw_freq_disk(const SystemData *d) {
     /* Frequency */
     char freq_str[10];
-    if (d->freq_mhz >= 1000)
-        snprintf(freq_str, sizeof(freq_str), "%.1fGHz", d->freq_mhz / 1000.0);
-    else
-        snprintf(freq_str, sizeof(freq_str), "%uMHz", d->freq_mhz);
+    format_freq(d->freq_mhz, freq_str, sizeof(freq_str));
     lcd_fb_string(fb, 0, ROW_FREQ, freq_str, Font_7x10, theme.fg);
     if (d->throttled) {
         uint16_t bang_x = strlen(freq_str) * Font_7x10.width;

@@ -1,4 +1,5 @@
 #include "diagnostic.h"
+#include "format.h"
 #include "rpiInfo.h"
 #include "st7735.h"
 #include "theme.h"
@@ -13,27 +14,6 @@ typedef struct {
 } diag_row_t;
 
 static diag_row_t rows[DIAG_TOTAL_ROWS];
-
-static void format_rate(uint64_t bps, char *buf, size_t len) {
-    if (bps >= 1048576)
-        snprintf(buf, len, "%.1fM", (double)bps / 1048576.0);
-    else if (bps >= 1024)
-        snprintf(buf, len, "%.1fK", (double)bps / 1024.0);
-    else
-        snprintf(buf, len, "%luB", (unsigned long)bps);
-}
-
-static void format_uptime(uint32_t secs, char *buf, size_t len) {
-    uint32_t d = secs / 86400;
-    uint32_t h = (secs % 86400) / 3600;
-    uint32_t m = (secs % 3600) / 60;
-    if (d > 0)
-        snprintf(buf, len, "%ud %uh", d, h);
-    else if (h > 0)
-        snprintf(buf, len, "%uh %um", h, m);
-    else
-        snprintf(buf, len, "%um", m);
-}
 
 /*
  * Set a row with a left-aligned label and a right-aligned value.
@@ -62,7 +42,9 @@ void diag_refresh_data(void) {
 
     uint8_t cpu = get_cpu_percent();
     cpu_freq_t freq = get_cpu_freq();
-    set_row(i++, "CPU", threshold_color(cpu, TH_CPU_WARN, TH_CPU_CRIT), "%d%% %dMHz", cpu, freq.cur_mhz);
+    char freq_str[10];
+    format_freq(freq.cur_mhz, freq_str, sizeof(freq_str));
+    set_row(i++, "CPU", threshold_color(cpu, TH_CPU_WARN, TH_CPU_CRIT), "%d%% %s", cpu, freq_str);
 
     uint8_t temp = get_temperature();
     set_row(i++, "Temp", temp_ramp_color(temp), "%dC / %dF", temp, (int)temp * 9 / 5 + 32);
