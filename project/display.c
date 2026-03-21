@@ -79,15 +79,15 @@ int main(void) {
             uint64_t before = now_ms();
             lcd_display_sparkline(&spark_state);
             uint64_t after = now_ms();
-            uint64_t elapsed_s = (after >= before) ? (after - before) / 1000ULL : (uint64_t)cfg.refresh;
-            if (elapsed_s < cfg.refresh) sleep((unsigned int)(cfg.refresh - elapsed_s));
+            uint8_t elapsed_secs = (after >= before) ? (uint8_t)((after - before) / 1000ULL) : 0;
+            if (elapsed_secs < cfg.refresh) sleep(cfg.refresh - elapsed_secs);
         } else {
             diag_page = 0;
             uint64_t before = now_ms();
             lcd_display_dashboard();
             uint64_t after = now_ms();
-            uint64_t elapsed_s = (after >= before) ? (after - before) / 1000ULL : (uint64_t)cfg.refresh;
-            if (elapsed_s < cfg.refresh) sleep((unsigned int)(cfg.refresh - elapsed_s));
+            uint8_t elapsed_secs = (after >= before) ? (uint8_t)((after - before) / 1000ULL) : 0;
+            if (elapsed_secs < cfg.refresh) sleep(cfg.refresh - elapsed_secs);
         }
     }
     return 0;

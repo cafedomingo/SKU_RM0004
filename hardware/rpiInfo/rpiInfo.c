@@ -162,7 +162,6 @@ char *get_ip_address(void) {
     close(fd);
 
     const char *ip = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
-    if (!ip) return "no network";
     snprintf(ip_buf, sizeof(ip_buf), "%s", ip);
     return ip_buf;
 }
