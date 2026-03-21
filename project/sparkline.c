@@ -241,7 +241,7 @@ static const uint8_t arrow_down[][2] = {
 
 static void draw_arrow(uint16_t x, uint16_t y, int dir, uint16_t color) {
     uint16_t by = y + (dir > 0 ? 1 : 2);
-    const uint8_t (*shape)[2] = dir > 0 ? arrow_down : arrow_up;
+    const uint8_t(*shape)[2] = dir > 0 ? arrow_down : arrow_up;
     for (int r = 0; r < ARROW_ROWS; r++)
         lcd_fb_rect(fb, x + shape[r][0], by + r, shape[r][1], 1, color);
 }
