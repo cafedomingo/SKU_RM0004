@@ -77,12 +77,12 @@
   <text dominant-baseline="hanging" fill="#44bc44" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="21" x="138" y="58">34%</text>
 
   <!-- Row 9 (y=69): I/O rates -->
-  <!-- Down arrow (5x7 pixel art) -->
+  <!-- Down arrow (5x6 pixel art) -->
   <g fill="#ffffff" shape-rendering="crispEdges">
-    <path d="m2 71h1v4h-1z"/>
-    <path d="m0 75h5v1h-5z"/>
-    <path d="m1 76h3v1h-3z"/>
-    <path d="m2 77h1v1h-1z"/>
+    <path d="m2 70h1v3h-1z"/>
+    <path d="m0 73h5v1h-5z"/>
+    <path d="m1 74h3v1h-3z"/>
+    <path d="m2 75h1v1h-1z"/>
   </g>
   <text dominant-baseline="hanging" fill="#44bc44" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="28" x="7" y="69">1.2M</text>
   <!-- Up arrow -->
@@ -90,7 +90,7 @@
     <path d="m40 71h1v1h-1z"/>
     <path d="m39 72h3v1h-3z"/>
     <path d="m38 73h5v1h-5z"/>
-    <path d="m40 74h1v4h-1z"/>
+    <path d="m40 74h1v3h-1z"/>
   </g>
   <text dominant-baseline="hanging" fill="#44bc44" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="28" x="45" y="69">234K</text>
 
