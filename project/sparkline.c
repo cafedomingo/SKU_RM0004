@@ -149,7 +149,7 @@ static void draw_uptime_updates(const SystemData *d) {
     /* APT badge: ^N */
     char badge[5];
     if (format_apt_badge(d->apt_count, badge, sizeof(badge))) {
-        uint16_t color = (d->apt_count >= 10) ? theme.crit : theme.warn;
+        uint16_t color = (d->apt_count >= TH_APT_CRIT) ? theme.crit : theme.warn;
         uint16_t bw = strlen(badge) * Font_7x10.width;
         ax -= bw;
         lcd_fb_string(fb, ax, ROW_UPTIME, badge, Font_7x10, color);

@@ -53,7 +53,7 @@ void lcd_display_dashboard(void) {
     lcd_fill_rectangle(124, 18, 36, 10, theme.bg);
     char badge[5];
     if (format_apt_badge(apt_count, badge, sizeof(badge))) {
-        uint16_t color = (apt_count >= 10) ? theme.crit : theme.warn;
+        uint16_t color = (apt_count >= TH_APT_CRIT) ? theme.crit : theme.warn;
         uint16_t bx = ST7735_WIDTH - strlen(badge) * Font_7x10.width - 2;
         lcd_write_string(bx, 19, badge, Font_7x10, color, theme.bg);
     }

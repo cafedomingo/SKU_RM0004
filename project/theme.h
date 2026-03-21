@@ -25,6 +25,9 @@ extern const Theme theme;
 #define TH_DIO_WARN 524288   /* 512 KB/s */
 #define TH_DIO_CRIT 5242880  /* 5 MB/s */
 
+/* APT badge: warn→crit color threshold */
+#define TH_APT_CRIT 10
+
 /* Temperature ramp breakpoints (Celsius) */
 #define TEMP_COLD 30
 #define TEMP_COOL 50
