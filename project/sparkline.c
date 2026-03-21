@@ -139,19 +139,13 @@ static void draw_ticker(sparkline_state_t *state, const SystemData *d) {
 }
 
 /*
- * Row 2 (y=12): uptime left, update badges + temperature right-aligned.
+ * Row 2 (y=12): uptime left, update badges right-aligned.
  */
-static void draw_uptime_temp(const SystemData *d) {
+static void draw_uptime_updates(const SystemData *d) {
     lcd_fb_string(fb, 0, ROW_UPTIME, d->uptime, Font_7x10, theme.fg);
 
-    /* Build right side from the edge inward: temp, then badges */
-    char temp_str[6];
-    snprintf(temp_str, sizeof(temp_str), "%uC", d->temp_c);
-    uint16_t temp_w = strlen(temp_str) * Font_7x10.width;
-    uint16_t tx = ST7735_WIDTH - temp_w;
-    lcd_fb_string(fb, tx, ROW_UPTIME, temp_str, Font_7x10, temp_ramp_color(d->temp_c));
-
-    uint16_t ax = tx; /* next available x (moving left) */
+    /* Update badges — build from right edge inward */
+    uint16_t ax = ST7735_WIDTH;
 
     /* APT badge: ^N */
     if (d->apt_count > 0) {
@@ -160,7 +154,7 @@ static void draw_uptime_temp(const SystemData *d) {
         snprintf(badge, sizeof(badge), "^%d", capped);
         uint16_t color = (d->apt_count >= 10) ? theme.crit : theme.warn;
         uint16_t bw = strlen(badge) * Font_7x10.width;
-        ax -= bw + 2;
+        ax -= bw;
         lcd_fb_string(fb, ax, ROW_UPTIME, badge, Font_7x10, color);
     }
 
@@ -196,7 +190,7 @@ static void draw_freq_disk(const SystemData *d) {
         lcd_fb_char(fb, bang_x, ROW_FREQ, '!', Font_7x10, theme.alert);
     }
 
-    /* Disk: "D:N%" right-aligned */
+    /* Right side: temp | D:N% — build from right edge inward */
     char disk_val[5];
     snprintf(disk_val, sizeof(disk_val), "%u%%", d->disk_pct);
     uint16_t lbl_w = 2 * Font_7x10.width; /* "D:" */
@@ -205,6 +199,14 @@ static void draw_freq_disk(const SystemData *d) {
     lcd_fb_string(fb, dx, ROW_FREQ, "D:", Font_7x10, theme.fg);
     lcd_fb_string(fb, dx + lbl_w, ROW_FREQ, disk_val, Font_7x10,
                   threshold_color(d->disk_pct, TH_DISK_WARN, TH_DISK_CRIT));
+
+    /* Temperature | pipe */
+    char temp_str[6];
+    snprintf(temp_str, sizeof(temp_str), "%uC", d->temp_c);
+    uint16_t temp_w = strlen(temp_str) * Font_7x10.width;
+    uint16_t pipe_x = dx - 2 - Font_7x10.width - 2;
+    lcd_fb_char(fb, pipe_x + 2, ROW_FREQ, '|', Font_7x10, theme.sep);
+    lcd_fb_string(fb, pipe_x - temp_w, ROW_FREQ, temp_str, Font_7x10, temp_ramp_color(d->temp_c));
 }
 
 /*
@@ -322,7 +324,7 @@ void lcd_display_sparkline(sparkline_state_t *state) {
 
     /* System state zone (top half) */
     draw_ticker(state, &data);
-    draw_uptime_temp(&data);
+    draw_uptime_updates(&data);
     draw_freq_disk(&data);
     lcd_fb_rect(fb, 0, ROW_DIVIDER, ST7735_WIDTH, 1, theme.sep);
 
