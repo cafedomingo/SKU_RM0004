@@ -40,7 +40,10 @@ static void check_i2c_speed(void) {
 
 static uint64_t now_ms(void) {
     struct timespec ts = {0, 0};
-    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) return 0;
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
+        LOG_WARN("clock_gettime(CLOCK_MONOTONIC) failed: %s", strerror(errno));
+        return 0;
+    }
     return (uint64_t)ts.tv_sec * 1000ULL + (uint64_t)ts.tv_nsec / 1000000ULL;
 }
 
@@ -79,15 +82,15 @@ int main(void) {
             uint64_t before = now_ms();
             lcd_display_sparkline(&spark_state);
             uint64_t after = now_ms();
-            uint8_t elapsed_secs = (after >= before) ? (uint8_t)((after - before) / 1000ULL) : 0;
-            if (elapsed_secs < cfg.refresh) sleep(cfg.refresh - elapsed_secs);
+            uint64_t elapsed_secs = (after >= before) ? (after - before) / 1000ULL : 0;
+            if (elapsed_secs < cfg.refresh) sleep((unsigned int)((uint64_t)cfg.refresh - elapsed_secs));
         } else {
             diag_page = 0;
             uint64_t before = now_ms();
             lcd_display_dashboard();
             uint64_t after = now_ms();
-            uint8_t elapsed_secs = (after >= before) ? (uint8_t)((after - before) / 1000ULL) : 0;
-            if (elapsed_secs < cfg.refresh) sleep(cfg.refresh - elapsed_secs);
+            uint64_t elapsed_secs = (after >= before) ? (after - before) / 1000ULL : 0;
+            if (elapsed_secs < cfg.refresh) sleep((unsigned int)((uint64_t)cfg.refresh - elapsed_secs));
         }
     }
     return 0;
