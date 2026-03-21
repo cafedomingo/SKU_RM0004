@@ -158,22 +158,10 @@ static void draw_uptime_updates(const SystemData *d) {
         lcd_fb_string(fb, ax, ROW_UPTIME, badge, Font_7x10, color);
     }
 
-    /* DietPi diamond (4x4 pixel art) */
+    /* DietPi diamond */
     if (d->dietpi_update) {
         ax -= 3; /* gap */
-        uint16_t dx = ax - 4;
-        lcd_fb_pixel(fb, dx + 1, ROW_UPTIME + 3, theme.alert);
-        lcd_fb_pixel(fb, dx + 2, ROW_UPTIME + 3, theme.alert);
-        lcd_fb_pixel(fb, dx + 0, ROW_UPTIME + 4, theme.alert);
-        lcd_fb_pixel(fb, dx + 1, ROW_UPTIME + 4, theme.alert);
-        lcd_fb_pixel(fb, dx + 2, ROW_UPTIME + 4, theme.alert);
-        lcd_fb_pixel(fb, dx + 3, ROW_UPTIME + 4, theme.alert);
-        lcd_fb_pixel(fb, dx + 0, ROW_UPTIME + 5, theme.alert);
-        lcd_fb_pixel(fb, dx + 1, ROW_UPTIME + 5, theme.alert);
-        lcd_fb_pixel(fb, dx + 2, ROW_UPTIME + 5, theme.alert);
-        lcd_fb_pixel(fb, dx + 3, ROW_UPTIME + 5, theme.alert);
-        lcd_fb_pixel(fb, dx + 1, ROW_UPTIME + 6, theme.alert);
-        lcd_fb_pixel(fb, dx + 2, ROW_UPTIME + 6, theme.alert);
+        lcd_fb_diamond(fb, ax - 6, ROW_UPTIME + 2, theme.alert);
     }
 }
 
