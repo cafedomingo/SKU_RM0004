@@ -32,7 +32,6 @@ extern const Theme theme;
 #define TEMP_HOT  85
 
 uint16_t threshold_color(uint32_t value, uint32_t warn_th, uint32_t crit_th);
-uint16_t lerp_color(uint16_t a, uint16_t b, float t);
 uint16_t temp_ramp_color(uint8_t temp_c);
 
 #endif /* __THEME_H__ */
