@@ -1,6 +1,8 @@
 #include "dashboard.h"
+#include "format.h"
 #include "rpiInfo.h"
 #include "st7735.h"
+#include "theme.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -8,33 +10,12 @@
 #define METRIC_BAR_HEIGHT 6
 
 /*
- * Map a percentage value to a green/yellow/orange/red color.
- */
-static uint16_t threshold_color(uint8_t val) {
-    if (val < 60) return ST7735_GREEN;
-    if (val < 80) return ST7735_YELLOW;
-    if (val < 90) return ST7735_ORANGE;
-    return ST7735_RED;
-}
-
-/*
- * Map a temperature in Celsius to a cyan-to-red color scale.
- */
-static uint16_t temp_threshold_color(uint8_t celsius) {
-    if (celsius < 40) return ST7735_CYAN;
-    if (celsius < 50) return ST7735_GREEN;
-    if (celsius < 60) return ST7735_YELLOW;
-    if (celsius < 70) return ST7735_ORANGE;
-    return ST7735_RED;
-}
-
-/*
  * Draw a labeled metric with a right-aligned value and progress bar.
  */
 static void draw_metric(uint16_t x, uint16_t y, const char *label, const char *value, uint8_t bar_pct, uint16_t color) {
     uint16_t val_x = x + METRIC_BAR_WIDTH - strlen(value) * Font_7x10.width; /* right-align with bar */
-    lcd_write_string(x, y, label, Font_7x10, ST7735_WHITE, ST7735_BLACK);
-    lcd_write_string(val_x, y, value, Font_7x10, color, ST7735_BLACK);
+    lcd_write_string(x, y, label, Font_7x10, theme.fg, theme.bg);
+    lcd_write_string(val_x, y, value, Font_7x10, color, theme.bg);
     lcd_draw_bar(x, y + 12, METRIC_BAR_WIDTH, METRIC_BAR_HEIGHT, bar_pct, color);
 }
 
@@ -57,53 +38,48 @@ void lcd_display_dashboard(void) {
     /* Header: hostname, IP, separator */
     char hostBuf[17];
     snprintf(hostBuf, sizeof(hostBuf), "%s", hostname);
-    lcd_write_string(2, 0, hostBuf, Font_8x16, ST7735_WHITE, ST7735_BLACK);
+    lcd_write_string(2, 0, hostBuf, Font_8x16, theme.fg, theme.bg);
 
-    lcd_write_string(2, 18, ip, Font_7x10, ST7735_VIOLET, ST7735_BLACK);
+    lcd_write_string(2, 18, ip, Font_7x10, theme.ip, theme.bg);
 
-    lcd_fill_rectangle(0, 30, ST7735_WIDTH, 1, ST7735_BLUE);
+    lcd_fill_rectangle(0, 30, ST7735_WIDTH, 1, theme.sep);
 
-    /* DietPi status dot — red when update needed, hidden otherwise */
-    if (dietpi_status == 2) {
-        lcd_fill_rectangle(154, 5, 2, 1, ST7735_RED);
-        lcd_fill_rectangle(153, 6, 4, 1, ST7735_RED);
-        lcd_fill_rectangle(152, 7, 6, 1, ST7735_RED);
-        lcd_fill_rectangle(152, 8, 6, 1, ST7735_RED);
-        lcd_fill_rectangle(153, 9, 4, 1, ST7735_RED);
-        lcd_fill_rectangle(154, 10, 2, 1, ST7735_RED);
+    /* DietPi diamond — alert color when update needed */
+    if (dietpi_status == DIETPI_UPDATE_AVAIL) {
+        lcd_fill_rectangle(154, 5, 2, 1, theme.alert);
+        lcd_fill_rectangle(153, 6, 4, 1, theme.alert);
+        lcd_fill_rectangle(152, 7, 6, 1, theme.alert);
+        lcd_fill_rectangle(152, 8, 6, 1, theme.alert);
+        lcd_fill_rectangle(153, 9, 4, 1, theme.alert);
+        lcd_fill_rectangle(154, 10, 2, 1, theme.alert);
     }
 
     /* APT update count — right-aligned on IP row */
-    lcd_fill_rectangle(124, 18, 36, 10, ST7735_BLACK);
-    if (apt_count > 0) {
-        int capped = apt_count > 99 ? 99 : apt_count;
-        char badge[5];
-        snprintf(badge, sizeof(badge), "^%d", capped);
-        uint16_t color = (apt_count >= 10) ? ST7735_RED : ST7735_YELLOW;
+    lcd_fill_rectangle(124, 18, 36, 10, theme.bg);
+    char badge[5];
+    if (format_apt_badge(apt_count, badge, sizeof(badge))) {
+        uint16_t color = (apt_count >= TH_APT_CRIT) ? theme.crit : theme.warn;
         uint16_t bx = ST7735_WIDTH - strlen(badge) * Font_7x10.width - 2;
-        lcd_write_string(bx, 19, badge, Font_7x10, color, ST7735_BLACK);
+        lcd_write_string(bx, 19, badge, Font_7x10, color, theme.bg);
     }
 
     /* CPU */
-    uint16_t color = threshold_color(cpuPercent);
+    uint16_t color = threshold_color(cpuPercent, TH_CPU_WARN, TH_CPU_CRIT);
     snprintf(buf, sizeof(buf), "%3d%%", cpuPercent);
     draw_metric(2, 34, "CPU:", buf, cpuPercent, color);
 
     /* RAM */
-    color = threshold_color(ramPercent);
+    color = threshold_color(ramPercent, TH_RAM_WARN, TH_RAM_CRIT);
     snprintf(buf, sizeof(buf), "%3d%%", ramPercent);
     draw_metric(2, 56, "RAM:", buf, ramPercent, color);
 
     /* Temperature */
-    color = temp_threshold_color(temp);
-    if (TEMPERATURE_TYPE == FAHRENHEIT)
-        snprintf(buf, sizeof(buf), "%3dF", (int)temp * 9 / 5 + 32);
-    else
-        snprintf(buf, sizeof(buf), "%3dC", temp);
+    color = temp_ramp_color(temp);
+    format_temp(temp, buf, sizeof(buf));
     draw_metric(84, 34, "TEMP:", buf, temp > 100 ? 100 : temp, color);
 
     /* Disk */
-    color = threshold_color(diskPercent);
+    color = threshold_color(diskPercent, TH_DISK_WARN, TH_DISK_CRIT);
     snprintf(buf, sizeof(buf), "%3d%%", diskPercent);
     draw_metric(84, 56, "DISK:", buf, diskPercent, color);
 }
