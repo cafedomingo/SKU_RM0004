@@ -141,6 +141,7 @@ static double get_elapsed_secs(struct timespec *prev_time) {
  * Inspired by darkgrue/SKU_RM0004.
  */
 char *get_ip_address(void) {
+    static char ip_buf[INET_ADDRSTRLEN];
     char iface[64];
     int fd;
     struct ifreq ifr;
@@ -160,7 +161,9 @@ char *get_ip_address(void) {
     }
     close(fd);
 
-    return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+    const char *ip = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+    snprintf(ip_buf, sizeof(ip_buf), "%s", ip);
+    return ip_buf;
 }
 
 /*
@@ -451,8 +454,9 @@ disk_io_t get_disk_io(void) {
         return result;
     }
 
-    result.read_bytes_per_sec = (uint64_t)(((tot_sectors_read - prev_sectors_read) * 512) / elapsed);
-    result.write_bytes_per_sec = (uint64_t)(((tot_sectors_written - prev_sectors_written) * 512) / elapsed);
+    result.read_bytes_per_sec = (uint64_t)(((tot_sectors_read - prev_sectors_read) * DISK_SECTOR_BYTES) / elapsed);
+    result.write_bytes_per_sec =
+        (uint64_t)(((tot_sectors_written - prev_sectors_written) * DISK_SECTOR_BYTES) / elapsed);
     result.read_iops = (uint32_t)((tot_reads - prev_reads) / elapsed);
     result.write_iops = (uint32_t)((tot_writes - prev_writes) / elapsed);
 

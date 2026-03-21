@@ -58,6 +58,8 @@ typedef struct {
     uint32_t write_iops;
 } disk_io_t;
 
+#define DISK_SECTOR_BYTES 512
+
 uint8_t get_disk_percent(void);
 disk_io_t get_disk_io(void);
 
@@ -69,6 +71,10 @@ char *get_hostname(void);
 uint32_t get_uptime_secs(void);
 
 /* ── DietPi ──────────────────────────────────────────────────────── */
+
+#define DIETPI_NOT_INSTALLED 0
+#define DIETPI_UP_TO_DATE    1
+#define DIETPI_UPDATE_AVAIL  2
 
 int get_dietpi_update_status(void);
 int get_apt_update_count(void);

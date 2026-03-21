@@ -34,15 +34,26 @@ clean:
 	rm -rf $(OBJ)
 	rm -rf $(TARGET)
 
-TEST_BIN := $(OBJ)/test_rpiInfo
 TEST_CC  := gcc
 
-.PHONY: test
-test: $(TEST_BIN)
-	./$(TEST_BIN)
+TEST_RPIINFO := $(OBJ)/test_rpiInfo
+TEST_FORMAT  := $(OBJ)/test_format
+TEST_THEME   := $(OBJ)/test_theme
 
-$(TEST_BIN): test/test_rpiInfo.c hardware/rpiInfo/rpiInfo.c hardware/rpiInfo/rpiInfo.h
+.PHONY: test
+test: $(TEST_RPIINFO) $(TEST_FORMAT) $(TEST_THEME)
+	./$(TEST_RPIINFO)
+	./$(TEST_FORMAT)
+	./$(TEST_THEME)
+
+$(TEST_RPIINFO): test/test_rpiInfo.c hardware/rpiInfo/rpiInfo.c hardware/rpiInfo/rpiInfo.h
 	$(TEST_CC) $(CFLAGS) -I hardware/rpiInfo -I project/ -o $@ test/test_rpiInfo.c hardware/rpiInfo/rpiInfo.c
+
+$(TEST_FORMAT): test/test_format.c project/format.c project/format.h
+	$(TEST_CC) $(CFLAGS) -I project/ -I hardware/rpiInfo -o $@ test/test_format.c project/format.c
+
+$(TEST_THEME): test/test_theme.c project/theme.c project/theme.h
+	$(TEST_CC) $(CFLAGS) -I project/ -I hardware/st7735 -o $@ test/test_theme.c project/theme.c
 
 FMT_SRCS = find $(SRCDIRS) test/ -type f \( -name '*.c' -o -name '*.h' \) -print0
 
