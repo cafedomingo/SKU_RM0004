@@ -45,7 +45,7 @@ void lcd_display_dashboard(void) {
     lcd_fill_rectangle(0, 30, ST7735_WIDTH, 1, theme.sep);
 
     /* DietPi diamond — alert color when update needed */
-    if (dietpi_status == 2) {
+    if (dietpi_status == DIETPI_UPDATE_AVAIL) {
         lcd_draw_diamond(152, 5, theme.alert);
     }
 

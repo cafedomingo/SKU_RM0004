@@ -41,6 +41,7 @@ extern void lcd_write_string(uint16_t x, uint16_t y, const char *str, FontDef fo
 extern void lcd_draw_diamond(uint16_t x, uint16_t y, uint16_t color);
 
 /* Framebuffer drawing primitives */
+extern void lcd_fb_fill(uint8_t *fb, uint16_t color);
 extern void lcd_fb_pixel(uint8_t *fb, uint16_t x, uint16_t y, uint16_t color);
 extern void lcd_fb_rect(uint8_t *fb, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
 extern void lcd_fb_char(uint8_t *fb, uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color);

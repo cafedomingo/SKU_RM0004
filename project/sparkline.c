@@ -109,7 +109,7 @@ static void collect_data(SystemData *d) {
 
     int apt = get_apt_update_count();
     d->apt_count = (uint8_t)(apt > 0 ? apt : 0);
-    d->dietpi_update = (get_dietpi_update_status() == 2);
+    d->dietpi_update = (get_dietpi_update_status() == DIETPI_UPDATE_AVAIL);
 
     uint32_t thr = get_cpu_throttle_status();
     d->throttled = (thr & THROTTLE_CURRENT_MASK) != 0;
@@ -280,12 +280,7 @@ void lcd_display_sparkline(sparkline_state_t *state) {
     state->ram_history[SPARKLINE_HISTORY - 1] = data.ram_pct;
 
     /* Fill background */
-    uint16_t bg = theme.bg;
-    uint8_t hi = bg >> 8, lo = bg & 0xFF;
-    for (uint32_t i = 0; i < sizeof(fb); i += 2) {
-        fb[i] = hi;
-        fb[i + 1] = lo;
-    }
+    lcd_fb_fill(fb, theme.bg);
 
     /* System state zone (top half) */
     draw_ticker(state, &data);

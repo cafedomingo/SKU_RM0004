@@ -43,6 +43,11 @@ static long now_ms(void) {
     return ts.tv_sec * 1000L + ts.tv_nsec / 1000000L;
 }
 
+static void sleep_remaining(long before, uint8_t refresh) {
+    long elapsed_s = (now_ms() - before) / 1000;
+    if (elapsed_s < refresh) sleep(refresh - elapsed_s);
+}
+
 int main(void) {
     LOG_INFO("starting");
     check_i2c_speed();
@@ -77,14 +82,12 @@ int main(void) {
             diag_page = 0;
             long before = now_ms();
             lcd_display_sparkline(&spark_state);
-            long elapsed_s = (now_ms() - before) / 1000;
-            if (elapsed_s < cfg.refresh) sleep(cfg.refresh - elapsed_s);
+            sleep_remaining(before, cfg.refresh);
         } else {
             diag_page = 0;
             long before = now_ms();
             lcd_display_dashboard();
-            long elapsed_s = (now_ms() - before) / 1000;
-            if (elapsed_s < cfg.refresh) sleep(cfg.refresh - elapsed_s);
+            sleep_remaining(before, cfg.refresh);
         }
     }
     return 0;

@@ -279,6 +279,14 @@ void lcd_write_string(uint16_t x, uint16_t y, const char *str, FontDef font, uin
 
 /* Framebuffer drawing primitives */
 
+void lcd_fb_fill(uint8_t *fb, uint16_t color) {
+    uint8_t hi = color >> 8, lo = color & 0xFF;
+    for (uint32_t i = 0; i < ST7735_WIDTH * ST7735_HEIGHT * 2; i += 2) {
+        fb[i] = hi;
+        fb[i + 1] = lo;
+    }
+}
+
 void lcd_fb_pixel(uint8_t *fb, uint16_t x, uint16_t y, uint16_t color) {
     if (x >= ST7735_WIDTH || y >= ST7735_HEIGHT) return;
     uint32_t off = (y * ST7735_WIDTH + x) * 2;
