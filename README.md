@@ -4,7 +4,7 @@ Display driver for the [UCTRONICS SKU_RM0004](https://github.com/UCTRONICS/SKU_R
 
 | Dashboard | Sparkline |
 |:---------:|:---------:|
-| ![Dashboard](display.svg) | ![Sparkline](sparkline.svg) |
+| ![Dashboard](docs/display.svg) | ![Sparkline](docs/sparkline.svg) |
 
 - Hostname and auto-detected IP address
 - CPU, RAM, temperature, and disk usage with color-coded bars
