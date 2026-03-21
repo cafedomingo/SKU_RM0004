@@ -285,10 +285,29 @@ void lcd_fb_pixel(uint8_t *fb, uint16_t x, uint16_t y, uint16_t color) {
     fb[off + 1] = color & 0xFF;
 }
 
+/* 6x6 diamond shape: (x,y) is top-left of bounding box */
+void lcd_draw_diamond(uint16_t x, uint16_t y, uint16_t color) {
+    lcd_fill_rectangle(x + 2, y + 0, 2, 1, color);
+    lcd_fill_rectangle(x + 1, y + 1, 4, 1, color);
+    lcd_fill_rectangle(x + 0, y + 2, 6, 1, color);
+    lcd_fill_rectangle(x + 0, y + 3, 6, 1, color);
+    lcd_fill_rectangle(x + 1, y + 4, 4, 1, color);
+    lcd_fill_rectangle(x + 2, y + 5, 2, 1, color);
+}
+
 void lcd_fb_rect(uint8_t *fb, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color) {
     for (uint16_t row = y; row < y + h && row < ST7735_HEIGHT; row++)
         for (uint16_t col = x; col < x + w && col < ST7735_WIDTH; col++)
             lcd_fb_pixel(fb, col, row, color);
+}
+
+void lcd_fb_diamond(uint8_t *fb, uint16_t x, uint16_t y, uint16_t color) {
+    lcd_fb_rect(fb, x + 2, y + 0, 2, 1, color);
+    lcd_fb_rect(fb, x + 1, y + 1, 4, 1, color);
+    lcd_fb_rect(fb, x + 0, y + 2, 6, 1, color);
+    lcd_fb_rect(fb, x + 0, y + 3, 6, 1, color);
+    lcd_fb_rect(fb, x + 1, y + 4, 4, 1, color);
+    lcd_fb_rect(fb, x + 2, y + 5, 2, 1, color);
 }
 
 void lcd_fb_char(uint8_t *fb, uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color) {

@@ -1,5 +1,4 @@
 #include "dashboard.h"
-#include "format.h"
 #include "rpiInfo.h"
 #include "st7735.h"
 #include "theme.h"
@@ -45,20 +44,17 @@ void lcd_display_dashboard(void) {
     lcd_fill_rectangle(0, 30, ST7735_WIDTH, 1, theme.sep);
 
     /* DietPi diamond — alert color when update needed */
-    if (dietpi_status == DIETPI_UPDATE_AVAIL) {
-        lcd_fill_rectangle(154, 5, 2, 1, theme.alert);
-        lcd_fill_rectangle(153, 6, 4, 1, theme.alert);
-        lcd_fill_rectangle(152, 7, 6, 1, theme.alert);
-        lcd_fill_rectangle(152, 8, 6, 1, theme.alert);
-        lcd_fill_rectangle(153, 9, 4, 1, theme.alert);
-        lcd_fill_rectangle(154, 10, 2, 1, theme.alert);
+    if (dietpi_status == 2) {
+        lcd_draw_diamond(152, 5, theme.alert);
     }
 
     /* APT update count — right-aligned on IP row */
     lcd_fill_rectangle(124, 18, 36, 10, theme.bg);
-    char badge[5];
-    if (format_apt_badge(apt_count, badge, sizeof(badge))) {
-        uint16_t color = (apt_count >= TH_APT_CRIT) ? theme.crit : theme.warn;
+    if (apt_count > 0) {
+        int capped = apt_count > 99 ? 99 : apt_count;
+        char badge[5];
+        snprintf(badge, sizeof(badge), "^%d", capped);
+        uint16_t color = (apt_count >= 10) ? theme.crit : theme.warn;
         uint16_t bx = ST7735_WIDTH - strlen(badge) * Font_7x10.width - 2;
         lcd_write_string(bx, 19, badge, Font_7x10, color, theme.bg);
     }
@@ -75,7 +71,10 @@ void lcd_display_dashboard(void) {
 
     /* Temperature */
     color = temp_ramp_color(temp);
-    format_temp(temp, buf, sizeof(buf));
+    if (TEMPERATURE_TYPE == FAHRENHEIT)
+        snprintf(buf, sizeof(buf), "%3dF", (int)temp * 9 / 5 + 32);
+    else
+        snprintf(buf, sizeof(buf), "%3dC", temp);
     draw_metric(84, 34, "TEMP:", buf, temp > 100 ? 100 : temp, color);
 
     /* Disk */
