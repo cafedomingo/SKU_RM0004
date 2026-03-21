@@ -290,8 +290,7 @@ uint8_t get_cpu_percent(void) {
     prev_total = total;
 
     if (diff_total == 0) return 0;
-    uint8_t pct = (uint8_t)((100 * (diff_total - diff_idle) + diff_total / 2) / diff_total);
-    return pct < 1 ? 1 : pct;
+    return (uint8_t)((100 * (diff_total - diff_idle) + diff_total / 2) / diff_total);
 }
 
 /*
@@ -494,8 +493,7 @@ uint8_t get_ram_percent(void) {
     fclose(fp);
 
     if (total == 0) return 0;
-    uint8_t pct = (uint8_t)((uint64_t)(total - avail) * 100 / total);
-    return pct < 1 ? 1 : pct;
+    return (uint8_t)((uint64_t)(total - avail) * 100 / total);
 }
 
 /*

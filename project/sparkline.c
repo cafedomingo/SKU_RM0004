@@ -197,7 +197,7 @@ static void draw_freq_disk(const SystemData *d) {
 }
 
 /*
- * Draw a single sparkline chart (13 bars growing upward from ROW_SPARK_BOT).
+ * Draw a single sparkline chart (13 bars within SPARK_HEIGHT pixels starting at ROW_SPARK_TOP).
  */
 static void draw_sparkline(uint16_t start_x, const uint8_t *history, uint32_t warn_th, uint32_t crit_th) {
     for (int i = 0; i < SPARKLINE_HISTORY; i++) {

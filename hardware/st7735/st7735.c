@@ -197,6 +197,7 @@ void lcd_draw_region(uint8_t *buf, uint16_t x, uint16_t y, uint16_t w, uint16_t 
     if (x >= ST7735_WIDTH || y >= ST7735_HEIGHT) return;
     if (x + w > ST7735_WIDTH) w = ST7735_WIDTH - x;
     if (y + h > ST7735_HEIGHT) h = ST7735_HEIGHT - y;
+    if (w == 0 || h == 0) return;
 
     lcd_set_address_window(x, y, x + w - 1, y + h - 1);
     burst_begin();
