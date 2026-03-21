@@ -141,6 +141,7 @@ static double get_elapsed_secs(struct timespec *prev_time) {
  * Inspired by darkgrue/SKU_RM0004.
  */
 char *get_ip_address(void) {
+    static char ip_buf[INET_ADDRSTRLEN];
     char iface[64];
     int fd;
     struct ifreq ifr;
@@ -160,7 +161,10 @@ char *get_ip_address(void) {
     }
     close(fd);
 
-    return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+    const char *ip = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+    if (!ip) return "no network";
+    snprintf(ip_buf, sizeof(ip_buf), "%s", ip);
+    return ip_buf;
 }
 
 /*

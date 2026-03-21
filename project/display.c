@@ -9,6 +9,7 @@
 #include "st7735.h"
 #include <arpa/inet.h>
 #include <errno.h>
+#include <stdint.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -37,10 +38,10 @@ static void check_i2c_speed(void) {
     }
 }
 
-static long now_ms(void) {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return ts.tv_sec * 1000L + ts.tv_nsec / 1000000L;
+static uint64_t now_ms(void) {
+    struct timespec ts = {0, 0};
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) return 0;
+    return (uint64_t)ts.tv_sec * 1000ULL + (uint64_t)ts.tv_nsec / 1000000ULL;
 }
 
 int main(void) {
@@ -75,16 +76,18 @@ int main(void) {
             sleep(cfg.refresh);
         } else if (strcmp(cfg.screen, SCREEN_SPARKLINE) == 0) {
             diag_page = 0;
-            long before = now_ms();
+            uint64_t before = now_ms();
             lcd_display_sparkline(&spark_state);
-            long elapsed_s = (now_ms() - before) / 1000;
-            if (elapsed_s < cfg.refresh) sleep(cfg.refresh - elapsed_s);
+            uint64_t after = now_ms();
+            uint64_t elapsed_s = (after >= before) ? (after - before) / 1000ULL : (uint64_t)cfg.refresh;
+            if (elapsed_s < cfg.refresh) sleep((unsigned int)(cfg.refresh - elapsed_s));
         } else {
             diag_page = 0;
-            long before = now_ms();
+            uint64_t before = now_ms();
             lcd_display_dashboard();
-            long elapsed_s = (now_ms() - before) / 1000;
-            if (elapsed_s < cfg.refresh) sleep(cfg.refresh - elapsed_s);
+            uint64_t after = now_ms();
+            uint64_t elapsed_s = (after >= before) ? (after - before) / 1000ULL : (uint64_t)cfg.refresh;
+            if (elapsed_s < cfg.refresh) sleep((unsigned int)(cfg.refresh - elapsed_s));
         }
     }
     return 0;
