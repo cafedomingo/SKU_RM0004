@@ -29,7 +29,7 @@ uint16_t threshold_color(uint32_t value, uint32_t warn_th, uint32_t crit_th) {
     return theme.ok;
 }
 
-uint16_t lerp_color(uint16_t a, uint16_t b, float t) {
+static uint16_t lerp_color(uint16_t a, uint16_t b, float t) {
     int ar = (a >> 11) & 0x1F, ag = (a >> 5) & 0x3F, ab = a & 0x1F;
     int br = (b >> 11) & 0x1F, bg = (b >> 5) & 0x3F, bb = b & 0x1F;
     int r = ar + (int)((br - ar) * t);

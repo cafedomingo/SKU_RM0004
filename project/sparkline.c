@@ -3,7 +3,6 @@
 #include "rpiInfo.h"
 #include "st7735.h"
 #include "theme.h"
-#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -113,7 +112,7 @@ static void collect_data(SystemData *d) {
     d->dietpi_update = (get_dietpi_update_status() == 2);
 
     uint32_t thr = get_cpu_throttle_status();
-    d->throttled = (thr & THROTTLE_THROTTLED) != 0;
+    d->throttled = (thr & THROTTLE_CURRENT_MASK) != 0;
 }
 
 /*
@@ -204,7 +203,7 @@ static void draw_sparkline(uint16_t start_x, const uint8_t *history, uint32_t wa
     for (int i = 0; i < SPARKLINE_HISTORY; i++) {
         uint8_t val = history[i];
         if (val == 0) continue;
-        int col_height = (int)round(val * SPARK_HEIGHT / 100.0);
+        int col_height = (val * SPARK_HEIGHT + 50) / 100;
         if (col_height < 1) col_height = 1;
         uint16_t cx = start_x + i * (SPARK_BAR_W + SPARK_BAR_GAP);
         uint16_t cy = ROW_SPARK_TOP + SPARK_HEIGHT - col_height;
@@ -231,31 +230,20 @@ static void draw_cpu_ram_values(const SystemData *d) {
                   threshold_color(d->ram_pct, TH_RAM_WARN, TH_RAM_CRIT));
 }
 
-/*
- * Pixel-art down arrow: 5px wide x 7px tall, drawn at (x, y+2) to center in 10px row.
- */
-/*
- * Pixel-art arrow: 5px wide x 6px tall. dir > 0 = down, dir <= 0 = up.
- * Down arrow offset by y+1, up arrow by y+2 to align with text baseline.
- */
+/* 5px wide x 6px tall arrow shapes: {x_offset, width} per row */
+static const uint8_t arrow_up[][2] = {
+    {2, 1}, {1, 3}, {0, 5}, {2, 1}, {2, 1}, {2, 1},
+};
+static const uint8_t arrow_down[][2] = {
+    {2, 1}, {2, 1}, {2, 1}, {0, 5}, {1, 3}, {2, 1},
+};
+#define ARROW_ROWS 6
+
 static void draw_arrow(uint16_t x, uint16_t y, int dir, uint16_t color) {
     uint16_t by = y + (dir > 0 ? 1 : 2);
-    /* Row offsets: tip=0, mid=1, bar=2, stem=3-5 for "up" order */
-    int tip = 0, mid = 1, bar = 2, stem_start = 3, stem_end = 5;
-    if (dir > 0) {
-        tip = 5;
-        mid = 4;
-        bar = 3;
-        stem_start = 0;
-        stem_end = 2;
-    }
-    lcd_fb_pixel(fb, x + 2, by + tip, color);
-    for (int c = 1; c < 4; c++)
-        lcd_fb_pixel(fb, x + c, by + mid, color);
-    for (int c = 0; c < 5; c++)
-        lcd_fb_pixel(fb, x + c, by + bar, color);
-    for (int r = stem_start; r <= stem_end; r++)
-        lcd_fb_pixel(fb, x + 2, by + r, color);
+    const uint8_t (*shape)[2] = dir > 0 ? arrow_down : arrow_up;
+    for (int r = 0; r < ARROW_ROWS; r++)
+        lcd_fb_rect(fb, x + shape[r][0], by + r, shape[r][1], 1, color);
 }
 
 /*
