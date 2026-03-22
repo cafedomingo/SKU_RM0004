@@ -42,31 +42,31 @@ static void test_format_rate(void) {
     format_rate(500, buf, sizeof(buf));
     ASSERT_STR(buf, "500B", "format_rate 500 → 500B");
 
-    format_rate(1023, buf, sizeof(buf));
-    ASSERT_STR(buf, "1023B", "format_rate 1023 → 1023B");
+    format_rate(KB - 1, buf, sizeof(buf));
+    ASSERT_STR(buf, "1023B", "format_rate KB-1 → 1023B");
 
-    format_rate(1024, buf, sizeof(buf));
-    ASSERT_STR(buf, "1.0K", "format_rate 1024 → 1.0K");
+    format_rate(KB, buf, sizeof(buf));
+    ASSERT_STR(buf, "1.0K", "format_rate KB → 1.0K");
 
-    format_rate(5 * 1024, buf, sizeof(buf));
+    format_rate(5 * KB, buf, sizeof(buf));
     ASSERT_STR(buf, "5.0K", "format_rate 5K → 5.0K");
 
-    format_rate(10 * 1024 - 1, buf, sizeof(buf));
+    format_rate(10 * KB - 1, buf, sizeof(buf));
     ASSERT_STR(buf, "10.0K", "format_rate 10K-1 → 10.0K (just below integer-K)");
 
-    format_rate(10 * 1024, buf, sizeof(buf));
+    format_rate(10 * KB, buf, sizeof(buf));
     ASSERT_STR(buf, "10K", "format_rate 10K → 10K");
 
-    format_rate(1024 * 1024 - 1, buf, sizeof(buf));
-    ASSERT_STR(buf, "1023K", "format_rate 1M-1 → 1023K (just below M)");
+    format_rate(MB - 1, buf, sizeof(buf));
+    ASSERT_STR(buf, "1023K", "format_rate MB-1 → 1023K (just below M)");
 
-    format_rate(1024 * 1024, buf, sizeof(buf));
-    ASSERT_STR(buf, "1.0M", "format_rate 1M → 1.0M");
+    format_rate(MB, buf, sizeof(buf));
+    ASSERT_STR(buf, "1.0M", "format_rate MB → 1.0M");
 
-    format_rate(10 * 1024 * 1024, buf, sizeof(buf));
+    format_rate(10 * MB, buf, sizeof(buf));
     ASSERT_STR(buf, "10M", "format_rate 10M → 10M");
 
-    format_rate(100 * 1024 * 1024, buf, sizeof(buf));
+    format_rate(100 * MB, buf, sizeof(buf));
     ASSERT_STR(buf, "100M", "format_rate 100M → 100M");
 }
 
