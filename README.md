@@ -2,15 +2,16 @@
 
 Display driver for the [UCTRONICS SKU_RM0004](https://github.com/UCTRONICS/SKU_RM0004) 160x80 ST7735 TFT LCD on Raspberry Pi 4/5. Forked from the original and simplified to focus on the all-in-one status view.
 
-| Dashboard | Sparkline |
-|:---------:|:---------:|
-| ![Dashboard](docs/display.svg) | ![Sparkline](docs/sparkline.svg) |
+| Dashboard | Sparkline | Diagnostic |
+|:---------:|:---------:|:----------:|
+| ![Dashboard](docs/dashboard.png) | ![Sparkline](docs/sparkline.png) | ![Diagnostic](docs/diagnostic_p0.png) |
 
 - Hostname and auto-detected IP address
 - CPU, RAM, temperature, and disk usage with color-coded bars
 - DietPi update indicator (◆) and APT upgrade count (^N)
 - Three screen modes: dashboard (single-page bars), diagnostic (two-page detail), and sparkline (live CPU/RAM history charts with I/O rates)
 - Refreshes every 5 seconds
+- Regenerate screenshots: `make screenshot`
 
 ## Install / Update
 

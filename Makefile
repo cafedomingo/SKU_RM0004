@@ -55,7 +55,20 @@ $(TEST_FORMAT): test/test_format.c project/format.c project/format.h
 $(TEST_THEME): test/test_theme.c project/theme.c project/theme.h
 	$(TEST_CC) $(CFLAGS) -I project/ -I hardware/st7735 -o $@ test/test_theme.c project/theme.c
 
-FMT_SRCS = find $(SRCDIRS) test/ -type f \( -name '*.c' -o -name '*.h' \) -print0
+SCREENSHOT := $(OBJ)/screenshot
+SCREENSHOT_SRCS := tools/screenshot.c tools/mock_st7735.c tools/mock_rpiInfo.c \
+                   project/dashboard.c project/diagnostic.c project/sparkline.c \
+                   project/format.c project/theme.c hardware/st7735/fonts.c
+
+.PHONY: screenshot
+screenshot: $(SCREENSHOT)
+	@mkdir -p docs
+	./$(SCREENSHOT)
+
+$(SCREENSHOT): $(SCREENSHOT_SRCS)
+	$(TEST_CC) $(CFLAGS) $(INCLUDE) -I hardware/st7735 -o $@ $(SCREENSHOT_SRCS) -lz
+
+FMT_SRCS = find $(SRCDIRS) test/ tools/ -type f \( -name '*.c' -o -name '*.h' \) -print0
 
 format:
 	$(FMT_SRCS) | xargs -0 clang-format -i
