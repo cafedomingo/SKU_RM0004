@@ -4,11 +4,11 @@
 #include <stdio.h>
 
 void format_rate(uint64_t bytes, char *buf, size_t len) {
-    if (bytes >= 10485760)
-        snprintf(buf, len, "%" PRIu64 "M", bytes / 1048576);
-    else if (bytes >= 1048576)
-        snprintf(buf, len, "%.1fM", (double)bytes / 1048576.0);
-    else if (bytes >= 10240)
+    if (bytes >= 10 * 1024 * 1024)
+        snprintf(buf, len, "%" PRIu64 "M", bytes / (1024 * 1024));
+    else if (bytes >= 1024 * 1024)
+        snprintf(buf, len, "%.1fM", (double)bytes / (1024.0 * 1024.0));
+    else if (bytes >= 10 * 1024)
         snprintf(buf, len, "%" PRIu64 "K", bytes / 1024);
     else if (bytes >= 1024)
         snprintf(buf, len, "%.1fK", (double)bytes / 1024.0);
