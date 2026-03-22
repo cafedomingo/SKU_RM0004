@@ -6,6 +6,7 @@
 #define CONFIG_PATH       "/etc/uctronics-display.conf"
 #define SCREEN_DASHBOARD  "dashboard"
 #define SCREEN_DIAGNOSTIC "diagnostic"
+#define SCREEN_SPARKLINE  "sparkline"
 #define REFRESH_MIN_SECS  1
 #define REFRESH_MAX_SECS  30
 

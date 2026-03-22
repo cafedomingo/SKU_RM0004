@@ -5,6 +5,7 @@
 #include "diagnostic.h"
 #include "log.h"
 #include "runtime_config.h"
+#include "sparkline.h"
 #include "st7735.h"
 #include <arpa/inet.h>
 #include <errno.h>
@@ -42,6 +43,11 @@ static long now_ms(void) {
     return ts.tv_sec * 1000L + ts.tv_nsec / 1000000L;
 }
 
+static void sleep_remaining(long before, uint8_t refresh) {
+    long elapsed_s = (now_ms() - before) / 1000;
+    if (elapsed_s < refresh) sleep(refresh - elapsed_s);
+}
+
 int main(void) {
     LOG_INFO("starting");
     check_i2c_speed();
@@ -54,6 +60,7 @@ int main(void) {
     runtime_config_t cfg;
     char prev_screen[16] = "";
     int diag_page = 0;
+    sparkline_state_t spark_state = {0};
 
     while (1) {
         load_runtime_config(&cfg);
@@ -63,6 +70,7 @@ int main(void) {
             lcd_fill_screen(ST7735_BLACK);
             snprintf(prev_screen, sizeof(prev_screen), "%s", cfg.screen);
             diag_page = 0;
+            sparkline_invalidate();
         }
 
         if (strcmp(cfg.screen, SCREEN_DIAGNOSTIC) == 0) {
@@ -70,12 +78,16 @@ int main(void) {
             lcd_display_diagnostic_page(diag_page);
             diag_page = (diag_page + 1) % DIAG_NUM_PAGES;
             sleep(cfg.refresh);
+        } else if (strcmp(cfg.screen, SCREEN_SPARKLINE) == 0) {
+            diag_page = 0;
+            long before = now_ms();
+            lcd_display_sparkline(&spark_state);
+            sleep_remaining(before, cfg.refresh);
         } else {
             diag_page = 0;
             long before = now_ms();
             lcd_display_dashboard();
-            long elapsed_s = (now_ms() - before) / 1000;
-            if (elapsed_s < cfg.refresh) sleep(cfg.refresh - elapsed_s);
+            sleep_remaining(before, cfg.refresh);
         }
     }
     return 0;
