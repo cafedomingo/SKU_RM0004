@@ -33,8 +33,26 @@ extern void lcd_fill_screen(uint16_t color);
 
 /* Bulk transfer */
 extern void lcd_draw_fullscreen(uint8_t *buf);
+extern void lcd_draw_region(uint8_t *buf, uint16_t x, uint16_t y, uint16_t w, uint16_t h);
 
 /* Text */
 extern void lcd_write_string(uint16_t x, uint16_t y, const char *str, FontDef font, uint16_t color, uint16_t bgcolor);
+
+extern void lcd_draw_diamond(uint16_t x, uint16_t y, uint16_t color);
+
+/* Custom glyph shape data: {x_offset, width} per row */
+extern const uint8_t diamond_shape[][2]; /* 6x6 */
+extern const uint8_t arrow_shape[][2];   /* 5x6 */
+#define DIAMOND_ROWS 6
+#define ARROW_ROWS   6
+
+/* Framebuffer drawing primitives */
+extern void lcd_fb_fill(uint8_t *fb, uint16_t color);
+extern void lcd_fb_pixel(uint8_t *fb, uint16_t x, uint16_t y, uint16_t color);
+extern void lcd_fb_rect(uint8_t *fb, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
+extern void lcd_fb_char(uint8_t *fb, uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color);
+extern void lcd_fb_string(uint8_t *fb, uint16_t x, uint16_t y, const char *str, FontDef font, uint16_t color);
+extern void lcd_fb_diamond(uint8_t *fb, uint16_t x, uint16_t y, uint16_t color);
+extern void lcd_fb_arrow(uint8_t *fb, uint16_t x, uint16_t y, int dir, uint16_t color);
 
 #endif /* __ST7735_H__ */

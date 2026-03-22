@@ -4,6 +4,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define KB 1024
+#define MB (1024 * 1024)
+
 /* Format bytes/s as human-readable rate: 0B, 1.2K, 45K, 1.2M, 12M */
 void format_rate(uint64_t bytes, char *buf, size_t len);
 

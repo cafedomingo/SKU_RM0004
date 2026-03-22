@@ -1,18 +1,19 @@
 #include "format.h"
 #include "rpiInfo.h"
+#include <inttypes.h>
 #include <stdio.h>
 
 void format_rate(uint64_t bytes, char *buf, size_t len) {
-    if (bytes >= 10485760)
-        snprintf(buf, len, "%uM", (unsigned)(bytes / 1048576));
-    else if (bytes >= 1048576)
-        snprintf(buf, len, "%.1fM", (double)bytes / 1048576.0);
-    else if (bytes >= 10240)
-        snprintf(buf, len, "%uK", (unsigned)(bytes / 1024));
-    else if (bytes >= 1024)
-        snprintf(buf, len, "%.1fK", (double)bytes / 1024.0);
+    if (bytes >= 10 * MB)
+        snprintf(buf, len, "%" PRIu64 "M", bytes / MB);
+    else if (bytes >= MB)
+        snprintf(buf, len, "%.1fM", (double)bytes / MB);
+    else if (bytes >= 10 * KB)
+        snprintf(buf, len, "%" PRIu64 "K", bytes / KB);
+    else if (bytes >= KB)
+        snprintf(buf, len, "%.1fK", (double)bytes / KB);
     else if (bytes > 0)
-        snprintf(buf, len, "%luB", (unsigned long)bytes);
+        snprintf(buf, len, "%" PRIu64 "B", bytes);
     else
         snprintf(buf, len, "0B");
 }
@@ -38,9 +39,9 @@ void format_uptime(uint32_t secs, char *buf, size_t len) {
 
 void format_temp(uint8_t celsius, char *buf, size_t len) {
     if (TEMPERATURE_TYPE == FAHRENHEIT)
-        snprintf(buf, len, "%dF", celsius_to_f(celsius));
+        snprintf(buf, len, "%3dF", celsius_to_f(celsius));
     else
-        snprintf(buf, len, "%dC", celsius);
+        snprintf(buf, len, "%3dC", celsius);
 }
 
 int format_apt_badge(int count, char *buf, size_t len) {
