@@ -279,6 +279,5 @@ void lcd_write_string(uint16_t x, uint16_t y, const char *str, FontDef font, uin
 
 void lcd_draw_diamond(uint16_t x, uint16_t y, uint16_t color) {
     for (uint16_t r = 0; r < DIAMOND_ROWS; r++)
-        lcd_fill_rectangle(x + diamond_shape[r][0], y + r,
-                           diamond_shape[r][1], 1, color);
+        lcd_fill_rectangle(x + diamond_shape[r][0], y + r, diamond_shape[r][1], 1, color);
 }

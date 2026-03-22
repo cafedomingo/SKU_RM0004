@@ -34,26 +34,23 @@ clean:
 	rm -rf $(OBJ)
 	rm -rf $(TARGET)
 
-TEST_CC  := gcc
+TEST_CC := gcc
+TESTS   := test_rpiInfo test_format test_theme test_st7735_fb
 
-TEST_RPIINFO := $(OBJ)/test_rpiInfo
-TEST_FORMAT  := $(OBJ)/test_format
-TEST_THEME   := $(OBJ)/test_theme
+test_rpiInfo_SRCS   := test/test_rpiInfo.c hardware/rpiInfo/rpiInfo.c
+test_format_SRCS    := test/test_format.c project/format.c
+test_theme_SRCS     := test/test_theme.c project/theme.c
+test_st7735_fb_SRCS := test/test_st7735_fb.c hardware/st7735/st7735_fb.c hardware/st7735/fonts.c
 
 .PHONY: test
-test: $(TEST_RPIINFO) $(TEST_FORMAT) $(TEST_THEME)
-	./$(TEST_RPIINFO)
-	./$(TEST_FORMAT)
-	./$(TEST_THEME)
+test: $(TESTS:%=$(OBJ)/%)
+	@for t in $^; do ./$$t || exit 1; done
 
-$(TEST_RPIINFO): test/test_rpiInfo.c hardware/rpiInfo/rpiInfo.c hardware/rpiInfo/rpiInfo.h
-	$(TEST_CC) $(CFLAGS) -I hardware/rpiInfo -I project/ -o $@ test/test_rpiInfo.c hardware/rpiInfo/rpiInfo.c
-
-$(TEST_FORMAT): test/test_format.c project/format.c project/format.h
-	$(TEST_CC) $(CFLAGS) -I project/ -I hardware/rpiInfo -o $@ test/test_format.c project/format.c
-
-$(TEST_THEME): test/test_theme.c project/theme.c project/theme.h
-	$(TEST_CC) $(CFLAGS) -I project/ -I hardware/st7735 -o $@ test/test_theme.c project/theme.c
+define TEST_RULE
+$(OBJ)/$(1): $$($(1)_SRCS)
+	$$(TEST_CC) $$(CFLAGS) $$(INCLUDE) -o $$@ $$^
+endef
+$(foreach t,$(TESTS),$(eval $(call TEST_RULE,$(t))))
 
 SCREENSHOT := $(OBJ)/screenshot
 SCREENSHOT_SRCS := tools/screenshot.c tools/mock_st7735.c tools/mock_rpiInfo.c \

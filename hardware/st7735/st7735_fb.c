@@ -30,8 +30,7 @@ const uint8_t diamond_shape[][2] = {
 
 void lcd_fb_diamond(uint8_t *fb, uint16_t x, uint16_t y, uint16_t color) {
     for (uint16_t r = 0; r < DIAMOND_ROWS; r++)
-        lcd_fb_rect(fb, x + diamond_shape[r][0], y + r,
-                    diamond_shape[r][1], 1, color);
+        lcd_fb_rect(fb, x + diamond_shape[r][0], y + r, diamond_shape[r][1], 1, color);
 }
 
 void lcd_fb_char(uint8_t *fb, uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color) {
