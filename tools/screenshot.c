@@ -1,5 +1,4 @@
 #include "dashboard.h"
-#include "diagnostic.h"
 #include "sparkline.h"
 #include "st7735.h"
 #include <stdio.h>
@@ -170,17 +169,6 @@ int main(int argc, char **argv) {
     };
     lcd_display_sparkline(&state);
     write_png("docs/sparkline.png", scale);
-
-    /* Diagnostic page 0 */
-    memset(display_fb, 0, ST7735_WIDTH * ST7735_HEIGHT * 2);
-    diag_refresh_data();
-    lcd_display_diagnostic_page(0);
-    write_png("docs/diagnostic_p0.png", scale);
-
-    /* Diagnostic page 1 */
-    memset(display_fb, 0, ST7735_WIDTH * ST7735_HEIGHT * 2);
-    lcd_display_diagnostic_page(1);
-    write_png("docs/diagnostic_p1.png", scale);
 
     printf("Done.\n");
     return 0;

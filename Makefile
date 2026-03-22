@@ -57,8 +57,9 @@ $(TEST_THEME): test/test_theme.c project/theme.c project/theme.h
 
 SCREENSHOT := $(OBJ)/screenshot
 SCREENSHOT_SRCS := tools/screenshot.c tools/mock_st7735.c tools/mock_rpiInfo.c \
-                   project/dashboard.c project/diagnostic.c project/sparkline.c \
-                   project/format.c project/theme.c hardware/st7735/fonts.c
+                   project/dashboard.c project/sparkline.c \
+                   project/format.c project/theme.c \
+                   hardware/st7735/fonts.c hardware/st7735/st7735_fb.c
 
 .PHONY: screenshot
 screenshot: $(SCREENSHOT)
