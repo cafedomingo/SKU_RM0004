@@ -1,0 +1,102 @@
+<svg height="276" viewBox="-6 -6 172 92" width="516" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dark surround -->
+  <rect fill="#1a1a1a" height="92" rx="4" width="172" x="-6" y="-6"/>
+  <!-- Black screen -->
+  <path d="m0 0h160v80h-160z" shape-rendering="crispEdges"/>
+
+  <!-- Row 1 (y=1): Ticker -->
+  <text dominant-baseline="hanging" fill="#ffffff" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="77" x="0" y="1">raspberrypi</text>
+
+  <!-- Row 2 (y=12): Uptime + update badges -->
+  <text dominant-baseline="hanging" fill="#ffffff" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="35" x="0" y="12">7d 3h</text>
+  <!-- APT badge ^3 -->
+  <text dominant-baseline="hanging" fill="#d0bc00" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="14" x="146" y="12">^3</text>
+  <!-- DietPi diamond -->
+  <g fill="#ff8059" shape-rendering="crispEdges">
+    <path d="m138 14h2v1h-2z"/>
+    <path d="m137 15h4v1h-4z"/>
+    <path d="m136 16h6v1h-6z"/>
+    <path d="m136 17h6v1h-6z"/>
+    <path d="m137 18h4v1h-4z"/>
+    <path d="m138 19h2v1h-2z"/>
+  </g>
+
+  <!-- Row 3 (y=23): Frequency + Temperature | Disk -->
+  <text dominant-baseline="hanging" fill="#ffffff" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="42" x="0" y="23">2.0GHz</text>
+  <text dominant-baseline="hanging" fill="#d0bc00" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="21" x="97" y="23">52C</text>
+  <text dominant-baseline="hanging" fill="#3a3a3a" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="7" x="120" y="23">|</text>
+  <text dominant-baseline="hanging" fill="#ffffff" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="14" x="125" y="23">D:</text>
+  <text dominant-baseline="hanging" fill="#44bc44" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="21" x="139" y="23">45%</text>
+
+  <!-- Row 4 (y=33): Divider -->
+  <path d="m0 33h160v1h-160z" fill="#3a3a3a" shape-rendering="crispEdges"/>
+
+  <!-- Sparkline chart area (y=35-56, 22px tall) -->
+  <!-- CPU bars (left column, x starts at 0, bar width=5, gap=1) -->
+  <g fill="#44bc44" shape-rendering="crispEdges">
+    <!-- bar 0: 3% h=1 -->  <path d="m0 56h5v1h-5z"/>
+    <!-- bar 1: 5% h=1 -->  <path d="m6 56h5v1h-5z"/>
+    <!-- bar 2: 8% h=2 -->  <path d="m12 55h5v2h-5z"/>
+    <!-- bar 3: 12% h=3 --> <path d="m18 54h5v3h-5z"/>
+    <!-- bar 4: 18% h=4 --> <path d="m24 53h5v4h-5z"/>
+    <!-- bar 5: 45% h=10 --><path d="m30 47h5v10h-5z"/>
+    <!-- bar 9: 42% h=9 --> <path d="m54 48h5v9h-5z"/>
+    <!-- bar 10: 28% h=6 --><path d="m60 51h5v6h-5z"/>
+    <!-- bar 11: 15% h=3 --><path d="m66 54h5v3h-5z"/>
+    <!-- bar 12: 23% h=5 --><path d="m72 52h5v5h-5z"/>
+  </g>
+  <g fill="#d0bc00" shape-rendering="crispEdges">
+    <!-- bar 6: 78% h=17 --><path d="m36 40h5v17h-5z"/>
+    <!-- bar 8: 65% h=14 --><path d="m48 43h5v14h-5z"/>
+  </g>
+  <g fill="#ff8059" shape-rendering="crispEdges">
+    <!-- bar 7: 92% h=20 --><path d="m42 37h5v20h-5z"/>
+  </g>
+
+  <!-- RAM bars (right column, x starts at 82) -->
+  <g fill="#44bc44" shape-rendering="crispEdges">
+    <!-- bar 0: 31% h=7 --> <path d="m82 50h5v7h-5z"/>
+    <!-- bar 1: 32% h=7 --> <path d="m88 50h5v7h-5z"/>
+    <!-- bar 2: 33% h=7 --> <path d="m94 50h5v7h-5z"/>
+    <!-- bar 3: 34% h=7 --> <path d="m100 50h5v7h-5z"/>
+    <!-- bar 4: 34% h=7 --> <path d="m106 50h5v7h-5z"/>
+    <!-- bar 5: 35% h=8 --> <path d="m112 49h5v8h-5z"/>
+    <!-- bar 6: 34% h=7 --> <path d="m118 50h5v7h-5z"/>
+    <!-- bar 7: 35% h=8 --> <path d="m124 49h5v8h-5z"/>
+    <!-- bar 8: 36% h=8 --> <path d="m130 49h5v8h-5z"/>
+    <!-- bar 9: 35% h=8 --> <path d="m136 49h5v8h-5z"/>
+    <!-- bar 10: 34% h=7 --><path d="m142 50h5v7h-5z"/>
+    <!-- bar 11: 33% h=7 --><path d="m148 50h5v7h-5z"/>
+    <!-- bar 12: 34% h=7 --><path d="m154 50h5v7h-5z"/>
+  </g>
+
+  <!-- Row 8 (y=58): CPU/RAM percentages -->
+  <text dominant-baseline="hanging" fill="#ffffff" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="21" x="0" y="58">CPU</text>
+  <text dominant-baseline="hanging" fill="#44bc44" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="21" x="56" y="58">23%</text>
+  <text dominant-baseline="hanging" fill="#ffffff" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="21" x="82" y="58">RAM</text>
+  <text dominant-baseline="hanging" fill="#44bc44" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="21" x="138" y="58">34%</text>
+
+  <!-- Row 9 (y=69): I/O rates -->
+  <!-- Down arrow (5x6 pixel art) -->
+  <g fill="#ffffff" shape-rendering="crispEdges">
+    <path d="m2 70h1v3h-1z"/>
+    <path d="m0 73h5v1h-5z"/>
+    <path d="m1 74h3v1h-3z"/>
+    <path d="m2 75h1v1h-1z"/>
+  </g>
+  <text dominant-baseline="hanging" fill="#44bc44" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="28" x="7" y="69">1.2M</text>
+  <!-- Up arrow -->
+  <g fill="#ffffff" shape-rendering="crispEdges">
+    <path d="m40 71h1v1h-1z"/>
+    <path d="m39 72h3v1h-3z"/>
+    <path d="m38 73h5v1h-5z"/>
+    <path d="m40 74h1v3h-1z"/>
+  </g>
+  <text dominant-baseline="hanging" fill="#44bc44" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="28" x="45" y="69">234K</text>
+
+  <!-- Disk I/O -->
+  <text dominant-baseline="hanging" fill="#ffffff" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="7" x="82" y="69">R</text>
+  <text dominant-baseline="hanging" fill="#44bc44" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="28" x="89" y="69">456K</text>
+  <text dominant-baseline="hanging" fill="#ffffff" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="7" x="120" y="69">W</text>
+  <text dominant-baseline="hanging" fill="#44bc44" font-family="'Courier New', Consolas, 'Liberation Mono', monospace" font-size="9" lengthAdjust="spacingAndGlyphs" textLength="21" x="127" y="69">89K</text>
+</svg>
