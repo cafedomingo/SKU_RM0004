@@ -46,12 +46,7 @@ void lcd_display_dashboard(void) {
 
     /* DietPi diamond — alert color when update needed */
     if (dietpi_status == DIETPI_UPDATE_AVAIL) {
-        lcd_fill_rectangle(154, 5, 2, 1, theme.alert);
-        lcd_fill_rectangle(153, 6, 4, 1, theme.alert);
-        lcd_fill_rectangle(152, 7, 6, 1, theme.alert);
-        lcd_fill_rectangle(152, 8, 6, 1, theme.alert);
-        lcd_fill_rectangle(153, 9, 4, 1, theme.alert);
-        lcd_fill_rectangle(154, 10, 2, 1, theme.alert);
+        lcd_draw_diamond(152, 5, theme.alert);
     }
 
     /* APT update count — right-aligned on IP row */
