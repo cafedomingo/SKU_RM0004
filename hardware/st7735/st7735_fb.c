@@ -24,14 +24,14 @@ void lcd_fb_rect(uint8_t *fb, uint16_t x, uint16_t y, uint16_t w, uint16_t h, ui
 }
 
 /* 6x6 diamond shape data: {x_offset, width} per row */
-static const uint8_t diamond_shape[][2] = {
+const uint8_t diamond_shape[][2] = {
     {2, 2}, {1, 4}, {0, 6}, {0, 6}, {1, 4}, {2, 2},
 };
-#define DIAMOND_ROWS (sizeof(diamond_shape) / sizeof(diamond_shape[0]))
 
 void lcd_fb_diamond(uint8_t *fb, uint16_t x, uint16_t y, uint16_t color) {
     for (uint16_t r = 0; r < DIAMOND_ROWS; r++)
-        lcd_fb_rect(fb, x + diamond_shape[r][0], y + r, diamond_shape[r][1], 1, color);
+        lcd_fb_rect(fb, x + diamond_shape[r][0], y + r,
+                    diamond_shape[r][1], 1, color);
 }
 
 void lcd_fb_char(uint8_t *fb, uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color) {

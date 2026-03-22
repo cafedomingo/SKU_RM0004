@@ -229,20 +229,18 @@ static void draw_cpu_ram_values(const SystemData *d) {
                   threshold_color(d->ram_pct, TH_RAM_WARN, TH_RAM_CRIT));
 }
 
-/* 5px wide x 6px tall arrow shapes: {x_offset, width} per row */
+/* 5px wide x 6px tall arrow shape: {x_offset, width} per row */
 static const uint8_t arrow_up[][2] = {
     {2, 1}, {1, 3}, {0, 5}, {2, 1}, {2, 1}, {2, 1},
-};
-static const uint8_t arrow_down[][2] = {
-    {2, 1}, {2, 1}, {2, 1}, {0, 5}, {1, 3}, {2, 1},
 };
 #define ARROW_ROWS 6
 
 static void draw_arrow(uint16_t x, uint16_t y, int dir, uint16_t color) {
     uint16_t by = y + (dir > 0 ? 1 : 2);
-    const uint8_t(*shape)[2] = dir > 0 ? arrow_down : arrow_up;
-    for (int r = 0; r < ARROW_ROWS; r++)
-        lcd_fb_rect(fb, x + shape[r][0], by + r, shape[r][1], 1, color);
+    for (int r = 0; r < ARROW_ROWS; r++) {
+        int row = dir > 0 ? ARROW_ROWS - 1 - r : r;
+        lcd_fb_rect(fb, x + arrow_up[row][0], by + r, arrow_up[row][1], 1, color);
+    }
 }
 
 /*

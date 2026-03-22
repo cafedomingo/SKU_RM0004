@@ -40,6 +40,10 @@ extern void lcd_write_string(uint16_t x, uint16_t y, const char *str, FontDef fo
 
 extern void lcd_draw_diamond(uint16_t x, uint16_t y, uint16_t color);
 
+/* 6x6 diamond shape data: {x_offset, width} per row */
+extern const uint8_t diamond_shape[][2];
+#define DIAMOND_ROWS 6
+
 /* Framebuffer drawing primitives */
 extern void lcd_fb_fill(uint8_t *fb, uint16_t color);
 extern void lcd_fb_pixel(uint8_t *fb, uint16_t x, uint16_t y, uint16_t color);
