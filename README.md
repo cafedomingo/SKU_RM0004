@@ -11,7 +11,6 @@ Display driver for the [UCTRONICS SKU_RM0004](https://github.com/UCTRONICS/SKU_R
 - DietPi update indicator (◆) and APT upgrade count (^N)
 - Three screen modes: dashboard (single-page bars), diagnostic (two-page detail), and sparkline (live CPU/RAM history charts with I/O rates)
 - Refreshes every 5 seconds
-- Regenerate screenshots: `make screenshot`
 
 ## Install / Update
 
@@ -37,10 +36,13 @@ To run a locally built binary instead of the release:
 git clone https://github.com/cafedomingo/SKU_RM0004.git
 cd SKU_RM0004
 make
+make test
 sudo ./install.sh
 ```
 
 When a `./display` binary exists in the current directory, `install.sh` uses it instead of downloading from GitHub.
+
+Regenerate documentation screenshots: `make screenshot`
 
 ## Uninstall
 
