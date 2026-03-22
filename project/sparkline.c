@@ -229,20 +229,6 @@ static void draw_cpu_ram_values(const SystemData *d) {
                   threshold_color(d->ram_pct, TH_RAM_WARN, TH_RAM_CRIT));
 }
 
-/* 5px wide x 6px tall arrow shape: {x_offset, width} per row */
-static const uint8_t arrow_up[][2] = {
-    {2, 1}, {1, 3}, {0, 5}, {2, 1}, {2, 1}, {2, 1},
-};
-#define ARROW_ROWS 6
-
-static void draw_arrow(uint16_t x, uint16_t y, int dir, uint16_t color) {
-    uint16_t by = y + (dir > 0 ? 1 : 2);
-    for (int r = 0; r < ARROW_ROWS; r++) {
-        int row = dir > 0 ? ARROW_ROWS - 1 - r : r;
-        lcd_fb_rect(fb, x + arrow_up[row][0], by + r, arrow_up[row][1], 1, color);
-    }
-}
-
 /*
  * I/O row (y=69): net ↓↑ left column, disk R/W right column.
  */
@@ -250,11 +236,11 @@ static void draw_io_row(const SystemData *d) {
     char buf[8];
 
     /* Network: ↓rx ↑tx */
-    draw_arrow(0, ROW_IO, 1, theme.fg);
+    lcd_fb_arrow(fb, 0, ROW_IO + 1, 1, theme.fg);
     format_rate(d->net_rx, buf, sizeof(buf));
     lcd_fb_string(fb, 7, ROW_IO, buf, Font_7x10, threshold_color(d->net_rx, TH_NET_WARN, TH_NET_CRIT));
 
-    draw_arrow(38, ROW_IO, -1, theme.fg);
+    lcd_fb_arrow(fb, 38, ROW_IO + 2, -1, theme.fg);
     format_rate(d->net_tx, buf, sizeof(buf));
     lcd_fb_string(fb, 45, ROW_IO, buf, Font_7x10, threshold_color(d->net_tx, TH_NET_WARN, TH_NET_CRIT));
 

@@ -33,6 +33,18 @@ void lcd_fb_diamond(uint8_t *fb, uint16_t x, uint16_t y, uint16_t color) {
         lcd_fb_rect(fb, x + diamond_shape[r][0], y + r, diamond_shape[r][1], 1, color);
 }
 
+/* 5x6 arrow shape data: {x_offset, width} per row (points up; reverse for down) */
+const uint8_t arrow_shape[][2] = {
+    {2, 1}, {1, 3}, {0, 5}, {2, 1}, {2, 1}, {2, 1},
+};
+
+void lcd_fb_arrow(uint8_t *fb, uint16_t x, uint16_t y, int dir, uint16_t color) {
+    for (uint16_t r = 0; r < ARROW_ROWS; r++) {
+        int row = dir > 0 ? ARROW_ROWS - 1 - r : r;
+        lcd_fb_rect(fb, x + arrow_shape[row][0], y + r, arrow_shape[row][1], 1, color);
+    }
+}
+
 void lcd_fb_char(uint8_t *fb, uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color) {
     if (ch < 32 || ch >= 127) ch = '?';
     for (uint16_t row = 0; row < font.height; row++) {

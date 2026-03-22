@@ -131,6 +131,35 @@ static void test_fb_string(void) {
     ASSERT(found_q > 0, "unprintable char renders as '?'");
 }
 
+/* ── lcd_fb_arrow ───────────────────────────────────────────────── */
+
+static void test_fb_arrow(void) {
+    /* Up arrow: tip at top (row 0 = 1px wide stem tip) */
+    lcd_fb_fill(fb, ST7735_BLACK);
+    lcd_fb_arrow(fb, 10, 20, -1, ST7735_CYAN);
+
+    /* Top row: 1 pixel at x+2 */
+    ASSERT(fb_get(12, 20) == ST7735_CYAN, "arrow up tip pixel");
+    ASSERT(fb_get(11, 20) == ST7735_BLACK, "arrow up tip left clear");
+
+    /* Wide row (row 2): 5 pixels starting at x+0 */
+    ASSERT(fb_get(10, 22) == ST7735_CYAN, "arrow up wide row left");
+    ASSERT(fb_get(14, 22) == ST7735_CYAN, "arrow up wide row right");
+    ASSERT(fb_get(9, 22) == ST7735_BLACK, "arrow up wide row outside left");
+
+    /* Down arrow: same shape reversed */
+    lcd_fb_fill(fb, ST7735_BLACK);
+    lcd_fb_arrow(fb, 10, 20, 1, ST7735_CYAN);
+
+    /* Bottom row (row 5) should be the tip */
+    ASSERT(fb_get(12, 25) == ST7735_CYAN, "arrow down tip pixel");
+    ASSERT(fb_get(11, 25) == ST7735_BLACK, "arrow down tip left clear");
+
+    /* Wide row (row 2 from top = original row 2 reversed): 5 pixels */
+    ASSERT(fb_get(10, 23) == ST7735_CYAN, "arrow down wide row left");
+    ASSERT(fb_get(14, 23) == ST7735_CYAN, "arrow down wide row right");
+}
+
 int main(void) {
     printf("st7735_fb tests:\n");
 
@@ -138,6 +167,7 @@ int main(void) {
     test_fb_pixel();
     test_fb_rect();
     test_fb_diamond();
+    test_fb_arrow();
     test_fb_string();
 
     printf("\n%d/%d tests passed.\n", tests_run - tests_failed, tests_run);
