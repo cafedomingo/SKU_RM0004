@@ -82,7 +82,7 @@ void diag_refresh_data(void) {
     else if (ds == DIETPI_UP_TO_DATE)
         set_row(i++, "DietPi", theme.ok, "OK");
     else
-        set_row(i++, "DietPi", theme.sep, "N/A");
+        set_row(i++, "DietPi", theme.muted, "N/A");
 
     int apt = get_apt_update_count();
     if (apt > 0)
@@ -90,7 +90,7 @@ void diag_refresh_data(void) {
     else if (apt == 0)
         set_row(i++, "APT", theme.ok, "up to date");
     else
-        set_row(i++, "APT", theme.sep, "N/A");
+        set_row(i++, "APT", theme.muted, "N/A");
 }
 
 /*

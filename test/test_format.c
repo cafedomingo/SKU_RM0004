@@ -131,10 +131,13 @@ static void test_format_temp(void) {
 
     /* TEMPERATURE_TYPE is CELSIUS at compile time */
     format_temp(52, buf, sizeof(buf));
-    ASSERT_STR(buf, "52C", "format_temp 52 → 52C");
+    ASSERT_STR(buf, " 52C", "format_temp 52 → ' 52C'");
 
     format_temp(0, buf, sizeof(buf));
-    ASSERT_STR(buf, "0C", "format_temp 0 → 0C");
+    ASSERT_STR(buf, "  0C", "format_temp 0 → '  0C'");
+
+    format_temp(100, buf, sizeof(buf));
+    ASSERT_STR(buf, "100C", "format_temp 100 → '100C'");
 }
 
 /* ── celsius_to_f ────────────────────────────────────────────────── */

@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 typedef struct {
-    uint16_t bg, fg, sep, ip, alert;
+    uint16_t bg, fg, muted, sep, ip, alert;
     uint16_t ok, warn, crit;
     uint16_t tempRamp[4];
 } Theme;
