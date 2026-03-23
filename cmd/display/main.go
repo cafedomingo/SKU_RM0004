@@ -69,7 +69,7 @@ func main() {
 			sendDirty(disp, &front, &back)
 		}
 
-		if !sleepOrExit(ctx, cfg.Refresh-time.Since(start)) {
+		if shouldExit(ctx, cfg.Refresh-time.Since(start)) {
 			logger.Info("shutting down")
 			return
 		}
@@ -90,20 +90,20 @@ func sendDirty(disp st7735.Display, front, back *st7735.Framebuffer) {
 	*front = *back
 }
 
-func sleepOrExit(ctx context.Context, remaining time.Duration) bool {
+func shouldExit(ctx context.Context, remaining time.Duration) bool {
 	if remaining <= 0 {
 		select {
 		case <-ctx.Done():
-			return false
-		default:
 			return true
+		default:
+			return false
 		}
 	}
 	select {
 	case <-ctx.Done():
-		return false
-	case <-time.After(remaining):
 		return true
+	case <-time.After(remaining):
+		return false
 	}
 }
 
