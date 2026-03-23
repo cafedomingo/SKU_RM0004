@@ -1,6 +1,6 @@
 module github.com/cafedomingo/SKU_RM0004
 
-go 1.24.0
+go 1.26.0
 
 require (
 	github.com/shirou/gopsutil/v4 v4.26.2
