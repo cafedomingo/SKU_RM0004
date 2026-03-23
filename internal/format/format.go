@@ -9,8 +9,7 @@ const (
 	KB = 1024
 	MB = 1024 * 1024
 
-	secsPerMin  = 60
-	secsPerHour = 60 * secsPerMin
+	secsPerHour = 60 * 60
 	secsPerDay  = 24 * secsPerHour
 
 	aptBadgeMax = 99
@@ -45,7 +44,7 @@ func Uptime(d time.Duration) string {
 	total := int(d.Seconds())
 	days := total / secsPerDay
 	hours := (total % secsPerDay) / secsPerHour
-	minutes := (total % secsPerHour) / secsPerMin
+	minutes := (total % secsPerHour) / 60
 
 	switch {
 	case days > 0:
