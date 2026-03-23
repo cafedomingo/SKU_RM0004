@@ -60,7 +60,7 @@ func NewCollector(logger *slog.Logger) Collector {
 	return c
 }
 
-func (c *liveCollector) CPUPercent() float64         { return c.cpu }
+func (c *liveCollector) CPUPercent() float64          { return c.cpu }
 func (c *liveCollector) RAMPercent() float64          { return c.ram }
 func (c *liveCollector) DiskPercent() float64         { return c.disk }
 func (c *liveCollector) Temperature() float64         { return c.temp }
@@ -71,11 +71,10 @@ func (c *liveCollector) IPv6Suffix() string           { return c.ipv6 }
 func (c *liveCollector) NetBandwidth() NetBandwidth   { return c.net }
 func (c *liveCollector) LinkSpeedMbps() int           { return c.linkSpeed }
 func (c *liveCollector) DiskIO() DiskIO               { return c.diskIO }
-
 // Pi-specific
-func (c *liveCollector) CPUFreq() CPUFreq           { return c.freq }
-func (c *liveCollector) ThrottleStatus() uint32      { return c.throttle }
-func (c *liveCollector) DietPiStatus() DietPiStatus  { return c.dietpi }
+func (c *liveCollector) CPUFreq() CPUFreq             { return c.freq }
+func (c *liveCollector) ThrottleStatus() uint32       { return c.throttle }
+func (c *liveCollector) DietPiStatus() DietPiStatus   { return c.dietpi }
 func (c *liveCollector) APTUpdateCount() int          { return c.apt }
 
 // Refresh collects all system metrics.
