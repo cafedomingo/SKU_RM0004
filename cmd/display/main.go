@@ -36,7 +36,7 @@ func main() {
 	defer disp.Close()
 
 	collector := sysinfo.NewCollector(logger)
-	cfgLoader := config.NewLoader(config.DefaultPath, logger)
+	cfgLoader := config.NewLoader(config.ConfigPath, logger)
 
 	var front, back st7735.Framebuffer
 	var diagState screen.DiagState
