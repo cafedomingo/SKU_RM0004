@@ -17,6 +17,16 @@ import (
 	psnet "github.com/shirou/gopsutil/v4/net"
 )
 
+const (
+	thermalPath      = "/sys/class/thermal/thermal_zone0/temp"
+	milliCPerCelsius = 1000.0
+	procRoutePath    = "/proc/net/route"
+	defaultRouteDest = "00000000"
+	procMountsPath   = "/proc/mounts"
+	NoIPv6           = "no IPv6"
+	linkSpeedPath    = "/sys/class/net/%s/speed"
+)
+
 type liveCollector struct {
 	logger *slog.Logger
 
@@ -113,10 +123,10 @@ func (c *liveCollector) refreshDisk() {
 
 func (c *liveCollector) refreshTemp() {
 	// Try reading directly from sysfs (works on Linux).
-	if data, err := os.ReadFile("/sys/class/thermal/thermal_zone0/temp"); err == nil {
+	if data, err := os.ReadFile(thermalPath); err == nil {
 		var milliC int
 		if _, err := fmt.Sscanf(strings.TrimSpace(string(data)), "%d", &milliC); err == nil {
-			c.temp = float64(milliC) / 1000.0
+			c.temp = float64(milliC) / milliCPerCelsius
 			return
 		}
 	}
@@ -211,13 +221,13 @@ func (c *liveCollector) refreshPi() {
 // On Linux it parses /proc/net/route; on other platforms it falls back to
 // finding the first non-loopback interface with an IPv4 address.
 func defaultInterface() string {
-	f, err := os.Open("/proc/net/route")
+	f, err := os.Open(procRoutePath)
 	if err == nil {
 		defer f.Close()
 		scanner := bufio.NewScanner(f)
 		for scanner.Scan() {
 			fields := strings.Fields(scanner.Text())
-			if len(fields) >= 2 && fields[1] == "00000000" {
+			if len(fields) >= 2 && fields[1] == defaultRouteDest {
 				return fields[0]
 			}
 		}
@@ -249,14 +259,14 @@ func defaultInterface() string {
 func interfaceAddresses(name string) (ipv4, ipv6suffix string) {
 	iface, err := net.InterfaceByName(name)
 	if err != nil {
-		return "", "no IPv6"
+		return "", NoIPv6
 	}
 	addrs, err := iface.Addrs()
 	if err != nil {
-		return "", "no IPv6"
+		return "", NoIPv6
 	}
 
-	ipv6suffix = "no IPv6"
+	ipv6suffix = NoIPv6
 	for _, addr := range addrs {
 		ipnet, ok := addr.(*net.IPNet)
 		if !ok {
@@ -283,7 +293,7 @@ func interfaceAddresses(name string) (ipv4, ipv6suffix string) {
 
 // readLinkSpeed reads the link speed in Mbps from sysfs.
 func readLinkSpeed(iface string) int {
-	data, err := os.ReadFile(fmt.Sprintf("/sys/class/net/%s/speed", iface))
+	data, err := os.ReadFile(fmt.Sprintf(linkSpeedPath, iface))
 	if err != nil {
 		return 0
 	}
@@ -335,7 +345,7 @@ func aggregateDiskUsage() float64 {
 func diskMountPoints() []string {
 	result := []string{"/"}
 
-	f, err := os.Open("/proc/mounts")
+	f, err := os.Open(procMountsPath)
 	if err != nil {
 		return result
 	}

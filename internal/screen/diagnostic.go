@@ -122,17 +122,13 @@ func collectDiagData(c sysinfo.Collector) []diagRow {
 
 	// Row 7: Throttle status
 	throttle := c.ThrottleStatus()
-	const (
-		throttleCurrent = uint32(0x0000000F)
-		throttlePast    = uint32(0x000F0000)
-	)
 	var throttleVal string
 	var throttleColor uint16
 	switch {
-	case throttle&throttleCurrent != 0:
+	case throttle&sysinfo.ThrottleCurrentMask != 0:
 		throttleVal = "ACTIVE"
 		throttleColor = theme.ColorCrit
-	case throttle&throttlePast != 0:
+	case throttle&sysinfo.ThrottlePastMask != 0:
 		throttleVal = "past"
 		throttleColor = theme.ColorWarn
 	default:

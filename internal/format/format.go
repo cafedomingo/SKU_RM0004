@@ -8,6 +8,13 @@ import (
 const (
 	KB = 1024
 	MB = 1024 * 1024
+
+	secsPerMin  = 60
+	secsPerHour = 60 * secsPerMin
+	secsPerDay  = 24 * secsPerHour
+
+	mhzPerGhz  = 1000
+	aptBadgeMax = 99
 )
 
 // Rate formats a byte rate for display: "0B", "1.0K", "10K", "1.0M", "10M"
@@ -28,18 +35,18 @@ func Rate(bytes uint64) string {
 
 // Freq formats CPU frequency: "600MHz" or "1.8GHz"
 func Freq(mhz uint16) string {
-	if mhz < 1000 {
+	if mhz < mhzPerGhz {
 		return fmt.Sprintf("%dMHz", mhz)
 	}
-	return fmt.Sprintf("%.1fGHz", float64(mhz)/1000)
+	return fmt.Sprintf("%.1fGHz", float64(mhz)/mhzPerGhz)
 }
 
 // Uptime formats a duration: "1d 2h", "5h 12m", "42m"
 func Uptime(d time.Duration) string {
 	total := int(d.Seconds())
-	days := total / 86400
-	hours := (total % 86400) / 3600
-	minutes := (total % 3600) / 60
+	days := total / secsPerDay
+	hours := (total % secsPerDay) / secsPerHour
+	minutes := (total % secsPerHour) / secsPerMin
 
 	switch {
 	case days > 0:
@@ -81,8 +88,8 @@ func APTBadge(count int) string {
 	if count <= 0 {
 		return ""
 	}
-	if count > 99 {
-		count = 99
+	if count > aptBadgeMax {
+		count = aptBadgeMax
 	}
 	return fmt.Sprintf("^%d", count)
 }

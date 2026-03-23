@@ -27,6 +27,12 @@ const (
 	DietPiUpdateAvail
 )
 
+// Throttle status bitmasks (from VideoCore firmware).
+const (
+	ThrottleCurrentMask = 0x0000000F // bits 0-3: currently throttled
+	ThrottlePastMask    = 0x000F0000 // bits 16-19: throttled since boot
+)
+
 // Collector provides system metrics for display on the LCD.
 type Collector interface {
 	CPUPercent() float64

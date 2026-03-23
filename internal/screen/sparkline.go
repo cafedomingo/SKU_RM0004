@@ -89,7 +89,7 @@ func drawTicker(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, state
 	// Advance ticker phase
 	maxPhase := 2
 	ipv6 := c.IPv6Suffix()
-	if ipv6 == "" || ipv6 == "no IPv6" {
+	if ipv6 == "" || ipv6 == sysinfo.NoIPv6 {
 		maxPhase = 1
 	}
 	state.TickerPhase = (state.TickerPhase + 1) % (maxPhase + 1)
@@ -139,7 +139,7 @@ func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg 
 
 	// Throttle indicator right after freq
 	throttle := c.ThrottleStatus()
-	if throttle&0x0000000F != 0 {
+	if throttle&sysinfo.ThrottleCurrentMask != 0 {
 		tx := len(freqStr) * f.Width
 		fb.String(tx, y, "!", f, theme.ColorAlert)
 	}

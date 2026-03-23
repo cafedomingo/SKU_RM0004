@@ -11,18 +11,29 @@ import (
 
 const (
 	DefaultPath     = "/etc/uctronics-display.conf"
-	DefaultScreen   = "dashboard"
 	DefaultRefresh  = 5 * time.Second
 	DefaultTempUnit = "C"
 
 	MinRefresh = 2 * time.Second
 	MaxRefresh = 30 * time.Second
+
+	// Screen names
+	ScreenDashboard  = "dashboard"
+	ScreenDiagnostic = "diagnostic"
+	ScreenSparkline  = "sparkline"
+
+	// Config file keys
+	keyScreen   = "screen"
+	keyRefresh  = "refresh"
+	keyTempUnit = "temp_unit"
 )
 
+const DefaultScreen = ScreenDashboard
+
 var validScreens = map[string]bool{
-	"dashboard":  true,
-	"diagnostic": true,
-	"sparkline":  true,
+	ScreenDashboard:  true,
+	ScreenDiagnostic: true,
+	ScreenSparkline:  true,
 }
 
 type Config struct {
@@ -81,14 +92,14 @@ func (l *Loader) Load() Config {
 		val := strings.TrimSpace(line[idx+1:])
 
 		switch key {
-		case "screen":
+		case keyScreen:
 			if validScreens[val] {
 				cfg.Screen = val
 			} else {
 				l.logger.Warn("config: invalid screen value, using default", "value", val, "default", DefaultScreen)
 				cfg.Screen = DefaultScreen
 			}
-		case "refresh":
+		case keyRefresh:
 			n, err := strconv.Atoi(val)
 			if err != nil {
 				l.logger.Warn("config: invalid refresh value, using default", "value", val)
@@ -102,7 +113,7 @@ func (l *Loader) Load() Config {
 				}
 				cfg.Refresh = d
 			}
-		case "temp_unit":
+		case keyTempUnit:
 			if val == "C" || val == "F" {
 				cfg.TempUnit = val
 			} else {

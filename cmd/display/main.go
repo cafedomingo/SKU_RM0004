@@ -16,13 +16,19 @@ import (
 	"github.com/cafedomingo/SKU_RM0004/internal/theme"
 )
 
+const (
+	i2cBus          = "/dev/i2c-1"
+	i2cClockFreqPath = "/proc/device-tree/soc/i2c@7e804000/clock-frequency"
+	i2cExpectedHz    = 400000
+)
+
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	logger.Info("starting")
 
 	checkI2CSpeed(logger)
 
-	disp, err := st7735.NewDisplay("/dev/i2c-1", logger)
+	disp, err := st7735.NewDisplay(i2cBus, logger)
 	if err != nil {
 		logger.Error("failed to open display", "error", err)
 		os.Exit(1)
@@ -62,7 +68,7 @@ func main() {
 		back.Fill(theme.ColorBG)
 
 		switch cfg.Screen {
-		case "diagnostic":
+		case config.ScreenDiagnostic:
 			if diagState.Page == 0 {
 				collector.Refresh()
 			}
@@ -70,7 +76,7 @@ func main() {
 			disp.SendFull(back.Pixels[:]) // diagnostic always full redraw
 			front = back
 
-		case "sparkline":
+		case config.ScreenSparkline:
 			collector.Refresh()
 			screen.RenderSparkline(&back, collector, cfg, &sparkState)
 			for _, r := range st7735.DiffRegions(&front, &back) {
@@ -112,7 +118,7 @@ func main() {
 func checkI2CSpeed(logger *slog.Logger) {
 	// Read /proc/device-tree/soc/i2c@7e804000/clock-frequency
 	// It's a big-endian uint32 in a binary file
-	data, err := os.ReadFile("/proc/device-tree/soc/i2c@7e804000/clock-frequency")
+	data, err := os.ReadFile(i2cClockFreqPath)
 	if err != nil {
 		logger.Warn("could not read I2C clock frequency", "error", err)
 		return
@@ -122,9 +128,9 @@ func checkI2CSpeed(logger *slog.Logger) {
 		return
 	}
 	freq := binary.BigEndian.Uint32(data[:4])
-	if freq == 400000 {
+	if freq == i2cExpectedHz {
 		logger.Info("I2C bus speed", "hz", freq)
 	} else {
-		logger.Warn("I2C bus speed unexpected", "hz", freq, "expected", 400000)
+		logger.Warn("I2C bus speed unexpected", "hz", freq, "expected", i2cExpectedHz)
 	}
 }
