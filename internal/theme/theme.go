@@ -61,17 +61,23 @@ func NetColor(v float64, linkSpeedMbps int) uint16 {
 	return ThresholdColor(v, float64(warn), float64(crit))
 }
 
-// ThresholdColor returns ColorOK, ColorWarn, or ColorCrit depending on how
-// value compares to the warn and crit thresholds (inclusive on the boundary).
+// ThresholdColor returns a color interpolated across three zones:
+//   - below warn: ok → warn (lerp from 0 to warn)
+//   - warn to crit: warn → crit (lerp)
+//   - above crit: crit (solid)
 func ThresholdColor(value, warn, crit float64) uint16 {
-	switch {
-	case value >= crit:
+	if value >= crit {
 		return ColorCrit
-	case value >= warn:
-		return ColorWarn
-	default:
-		return ColorOK
 	}
+	if value >= warn {
+		t := float32((value - warn) / (crit - warn))
+		return LerpColor(ColorWarn, ColorCrit, t)
+	}
+	if warn > 0 && value > 0 {
+		t := float32(value / warn)
+		return LerpColor(ColorOK, ColorWarn, t)
+	}
+	return ColorOK
 }
 
 // tempRamp holds the four breakpoint colors for temperatures 40–70 °C.
@@ -95,7 +101,7 @@ func TempRampColor(celsius float64) uint16 {
 	idx := int(pos)               // segment index: 0, 1, or 2
 	t := float32(pos - float64(idx))
 
-	return lerpColor(tempRamp[idx], tempRamp[idx+1], t)
+	return LerpColor(tempRamp[idx], tempRamp[idx+1], t)
 }
 
 // NetThresholds returns warn and crit byte-per-second thresholds for a NIC
@@ -113,9 +119,9 @@ func NetThresholds(linkSpeedMbps int) (warn, crit uint64) {
 	return
 }
 
-// lerpColor linearly interpolates between two RGB565 colors.
+// LerpColor linearly interpolates between two RGB565 colors.
 // t=0 returns a, t=1 returns b.
-func lerpColor(a, b uint16, t float32) uint16 {
+func LerpColor(a, b uint16, t float32) uint16 {
 	// Extract RGB565 channels.
 	rA := uint8((a >> 11) & 0x1F)
 	gA := uint8((a >> 5) & 0x3F)

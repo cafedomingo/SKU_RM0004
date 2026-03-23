@@ -133,13 +133,14 @@ func TestSparklineThresholdColors(t *testing.T) {
 	RenderSparkline(&fb, m, sparkCfg(), state)
 
 	// CPU graph is at x=0..77, y=37..54
-	// The last bar (newest) should be in warn color for CPU=70%
+	// The last bar (newest) at 70% should have visible colored pixels (lerped between warn and crit)
 	// Last bar x = 12 * 6 = 72, width 5 -> x=72..76
-	if !hasColorInRegion(&fb, 72, 37, 5, 18, theme.ColorWarn) {
-		t.Error("expected CPU sparkline bar at 70% to use warn color")
+	if !hasNonBGInRegion(&fb, 72, 37, 5, 18) {
+		t.Error("expected CPU sparkline bar at 70% to have colored pixels")
 	}
 
 	// RAM graph is at x=82..159, y=37..54
+	// At 90% (above crit), should be exact ColorCrit
 	// Last bar x = 82 + 12*6 = 154, width 5 -> x=154..158
 	if !hasColorInRegion(&fb, 154, 37, 5, 18, theme.ColorCrit) {
 		t.Error("expected RAM sparkline bar at 90% to use crit color")

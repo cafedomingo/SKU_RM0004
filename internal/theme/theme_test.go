@@ -7,26 +7,64 @@ import (
 )
 
 func TestThresholdColor(t *testing.T) {
-	tests := []struct {
-		name  string
-		value float64
-		warn  float64
-		crit  float64
-		want  uint16
-	}{
-		{"below warn", 30, 60, 80, theme.ColorOK},
-		{"at warn", 60, 60, 80, theme.ColorWarn},
-		{"between warn and crit", 70, 60, 80, theme.ColorWarn},
-		{"at crit", 80, 60, 80, theme.ColorCrit},
-		{"above crit", 90, 60, 80, theme.ColorCrit},
+	// Exact boundary values
+	t.Run("at zero", func(t *testing.T) {
+		got := theme.ThresholdColor(0, 60, 80)
+		if got != theme.ColorOK {
+			t.Errorf("got 0x%04X, want ColorOK 0x%04X", got, theme.ColorOK)
+		}
+	})
+	t.Run("at warn", func(t *testing.T) {
+		got := theme.ThresholdColor(60, 60, 80)
+		if got != theme.ColorWarn {
+			t.Errorf("got 0x%04X, want ColorWarn 0x%04X", got, theme.ColorWarn)
+		}
+	})
+	t.Run("at crit", func(t *testing.T) {
+		got := theme.ThresholdColor(80, 60, 80)
+		if got != theme.ColorCrit {
+			t.Errorf("got 0x%04X, want ColorCrit 0x%04X", got, theme.ColorCrit)
+		}
+	})
+	t.Run("above crit", func(t *testing.T) {
+		got := theme.ThresholdColor(90, 60, 80)
+		if got != theme.ColorCrit {
+			t.Errorf("got 0x%04X, want ColorCrit 0x%04X", got, theme.ColorCrit)
+		}
+	})
+
+	// Interpolated values: must differ from both endpoints
+	t.Run("below warn is lerped", func(t *testing.T) {
+		got := theme.ThresholdColor(30, 60, 80)
+		if got == theme.ColorOK || got == theme.ColorWarn {
+			t.Errorf("got 0x%04X, expected interpolated between OK and Warn", got)
+		}
+	})
+	t.Run("between warn and crit is lerped", func(t *testing.T) {
+		got := theme.ThresholdColor(70, 60, 80)
+		if got == theme.ColorWarn || got == theme.ColorCrit {
+			t.Errorf("got 0x%04X, expected interpolated between Warn and Crit", got)
+		}
+	})
+}
+
+func TestLerpColor(t *testing.T) {
+	// t=0 returns a
+	if got := theme.LerpColor(0x0000, 0xFFFF, 0); got != 0x0000 {
+		t.Errorf("LerpColor(0, FFFF, 0) = 0x%04X, want 0x0000", got)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := theme.ThresholdColor(tt.value, tt.warn, tt.crit)
-			if got != tt.want {
-				t.Errorf("ThresholdColor(%v, %v, %v) = 0x%04X, want 0x%04X", tt.value, tt.warn, tt.crit, got, tt.want)
-			}
-		})
+	// t=1 returns b
+	if got := theme.LerpColor(0x0000, 0xFFFF, 1); got != 0xFFFF {
+		t.Errorf("LerpColor(0, FFFF, 1) = 0x%04X, want 0xFFFF", got)
+	}
+	// t=0.5 returns midpoint — should differ from both endpoints
+	mid := theme.LerpColor(0x0000, 0xFFFF, 0.5)
+	if mid == 0x0000 || mid == 0xFFFF {
+		t.Errorf("LerpColor(0, FFFF, 0.5) = 0x%04X, expected midpoint", mid)
+	}
+	// same color returns same regardless of t
+	if got := theme.LerpColor(0x1234, 0x1234, 0.5); got != 0x1234 {
+		t.Errorf("LerpColor(same, same, 0.5) = 0x%04X, want 0x1234", got)
 	}
 }
 
