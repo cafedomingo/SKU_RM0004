@@ -57,12 +57,11 @@ func Uptime(d time.Duration) string {
 }
 
 // Temp formats temperature for display: "52°C" or "125°F".
-func Temp(celsius float64, unit string) string {
-	val := celsius
-	if unit == "F" {
-		val = CelsiusToF(celsius)
+func Temp(celsius float64, toFahrenheit bool) string {
+	if toFahrenheit {
+		return fmt.Sprintf("%2d°F", int(CelsiusToF(celsius)))
 	}
-	return fmt.Sprintf("%2d°%s", int(val), unit)
+	return fmt.Sprintf("%2d°C", int(celsius))
 }
 
 // CelsiusToF converts Celsius to Fahrenheit

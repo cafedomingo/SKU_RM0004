@@ -76,19 +76,19 @@ func TestUptime(t *testing.T) {
 
 func TestTemp(t *testing.T) {
 	tests := []struct {
-		celsius float64
-		unit    string
-		want    string
+		celsius      float64
+		toFahrenheit bool
+		want         string
 	}{
-		{52, "C", "52°C"},
-		{0, "C", " 0°C"},
-		{100, "C", "100°C"},
-		{52, "F", "125°F"},
+		{52, false, "52°C"},
+		{0, false, " 0°C"},
+		{100, false, "100°C"},
+		{52, true, "125°F"},
 	}
 	for _, tt := range tests {
-		got := format.Temp(tt.celsius, tt.unit)
+		got := format.Temp(tt.celsius, tt.toFahrenheit)
 		if got != tt.want {
-			t.Errorf("Temp(%v, %q) = %q, want %q", tt.celsius, tt.unit, got, tt.want)
+			t.Errorf("Temp(%v, %v) = %q, want %q", tt.celsius, tt.toFahrenheit, got, tt.want)
 		}
 	}
 }

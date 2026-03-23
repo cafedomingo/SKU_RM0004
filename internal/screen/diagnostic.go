@@ -110,7 +110,7 @@ func collectDiagData(c sysinfo.Collector) []diagRow {
 
 	// Row 5: Temperature — both C and F, no degree symbol (6x12 lacks it)
 	tempC := c.Temperature()
-	tempVal := fmt.Sprintf("%s / %s", format.Temp(tempC, "C"), format.Temp(tempC, "F"))
+	tempVal := fmt.Sprintf("%s / %s", format.Temp(tempC, false), format.Temp(tempC, true))
 	rows = append(rows, diagRow{
 		label: "tmp",
 		value: tempVal,

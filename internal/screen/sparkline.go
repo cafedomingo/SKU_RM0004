@@ -154,7 +154,7 @@ func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg 
 	fb.String(pipeX, y, "|", f, theme.ColorSep)
 
 	// Temperature right-aligned before the gap
-	tempStr := format.Temp(c.Temperature(), cfg.TempUnit)
+	tempStr := format.Temp(c.Temperature(), cfg.TempUnit == config.TempFahrenheit)
 	tempColor := theme.TempRampColor(c.Temperature())
 	tempW := format.RuneLen(tempStr) * f.Width
 	fb.String(pipeX-gap-tempW, y, tempStr, f, tempColor)

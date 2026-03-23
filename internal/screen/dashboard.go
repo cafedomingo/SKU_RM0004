@@ -102,7 +102,7 @@ func (d *dashboardScreen) render(fb *st7735.Framebuffer, cfg config.Config) {
 
 	// Temperature (right column)
 	tempColor := theme.TempRampColor(temp)
-	tempStr := format.Temp(temp, cfg.TempUnit)
+	tempStr := format.Temp(temp, cfg.TempUnit == config.TempFahrenheit)
 	tempPct := int(temp)
 	if tempPct > 100 {
 		tempPct = 100
