@@ -22,7 +22,7 @@ func main() {
 		CPU:  47, RAM: 63, Disk: 42, Temp: 52,
 		Host: "raspberrypi",
 		IP:   "192.168.1.100",
-		IPv6: "::a8f1",
+		IPv6: "::a8f1:23bc:4567",
 		Freq: sysinfo.CPUFreq{Cur: 1800, Min: 600, Max: 2400},
 		Net:  sysinfo.NetBandwidth{RxBytesPerSec: 15360, TxBytesPerSec: 2048},
 		DIO:  sysinfo.DiskIO{ReadBytesPerSec: 1048576, WriteBytesPerSec: 524288, ReadIOPS: 150, WriteIOPS: 80},

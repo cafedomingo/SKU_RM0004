@@ -13,7 +13,7 @@ func sparkMock() *sysinfo.MockCollector {
 	return &sysinfo.MockCollector{
 		Host: "sparkhost",
 		IP:   "10.0.0.1",
-		IPv6: "::abcd",
+		IPv6: "::a8f1:23bc:abcd",
 		CPU:  47,
 		RAM:  63,
 		Disk: 42,
@@ -69,7 +69,7 @@ func TestSparklineHistoryShift(t *testing.T) {
 func TestSparklineTickerCycle(t *testing.T) {
 	t.Run("with_ipv6", func(t *testing.T) {
 		m := sparkMock()
-		m.IPv6 = "::abcd"
+		m.IPv6 = "::a8f1:23bc:abcd"
 		state := &SparklineState{TickerPhase: 0}
 
 		var fb st7735.Framebuffer
