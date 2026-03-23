@@ -37,18 +37,21 @@ func main() {
 
 	// Dashboard
 	var fb st7735.Framebuffer
+	dash := screen.New(config.ScreenDashboard)
 	fb.Fill(theme.ColorBG)
-	screen.RenderDashboard(&fb, mock, cfg)
+	dash.Render(&fb, mock, cfg)
 	writePNG("docs/dashboard.png", &fb)
 
-	// Sparkline (with pre-filled history)
-	fb = st7735.Framebuffer{}
-	fb.Fill(theme.ColorBG)
-	state := screen.SparklineState{
-		CPUHistory: [13]float64{22, 35, 28, 45, 52, 38, 61, 73, 55, 42, 68, 50, 47},
-		RAMHistory: [13]float64{40, 42, 45, 48, 50, 53, 55, 57, 58, 60, 61, 62, 63},
+	// Sparkline — render 13 frames to fill history with varying values
+	spark := screen.New(config.ScreenSparkline)
+	cpuSamples := []float64{22, 35, 28, 45, 52, 38, 61, 73, 55, 42, 68, 50, 47}
+	ramSamples := []float64{40, 42, 45, 48, 50, 53, 55, 57, 58, 60, 61, 62, 63}
+	for i := range cpuSamples {
+		mock.CPU = cpuSamples[i]
+		mock.RAM = ramSamples[i]
+		fb.Fill(theme.ColorBG)
+		spark.Render(&fb, mock, cfg)
 	}
-	screen.RenderSparkline(&fb, mock, cfg, &state)
 	writePNG("docs/sparkline.png", &fb)
 
 	fmt.Println("Done.")

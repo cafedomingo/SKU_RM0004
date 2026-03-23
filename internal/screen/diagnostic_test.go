@@ -64,8 +64,8 @@ func TestDiagnosticPageCount(t *testing.T) {
 func TestDiagnosticPage0Content(t *testing.T) {
 	var fb st7735.Framebuffer
 	fb.Fill(theme.ColorBG)
-	state := &DiagState{}
-	RenderDiagnostic(&fb, diagMock(), diagCfg(), state)
+	state := &diagnosticScreen{}
+	state.Render(&fb, diagMock(), diagCfg())
 
 	// Row 0 is hostname header — should have white (ColorFG) pixels at y=0
 	if !hasColorInRegion(&fb, 0, 0, st7735.Width, 12, theme.ColorFG) {
@@ -92,12 +92,12 @@ func TestDiagnosticPage1Content(t *testing.T) {
 	// Verify page 1 renders non-empty content
 	var fb st7735.Framebuffer
 	fb.Fill(theme.ColorBG)
-	state := &DiagState{}
+	state := &diagnosticScreen{}
 	// Render page 0 (advances to page 1)
-	RenderDiagnostic(&fb, m, diagCfg(), state)
+	state.Render(&fb, m, diagCfg())
 	// Render page 1 (advances to page 0)
 	fb.Fill(theme.ColorBG)
-	RenderDiagnostic(&fb, m, diagCfg(), state)
+	state.Render(&fb, m, diagCfg())
 
 	// Page 1 starts at row 6 (ram row); should have non-BG pixels
 	if !hasNonBGInRegion(&fb, 0, 0, st7735.Width, 12) {
@@ -108,16 +108,16 @@ func TestDiagnosticPage1Content(t *testing.T) {
 // TestDiagnosticPageWraps verifies that after 3 renders the page wraps back to 0.
 func TestDiagnosticPageWraps(t *testing.T) {
 	m := diagMock()
-	state := &DiagState{}
+	state := &diagnosticScreen{}
 
 	for i := 0; i < 3; i++ {
 		var fb st7735.Framebuffer
 		fb.Fill(theme.ColorBG)
-		RenderDiagnostic(&fb, m, diagCfg(), state)
+		state.Render(&fb, m, diagCfg())
 	}
 
-	if state.Page != 0 {
-		t.Errorf("expected page 0 after 3 renders, got %d", state.Page)
+	if state.page != 0 {
+		t.Errorf("expected page 0 after 3 renders, got %d", state.page)
 	}
 }
 

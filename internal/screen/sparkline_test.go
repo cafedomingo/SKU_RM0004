@@ -38,29 +38,29 @@ func TestSparklineHistoryShift(t *testing.T) {
 	m.CPU = 55
 	m.RAM = 72
 
-	state := &SparklineState{}
+	state := &sparklineScreen{}
 	// Pre-fill with known values
 	for i := 0; i < SparklineHistory; i++ {
-		state.CPUHistory[i] = float64(i * 5)
-		state.RAMHistory[i] = float64(i * 3)
+		state.cpuHistory[i] = float64(i * 5)
+		state.ramHistory[i] = float64(i * 3)
 	}
 
-	RenderSparkline(&fb, m, sparkCfg(), state)
+	state.Render(&fb, m, sparkCfg())
 
 	// After render, element [0] should be the old element [1]
-	if state.CPUHistory[0] != 5 {
-		t.Errorf("CPU history[0] = %v, want 5 (shifted from [1])", state.CPUHistory[0])
+	if state.cpuHistory[0] != 5 {
+		t.Errorf("CPU history[0] = %v, want 5 (shifted from [1])", state.cpuHistory[0])
 	}
 	// Last element should be the current CPU value
-	if state.CPUHistory[SparklineHistory-1] != 55 {
-		t.Errorf("CPU history[last] = %v, want 55", state.CPUHistory[SparklineHistory-1])
+	if state.cpuHistory[SparklineHistory-1] != 55 {
+		t.Errorf("CPU history[last] = %v, want 55", state.cpuHistory[SparklineHistory-1])
 	}
 
-	if state.RAMHistory[0] != 3 {
-		t.Errorf("RAM history[0] = %v, want 3 (shifted from [1])", state.RAMHistory[0])
+	if state.ramHistory[0] != 3 {
+		t.Errorf("RAM history[0] = %v, want 3 (shifted from [1])", state.ramHistory[0])
 	}
-	if state.RAMHistory[SparklineHistory-1] != 72 {
-		t.Errorf("RAM history[last] = %v, want 72", state.RAMHistory[SparklineHistory-1])
+	if state.ramHistory[SparklineHistory-1] != 72 {
+		t.Errorf("RAM history[last] = %v, want 72", state.ramHistory[SparklineHistory-1])
 	}
 }
 
@@ -70,51 +70,51 @@ func TestSparklineTickerCycle(t *testing.T) {
 	t.Run("with_ipv6", func(t *testing.T) {
 		m := sparkMock()
 		m.IPv6 = "::a8f1:23bc:abcd"
-		state := &SparklineState{TickerPhase: 0}
+		state := &sparklineScreen{tickerPhase: 0}
 
 		var fb st7735.Framebuffer
 
 		// Phase 0 -> renders hostname, advances to 1
 		fb.Fill(theme.ColorBG)
-		RenderSparkline(&fb, m, sparkCfg(), state)
-		if state.TickerPhase != 1 {
-			t.Errorf("after phase 0: got %d, want 1", state.TickerPhase)
+		state.Render(&fb, m, sparkCfg())
+		if state.tickerPhase != 1 {
+			t.Errorf("after phase 0: got %d, want 1", state.tickerPhase)
 		}
 
 		// Phase 1 -> renders IPv4, advances to 2
 		fb.Fill(theme.ColorBG)
-		RenderSparkline(&fb, m, sparkCfg(), state)
-		if state.TickerPhase != 2 {
-			t.Errorf("after phase 1: got %d, want 2", state.TickerPhase)
+		state.Render(&fb, m, sparkCfg())
+		if state.tickerPhase != 2 {
+			t.Errorf("after phase 1: got %d, want 2", state.tickerPhase)
 		}
 
 		// Phase 2 -> renders IPv6, wraps to 0
 		fb.Fill(theme.ColorBG)
-		RenderSparkline(&fb, m, sparkCfg(), state)
-		if state.TickerPhase != 0 {
-			t.Errorf("after phase 2: got %d, want 0", state.TickerPhase)
+		state.Render(&fb, m, sparkCfg())
+		if state.tickerPhase != 0 {
+			t.Errorf("after phase 2: got %d, want 0", state.tickerPhase)
 		}
 	})
 
 	t.Run("without_ipv6", func(t *testing.T) {
 		m := sparkMock()
 		m.IPv6 = ""
-		state := &SparklineState{TickerPhase: 0}
+		state := &sparklineScreen{tickerPhase: 0}
 
 		var fb st7735.Framebuffer
 
 		// Phase 0 -> advances to 1
 		fb.Fill(theme.ColorBG)
-		RenderSparkline(&fb, m, sparkCfg(), state)
-		if state.TickerPhase != 1 {
-			t.Errorf("after phase 0: got %d, want 1", state.TickerPhase)
+		state.Render(&fb, m, sparkCfg())
+		if state.tickerPhase != 1 {
+			t.Errorf("after phase 0: got %d, want 1", state.tickerPhase)
 		}
 
 		// Phase 1 -> wraps to 0 (no phase 2)
 		fb.Fill(theme.ColorBG)
-		RenderSparkline(&fb, m, sparkCfg(), state)
-		if state.TickerPhase != 0 {
-			t.Errorf("after phase 1: got %d, want 0", state.TickerPhase)
+		state.Render(&fb, m, sparkCfg())
+		if state.tickerPhase != 0 {
+			t.Errorf("after phase 1: got %d, want 0", state.tickerPhase)
 		}
 	})
 }
@@ -129,8 +129,8 @@ func TestSparklineThresholdColors(t *testing.T) {
 	m.CPU = 70 // above CPUWarn (60), below CPUCrit (80) -> warn color
 	m.RAM = 90 // above RAMCrit (80) -> crit color
 
-	state := &SparklineState{}
-	RenderSparkline(&fb, m, sparkCfg(), state)
+	state := &sparklineScreen{}
+	state.Render(&fb, m, sparkCfg())
 
 	// CPU graph is at x=0..77, y=37..54
 	// The last bar (newest) at 70% should have visible colored pixels (lerped between warn and crit)
@@ -157,8 +157,8 @@ func TestSparklineDisplayFloor(t *testing.T) {
 	m.CPU = 0
 	m.RAM = 0
 
-	state := &SparklineState{}
-	RenderSparkline(&fb, m, sparkCfg(), state)
+	state := &sparklineScreen{}
+	state.Render(&fb, m, sparkCfg())
 
 	// The CPU/RAM labels at y=56 should show 1% not 0%.
 	if !hasNonBGInRegion(&fb, 0, 56, 40, 12) {
@@ -177,8 +177,8 @@ func TestSparklineRenders(t *testing.T) {
 	fb.Fill(theme.ColorBG)
 
 	m := sparkMock()
-	state := &SparklineState{}
-	RenderSparkline(&fb, m, sparkCfg(), state)
+	state := &sparklineScreen{}
+	state.Render(&fb, m, sparkCfg())
 
 	// Ticker row at y=1 should have white pixels (hostname, 6x12 font)
 	if !hasColorInRegion(&fb, 0, 1, 60, 12, theme.ColorFG) {

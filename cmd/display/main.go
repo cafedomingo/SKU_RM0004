@@ -39,8 +39,7 @@ func main() {
 	cfgLoader := config.NewLoader(config.ConfigPath, logger)
 
 	var front, back st7735.Framebuffer
-	var diagState screen.DiagState
-	var sparkState screen.SparklineState
+	var current screen.Screen
 	prevScreen := ""
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
@@ -53,29 +52,22 @@ func main() {
 		cfg := cfgLoader.Load()
 
 		if cfg.Screen != prevScreen {
-			diagState = screen.DiagState{}
-			sparkState = screen.SparklineState{}
+			current = screen.New(cfg.Screen)
 			clearScreen(&back, &front, disp)
 			prevScreen = cfg.Screen
 		}
 
-		back.Fill(theme.ColorBG)
+		if current.NeedsRefresh() {
+			collector.Refresh()
+		}
 
-		switch cfg.Screen {
-		case config.ScreenDiagnostic:
-			if diagState.Page == 0 {
-				collector.Refresh()
-			}
-			screen.RenderDiagnostic(&back, collector, cfg, &diagState)
+		back.Fill(theme.ColorBG)
+		current.Render(&back, collector, cfg)
+
+		if current.FullRedraw() {
 			disp.SendFull(back.Pixels[:])
 			front = back
-		case config.ScreenSparkline:
-			collector.Refresh()
-			screen.RenderSparkline(&back, collector, cfg, &sparkState)
-			sendDirty(disp, &front, &back)
-		default:
-			collector.Refresh()
-			screen.RenderDashboard(&back, collector, cfg)
+		} else {
 			sendDirty(disp, &front, &back)
 		}
 

@@ -22,7 +22,12 @@ import (
 //	y=46:  [CPU bar]                       [Temp bar] (6px tall)
 //	y=56:  RAM:NNN% (6x12, left)           DSK:NNN% (6x12, right)
 //	y=68:  [RAM bar]                       [Disk bar] (6px tall)
-func RenderDashboard(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config) {
+type dashboardScreen struct{}
+
+func (d *dashboardScreen) NeedsRefresh() bool { return true }
+func (d *dashboardScreen) FullRedraw() bool   { return false }
+
+func (d *dashboardScreen) Render(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config) {
 	big := font.Spleen8x16
 	sm := font.Spleen6x12
 

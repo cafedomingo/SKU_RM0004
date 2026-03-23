@@ -14,36 +14,26 @@ import (
 // SparklineHistory is the number of historical samples stored per metric.
 const SparklineHistory = 13
 
-// SparklineState holds the rolling history and ticker phase for the sparkline screen.
-type SparklineState struct {
-	CPUHistory  [SparklineHistory]float64
-	RAMHistory  [SparklineHistory]float64
-	TickerPhase int
+type sparklineScreen struct {
+	cpuHistory  [SparklineHistory]float64
+	ramHistory  [SparklineHistory]float64
+	tickerPhase int
 }
 
-// RenderSparkline draws the sparkline history screen onto the framebuffer.
-//
-// Layout (160x80, Spleen 6x12 for text):
-//
-//	y=1:   Ticker (hostname -> IPv4 -> IPv6, cycling)     | badges right-aligned
-//	y=14:  Uptime                                         | DietPi/APT badges
-//	y=25:  CPU freq + throttle                            | Temp | D:N%
-//	y=35:  --- separator (1px) ---
-//	y=37:  [sparkline graph area -- CPU bars left, RAM bars right]
-//	       Graph height: 18px (y=37 to y=54)
-//	y=56:  CPU N% (left)                                  RAM N% (right)
-//	y=68:  down-arrow rx up-arrow tx (left)               R disk W disk (right)
-func RenderSparkline(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config, state *SparklineState) {
+func (s *sparklineScreen) NeedsRefresh() bool { return true }
+func (s *sparklineScreen) FullRedraw() bool   { return false }
+
+func (s *sparklineScreen) Render(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config) {
 	sm := font.Spleen6x12
 
 	// Shift history left, add new values
-	copy(state.CPUHistory[0:], state.CPUHistory[1:])
-	state.CPUHistory[SparklineHistory-1] = c.CPUPercent()
-	copy(state.RAMHistory[0:], state.RAMHistory[1:])
-	state.RAMHistory[SparklineHistory-1] = c.RAMPercent()
+	copy(s.cpuHistory[0:], s.cpuHistory[1:])
+	s.cpuHistory[SparklineHistory-1] = c.CPUPercent()
+	copy(s.ramHistory[0:], s.ramHistory[1:])
+	s.ramHistory[SparklineHistory-1] = c.RAMPercent()
 
 	// Row 1: Ticker
-	drawTicker(fb, sm, c, state)
+	drawTicker(fb, sm, c, s)
 
 	// Row 2: Uptime + badges
 	drawUptimeRow(fb, sm, c)
@@ -55,8 +45,8 @@ func RenderSparkline(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Con
 	fb.Rect(0, 35, st7735.Width, 1, theme.ColorSep)
 
 	// Sparkline graphs
-	drawSparklineGraph(fb, 0, state.CPUHistory[:], theme.CPUWarn, theme.CPUCrit)
-	drawSparklineGraph(fb, 82, state.RAMHistory[:], theme.RAMWarn, theme.RAMCrit)
+	drawSparklineGraph(fb, 0, s.cpuHistory[:], theme.CPUWarn, theme.CPUCrit)
+	drawSparklineGraph(fb, 82, s.ramHistory[:], theme.RAMWarn, theme.RAMCrit)
 
 	// CPU/RAM summary
 	drawCPURAMValues(fb, sm, c)
@@ -68,11 +58,11 @@ func RenderSparkline(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Con
 // drawTicker renders the cycling ticker row at y=0.
 // Phase 0 = hostname (white), phase 1 = IPv4 (IP color), phase 2 = IPv6 (IP color).
 // If IPv6 is empty, phase 2 is skipped.
-func drawTicker(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, state *SparklineState) {
+func drawTicker(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, s *sparklineScreen) {
 	var text string
 	var color uint16
 
-	switch state.TickerPhase {
+	switch s.tickerPhase {
 	case 0:
 		text = c.Hostname()
 		color = theme.ColorFG
@@ -92,7 +82,7 @@ func drawTicker(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, state
 	if ipv6 == "" || ipv6 == sysinfo.NoIPv6 {
 		maxPhase = 1
 	}
-	state.TickerPhase = (state.TickerPhase + 1) % (maxPhase + 1)
+	s.tickerPhase = (s.tickerPhase + 1) % (maxPhase + 1)
 }
 
 // drawUptimeRow renders uptime on the left, update badges on the right at y=14.

@@ -13,38 +13,36 @@ import (
 
 const diagRowsPerPage = 6
 
-// DiagState holds the current page and cached row data for the diagnostic screen.
-type DiagState struct {
-	Page int
-	rows []diagRow
-}
-
 type diagRow struct {
 	label string
 	value string
 	color uint16
 }
 
-// RenderDiagnostic draws the diagnostic detail screen onto the framebuffer.
-// It cycles through 3 pages of up to 6 rows each on successive calls.
-// Data is refreshed only when returning to page 0.
-func RenderDiagnostic(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config, state *DiagState) {
+type diagnosticScreen struct {
+	page int
+	rows []diagRow
+}
+
+func (d *diagnosticScreen) NeedsRefresh() bool { return d.page == 0 }
+func (d *diagnosticScreen) FullRedraw() bool   { return true }
+
+func (d *diagnosticScreen) Render(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config) {
 	f := font.Spleen6x12
 
-	// Refresh data only on page 0
-	if state.Page == 0 {
-		state.rows = collectDiagData(c)
+	if d.page == 0 {
+		d.rows = collectDiagData(c)
 	}
 
 	// Determine which rows to render
-	start := state.Page * diagRowsPerPage
+	start := d.page * diagRowsPerPage
 	end := start + diagRowsPerPage
-	if end > len(state.rows) {
-		end = len(state.rows)
+	if end > len(d.rows) {
+		end = len(d.rows)
 	}
 
 	// Render rows
-	for i, row := range state.rows[start:end] {
+	for i, row := range d.rows[start:end] {
 		y := i * f.Height
 		if row.label == "" {
 			// Header row: value left-aligned
@@ -63,8 +61,8 @@ func RenderDiagnostic(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Co
 	}
 
 	// Advance page
-	numPages := (len(state.rows) + diagRowsPerPage - 1) / diagRowsPerPage
-	state.Page = (state.Page + 1) % numPages
+	numPages := (len(d.rows) + diagRowsPerPage - 1) / diagRowsPerPage
+	d.page = (d.page + 1) % numPages
 }
 
 func collectDiagData(c sysinfo.Collector) []diagRow {
