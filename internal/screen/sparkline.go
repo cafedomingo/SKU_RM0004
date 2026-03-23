@@ -209,14 +209,14 @@ func drawCPURAMValues(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector)
 	ramColor := theme.ThresholdColor(c.RAMPercent(), theme.RAMWarn, theme.RAMCrit)
 
 	// CPU label (white) + value (colored)
-	fb.String(0, y, "CPU", f, theme.ColorFG)
+	fb.String(0, y, "CPU:", f, theme.ColorFG)
 	cpuVal := fmt.Sprintf("%d%%", int(cpu))
-	fb.String(3*f.Width+1, y, cpuVal, f, cpuColor)
+	fb.String(4*f.Width, y, cpuVal, f, cpuColor)
 
 	// RAM label (white) + value (colored)
-	fb.String(82, y, "RAM", f, theme.ColorFG)
+	fb.String(82, y, "RAM:", f, theme.ColorFG)
 	ramVal := fmt.Sprintf("%d%%", int(ram))
-	fb.String(82+3*f.Width+1, y, ramVal, f, ramColor)
+	fb.String(82+4*f.Width, y, ramVal, f, ramColor)
 }
 
 // drawIORow renders network rx/tx and disk R/W at y=68.
