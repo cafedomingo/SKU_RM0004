@@ -19,8 +19,8 @@ const (
 	ioctlMailbox      = 0xC0046400
 	mailboxSuccess    = 0x80000000
 	dietpiRunPath     = "/run/dietpi"
-	dietpiUpdatePath  = "/run/dietpi/.update_available"
-	dietpiAPTPath     = "/run/dietpi/.apt_updates"
+	dietpiUpdatePath  = dietpiRunPath + "/.update_available"
+	dietpiAPTPath     = dietpiRunPath + "/.apt_updates"
 	dietpiVersionPath = "/boot/dietpi/.version"
 )
 
