@@ -52,25 +52,21 @@ func (s *sparklineScreen) Draw() {
 }
 
 // drawTicker renders the cycling ticker row at y=0.
-// Phase 0 = hostname (white), phase 1 = IPv4 (IP color), phase 2 = IPv6 (IP color).
-// If IPv6 is empty, phase 2 is skipped.
+// All phases use the same color since they share the row.
+// Phase 0 = hostname, phase 1 = IPv4, phase 2 = IPv6.
 func drawTicker(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, s *sparklineScreen) {
 	var text string
-	var color uint16
 
 	switch s.tickerPhase {
 	case 0:
 		text = c.Hostname()
-		color = theme.ColorFG
 	case 1:
 		text = c.IPv4Address()
-		color = theme.ColorIP
 	case 2:
 		text = c.IPv6Suffix()
-		color = theme.ColorIP
 	}
 
-	fb.String(0, 1, text, f, color)
+	fb.String(0, 1, text, f, theme.ColorIP)
 
 	// Advance ticker phase
 	maxPhase := 2
