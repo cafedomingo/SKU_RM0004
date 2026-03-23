@@ -16,7 +16,6 @@ import (
 )
 
 const (
-	i2cBus           = "/dev/i2c-1"
 	i2cClockFreqPath = "/proc/device-tree/soc/i2c@7e804000/clock-frequency"
 	i2cExpectedHz    = 400000
 )
@@ -27,7 +26,7 @@ func main() {
 
 	checkI2CSpeed(logger)
 
-	disp, err := st7735.NewDisplay(i2cBus, logger)
+	disp, err := st7735.NewDisplay(logger)
 	if err != nil {
 		logger.Error("failed to open display", "error", err)
 		os.Exit(1)

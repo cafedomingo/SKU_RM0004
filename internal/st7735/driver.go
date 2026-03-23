@@ -12,6 +12,7 @@ import (
 )
 
 const (
+	i2cBus        = "/dev/i2c-1"
 	i2cAddress    = 0x18
 	burstMaxLen   = 160 // hardware limit, do NOT increase
 	burstDelayUS  = 450 // empirically tuned at 400kHz
@@ -40,14 +41,14 @@ type display struct {
 
 // NewDisplay initializes the I2C bus and returns a Display backed by the
 // UCTRONICS SKU_RM0004 ST7735 controller at address 0x18.
-func NewDisplay(busName string, logger *slog.Logger) (Display, error) {
+func NewDisplay(logger *slog.Logger) (Display, error) {
 	if _, err := host.Init(); err != nil {
 		return nil, fmt.Errorf("st7735: host init: %w", err)
 	}
 
-	bus, err := i2creg.Open(busName)
+	bus, err := i2creg.Open(i2cBus)
 	if err != nil {
-		return nil, fmt.Errorf("st7735: open i2c bus %s: %w", busName, err)
+		return nil, fmt.Errorf("st7735: open i2c bus %s: %w", i2cBus, err)
 	}
 
 	dev := &i2c.Dev{Bus: bus, Addr: i2cAddress}
