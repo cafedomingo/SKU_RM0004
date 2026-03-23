@@ -78,7 +78,6 @@ SKU_RM0004/
 │
 └── docs/
     ├── dashboard.png                       # Generated
-    ├── diagnostic.png                      # Generated
     └── sparkline.png                       # Generated
 ```
 
@@ -1516,12 +1515,6 @@ func main() {
     var fb st7735.Framebuffer
     screen.RenderDashboard(&fb, mock, cfg)
     writePNG("docs/dashboard.png", &fb)
-
-    // Diagnostic (page 0)
-    fb = st7735.Framebuffer{}
-    diagState := screen.DiagState{Page: 0}
-    screen.RenderDiagnostic(&fb, mock, cfg, &diagState)
-    writePNG("docs/diagnostic.png", &fb)
 
     // Sparkline
     fb = st7735.Framebuffer{}
