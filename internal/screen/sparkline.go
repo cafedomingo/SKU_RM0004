@@ -21,7 +21,6 @@ type sparklineScreen struct {
 	tickerPhase int
 }
 
-func (s *sparklineScreen) NeedsRefresh() bool          { return true }
 func (s *sparklineScreen) Buffer() *st7735.Framebuffer { return &s.back }
 
 func (s *sparklineScreen) Update(c sysinfo.Collector, cfg config.Config) {

@@ -26,8 +26,7 @@ type dashboardScreen struct {
 	front, back st7735.Framebuffer
 }
 
-func (d *dashboardScreen) NeedsRefresh() bool          { return true }
-func (d *dashboardScreen) Buffer() *st7735.Framebuffer  { return &d.back }
+func (d *dashboardScreen) Buffer() *st7735.Framebuffer { return &d.back }
 
 func (d *dashboardScreen) Update(c sysinfo.Collector, cfg config.Config) {
 	d.back.Fill(theme.ColorBG)

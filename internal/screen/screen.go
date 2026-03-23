@@ -11,7 +11,6 @@ import (
 type Screen interface {
 	Update(c sysinfo.Collector, cfg config.Config)
 	Send(disp st7735.Display)
-	NeedsRefresh() bool
 	Buffer() *st7735.Framebuffer
 }
 

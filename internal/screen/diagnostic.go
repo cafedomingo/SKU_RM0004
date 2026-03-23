@@ -25,7 +25,6 @@ type diagnosticScreen struct {
 	rows []diagRow
 }
 
-func (d *diagnosticScreen) NeedsRefresh() bool          { return d.page == 0 }
 func (d *diagnosticScreen) Buffer() *st7735.Framebuffer { return &d.back }
 
 func (d *diagnosticScreen) Update(c sysinfo.Collector, cfg config.Config) {
@@ -33,9 +32,7 @@ func (d *diagnosticScreen) Update(c sysinfo.Collector, cfg config.Config) {
 
 	f := font.Spleen6x12
 
-	if d.page == 0 {
-		d.rows = collectDiagData(c)
-	}
+	d.rows = collectDiagData(c)
 
 	// Determine which rows to render
 	start := d.page * diagRowsPerPage

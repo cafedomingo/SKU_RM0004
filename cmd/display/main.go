@@ -51,9 +51,7 @@ func main() {
 			lastScreenName = cfg.Screen
 		}
 
-		if activeScreen.NeedsRefresh() {
-			collector.Refresh()
-		}
+		collector.Refresh()
 		activeScreen.Update(collector, cfg)
 		activeScreen.Send(disp)
 
