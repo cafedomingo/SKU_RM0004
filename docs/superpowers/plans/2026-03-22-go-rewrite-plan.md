@@ -78,6 +78,7 @@ SKU_RM0004/
 │
 └── docs/
     ├── dashboard.png                       # Generated
+    ├── diagnostic.png                      # Generated
     └── sparkline.png                       # Generated
 ```
 
