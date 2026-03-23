@@ -84,12 +84,12 @@ func (l *Loader) Load() Config {
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		idx := strings.IndexByte(line, '=')
-		if idx < 0 {
+		sep := strings.IndexByte(line, '=')
+		if sep < 0 {
 			continue
 		}
-		key := strings.TrimSpace(line[:idx])
-		val := strings.TrimSpace(line[idx+1:])
+		key := strings.TrimSpace(line[:sep])
+		val := strings.TrimSpace(line[sep+1:])
 
 		switch key {
 		case keyScreen:
