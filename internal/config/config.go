@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	ConfigPath      = "/etc/uctronics-display.conf"
+	ConfigPath     = "/etc/uctronics-display.conf"
 	DefaultRefresh  = 5 * time.Second
 	DefaultTempUnit = "C"
 
@@ -36,12 +36,6 @@ var validScreens = map[string]bool{
 	ScreenSparkline:  true,
 }
 
-var defaults = Config{
-	Screen:   DefaultScreen,
-	Refresh:  DefaultRefresh,
-	TempUnit: DefaultTempUnit,
-}
-
 type Config struct {
 	Screen   string
 	Refresh  time.Duration
@@ -59,14 +53,15 @@ func NewLoader(path string, logger *slog.Logger) *Loader {
 	return &Loader{
 		path:   path,
 		logger: logger,
-		cached: defaults,
+		cached: Config{Screen: DefaultScreen, Refresh: DefaultRefresh, TempUnit: DefaultTempUnit},
 	}
 }
 
 func (l *Loader) Load() Config {
 	info, err := os.Stat(l.path)
 	if err != nil {
-		return defaults
+		// File doesn't exist or unreadable; return defaults
+		return Config{Screen: DefaultScreen, Refresh: DefaultRefresh, TempUnit: DefaultTempUnit}
 	}
 
 	mtime := info.ModTime()
@@ -74,15 +69,7 @@ func (l *Loader) Load() Config {
 		return l.cached
 	}
 
-	cfg := l.parse()
-	l.logChanges(cfg)
-	l.cached = cfg
-	l.lastMtime = mtime
-	return cfg
-}
-
-func (l *Loader) parse() Config {
-	cfg := defaults
+	cfg := Config{Screen: DefaultScreen, Refresh: DefaultRefresh, TempUnit: DefaultTempUnit}
 
 	f, err := os.Open(l.path)
 	if err != nil {
@@ -109,12 +96,14 @@ func (l *Loader) parse() Config {
 			if validScreens[val] {
 				cfg.Screen = val
 			} else {
-				l.logger.Warn("config: invalid screen", "value", val)
+				l.logger.Warn("config: invalid screen value, using default", "value", val, "default", DefaultScreen)
+				cfg.Screen = DefaultScreen
 			}
 		case keyRefresh:
 			n, err := strconv.Atoi(val)
 			if err != nil {
-				l.logger.Warn("config: invalid refresh", "value", val)
+				l.logger.Warn("config: invalid refresh value, using default", "value", val)
+				cfg.Refresh = DefaultRefresh
 			} else {
 				d := time.Duration(n) * time.Second
 				if d < MinRefresh {
@@ -128,15 +117,12 @@ func (l *Loader) parse() Config {
 			if val == "C" || val == "F" {
 				cfg.TempUnit = val
 			} else {
-				l.logger.Warn("config: invalid temp_unit", "value", val)
+				l.logger.Warn("config: invalid temp_unit value, using default", "value", val, "default", DefaultTempUnit)
+				cfg.TempUnit = DefaultTempUnit
 			}
 		}
 	}
 
-	return cfg
-}
-
-func (l *Loader) logChanges(cfg Config) {
 	if cfg.Screen != l.cached.Screen {
 		l.logger.Info("config: screen changed", "from", l.cached.Screen, "to", cfg.Screen)
 	}
@@ -146,4 +132,8 @@ func (l *Loader) logChanges(cfg Config) {
 	if cfg.TempUnit != l.cached.TempUnit {
 		l.logger.Info("config: temp_unit changed", "from", l.cached.TempUnit, "to", cfg.TempUnit)
 	}
+
+	l.cached = cfg
+	l.lastMtime = mtime
+	return cfg
 }
