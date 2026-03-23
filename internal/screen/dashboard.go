@@ -23,44 +23,49 @@ import (
 //	y=56:  RAM:NNN% (6x12, left)           DSK:NNN% (6x12, right)
 //	y=68:  [RAM bar]                       [Disk bar] (6px tall)
 type dashboardScreen struct {
+	disp      st7735.Display
+	collector sysinfo.Collector
 	front, back st7735.Framebuffer
 }
 
 func (d *dashboardScreen) Buffer() *st7735.Framebuffer { return &d.back }
 
-func (d *dashboardScreen) Update(c sysinfo.Collector, cfg config.Config) {
+func (d *dashboardScreen) Update(cfg config.Config) {
 	d.back.Fill(theme.ColorBG)
-	d.render(&d.back, c, cfg)
+	d.render(&d.back, cfg)
 }
 
-func (d *dashboardScreen) Send(disp st7735.Display) {
+func (d *dashboardScreen) Send() {
+	if d.disp == nil {
+		return
+	}
 	for _, r := range st7735.DiffRegions(&d.front, &d.back) {
-		disp.SendRegion(0, r.Y, st7735.Width, r.H,
+		d.disp.SendRegion(0, r.Y, st7735.Width, r.H,
 			d.back.Pixels[r.Y*st7735.Width:(r.Y+r.H)*st7735.Width])
 	}
 	d.front = d.back
 }
 
-func (d *dashboardScreen) render(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config) {
+func (d *dashboardScreen) render(fb *st7735.Framebuffer, cfg config.Config) {
 	headerFont := font.Spleen8x16
 	metricFont := font.Spleen6x12
 
 	// Header: hostname (big font)
-	fb.String(2, 0, c.Hostname(), headerFont, theme.ColorFG)
+	fb.String(2, 0, d.collector.Hostname(), headerFont, theme.ColorFG)
 
 	// IP address (small font)
-	fb.String(2, 18, c.IPAddress(), metricFont, theme.ColorIP)
+	fb.String(2, 18, d.collector.IPAddress(), metricFont, theme.ColorIP)
 
 	// DietPi update diamond indicator (big font for the symbol)
-	if c.DietPiStatus() == sysinfo.DietPiUpdateAvail {
+	if d.collector.DietPiStatus() == sysinfo.DietPiUpdateAvail {
 		fb.Char(152, 0, '\u25C6', headerFont, theme.ColorAlert)
 	}
 
 	// APT update badge (small font, right-aligned on IP row)
-	badge := format.APTBadge(c.APTUpdateCount())
+	badge := format.APTBadge(d.collector.APTUpdateCount())
 	if badge != "" {
 		color := theme.ColorWarn
-		if c.APTUpdateCount() >= theme.APTCrit {
+		if d.collector.APTUpdateCount() >= theme.APTCrit {
 			color = theme.ColorCrit
 		}
 		badgeX := st7735.Width - len(badge)*metricFont.Width - 2
@@ -71,10 +76,10 @@ func (d *dashboardScreen) render(fb *st7735.Framebuffer, c sysinfo.Collector, cf
 	fb.Rect(0, 30, st7735.Width, 1, theme.ColorSep)
 
 	// Clamp display values to minimum 1% so bars are always visible
-	cpu := format.ClampMin(c.CPUPercent(), 1)
-	ram := format.ClampMin(c.RAMPercent(), 1)
-	disk := format.ClampMin(c.DiskPercent(), 1)
-	temp := c.Temperature()
+	cpu := format.ClampMin(d.collector.CPUPercent(), 1)
+	ram := format.ClampMin(d.collector.RAMPercent(), 1)
+	disk := format.ClampMin(d.collector.DiskPercent(), 1)
+	temp := d.collector.Temperature()
 
 	const (
 		barW   = 74
@@ -92,7 +97,7 @@ func (d *dashboardScreen) render(fb *st7735.Framebuffer, c sysinfo.Collector, cf
 	}
 
 	// CPU (left column)
-	cpuColor := theme.CPUColor(c.CPUPercent())
+	cpuColor := theme.CPUColor(d.collector.CPUPercent())
 	drawMetric(leftX, 34, "CPU:", fmt.Sprintf("%3d%%", int(cpu)), int(cpu), cpuColor)
 
 	// Temperature (right column)
@@ -105,10 +110,10 @@ func (d *dashboardScreen) render(fb *st7735.Framebuffer, c sysinfo.Collector, cf
 	drawMetric(rightX, 34, "TEMP:", tempStr, tempPct, tempColor)
 
 	// RAM (left column)
-	ramColor := theme.RAMColor(c.RAMPercent())
+	ramColor := theme.RAMColor(d.collector.RAMPercent())
 	drawMetric(leftX, 56, "RAM:", fmt.Sprintf("%3d%%", int(ram)), int(ram), ramColor)
 
 	// Disk (right column)
-	diskColor := theme.DiskColor(c.DiskPercent())
+	diskColor := theme.DiskColor(d.collector.DiskPercent())
 	drawMetric(rightX, 56, "DISK:", fmt.Sprintf("%3d%%", int(disk)), int(disk), diskColor)
 }

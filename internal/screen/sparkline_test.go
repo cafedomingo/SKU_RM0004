@@ -36,14 +36,14 @@ func TestSparklineHistoryShift(t *testing.T) {
 	m.CPU = 55
 	m.RAM = 72
 
-	state := &sparklineScreen{}
+	state := &sparklineScreen{collector: m}
 	// Pre-fill with known values
 	for i := 0; i < SparklineHistory; i++ {
 		state.cpuHistory[i] = float64(i * 5)
 		state.ramHistory[i] = float64(i * 3)
 	}
 
-	state.Update(m, sparkCfg())
+	state.Update(sparkCfg())
 
 	// After render, element [0] should be the old element [1]
 	if state.cpuHistory[0] != 5 {
@@ -68,23 +68,22 @@ func TestSparklineTickerCycle(t *testing.T) {
 	t.Run("with_ipv6", func(t *testing.T) {
 		m := sparkMock()
 		m.IPv6 = "::a8f1:23bc:abcd"
-		state := &sparklineScreen{tickerPhase: 0}
-
+		state := &sparklineScreen{collector: m, tickerPhase: 0}
 
 		// Phase 0 -> renders hostname, advances to 1
-		state.Update(m, sparkCfg())
+		state.Update(sparkCfg())
 		if state.tickerPhase != 1 {
 			t.Errorf("after phase 0: got %d, want 1", state.tickerPhase)
 		}
 
 		// Phase 1 -> renders IPv4, advances to 2
-		state.Update(m, sparkCfg())
+		state.Update(sparkCfg())
 		if state.tickerPhase != 2 {
 			t.Errorf("after phase 1: got %d, want 2", state.tickerPhase)
 		}
 
 		// Phase 2 -> renders IPv6, wraps to 0
-		state.Update(m, sparkCfg())
+		state.Update(sparkCfg())
 		if state.tickerPhase != 0 {
 			t.Errorf("after phase 2: got %d, want 0", state.tickerPhase)
 		}
@@ -93,17 +92,16 @@ func TestSparklineTickerCycle(t *testing.T) {
 	t.Run("without_ipv6", func(t *testing.T) {
 		m := sparkMock()
 		m.IPv6 = ""
-		state := &sparklineScreen{tickerPhase: 0}
-
+		state := &sparklineScreen{collector: m, tickerPhase: 0}
 
 		// Phase 0 -> advances to 1
-		state.Update(m, sparkCfg())
+		state.Update(sparkCfg())
 		if state.tickerPhase != 1 {
 			t.Errorf("after phase 0: got %d, want 1", state.tickerPhase)
 		}
 
 		// Phase 1 -> wraps to 0 (no phase 2)
-		state.Update(m, sparkCfg())
+		state.Update(sparkCfg())
 		if state.tickerPhase != 0 {
 			t.Errorf("after phase 1: got %d, want 0", state.tickerPhase)
 		}
@@ -118,8 +116,8 @@ func TestSparklineThresholdColors(t *testing.T) {
 	m.CPU = 70 // above CPUWarn (60), below CPUCrit (80) -> warn color
 	m.RAM = 90 // above RAMCrit (80) -> crit color
 
-	state := &sparklineScreen{}
-	state.Update(m, sparkCfg())
+	state := &sparklineScreen{collector: m}
+	state.Update(sparkCfg())
 
 	// CPU graph is at x=0..77, y=37..54
 	// The last bar (newest) at 70% should have visible colored pixels (lerped between warn and crit)
@@ -144,8 +142,8 @@ func TestSparklineDisplayFloor(t *testing.T) {
 	m.CPU = 0
 	m.RAM = 0
 
-	state := &sparklineScreen{}
-	state.Update(m, sparkCfg())
+	state := &sparklineScreen{collector: m}
+	state.Update(sparkCfg())
 
 	// The CPU/RAM labels at y=56 should show 1% not 0%.
 	if !hasNonBGInRegion(state.Buffer(), 0, 56, 40, 12) {
@@ -162,8 +160,8 @@ func TestSparklineDisplayFloor(t *testing.T) {
 func TestSparklineRenders(t *testing.T) {
 
 	m := sparkMock()
-	state := &sparklineScreen{}
-	state.Update(m, sparkCfg())
+	state := &sparklineScreen{collector: m}
+	state.Update(sparkCfg())
 
 	// Ticker row at y=1 should have white pixels (hostname, 6x12 font)
 	if !hasColorInRegion(state.Buffer(), 0, 1, 60, 12, theme.ColorFG) {

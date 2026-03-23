@@ -20,19 +20,21 @@ type diagRow struct {
 }
 
 type diagnosticScreen struct {
-	back st7735.Framebuffer
-	page int
-	rows []diagRow
+	disp      st7735.Display
+	collector sysinfo.Collector
+	back      st7735.Framebuffer
+	page      int
+	rows      []diagRow
 }
 
 func (d *diagnosticScreen) Buffer() *st7735.Framebuffer { return &d.back }
 
-func (d *diagnosticScreen) Update(c sysinfo.Collector, cfg config.Config) {
+func (d *diagnosticScreen) Update(cfg config.Config) {
 	d.back.Fill(theme.ColorBG)
 
 	f := font.Spleen6x12
 
-	d.rows = collectDiagData(c)
+	d.rows = collectDiagData(d.collector)
 
 	// Determine which rows to render
 	start := d.page * diagRowsPerPage
@@ -62,8 +64,11 @@ func (d *diagnosticScreen) Update(c sysinfo.Collector, cfg config.Config) {
 	d.page = (d.page + 1) % numPages
 }
 
-func (d *diagnosticScreen) Send(disp st7735.Display) {
-	disp.SendFull(d.back.Pixels[:])
+func (d *diagnosticScreen) Send() {
+	if d.disp == nil {
+		return
+	}
+	d.disp.SendFull(d.back.Pixels[:])
 }
 
 func collectDiagData(c sysinfo.Collector) []diagRow {

@@ -51,10 +51,10 @@ func hasNonBGInRegion(fb *st7735.Framebuffer, x, y, w, h int) bool {
 }
 
 func TestDashboardRenders(t *testing.T) {
-	d := &dashboardScreen{}
-	// filled by Update
 	m := defaultMock()
-	d.Update(m, defaultCfg())
+	d := &dashboardScreen{collector: m}
+	// filled by Update
+	d.Update(defaultCfg())
 
 	// Hostname text should appear at top (y=0..15), white pixels (8x16 font)
 	if !hasColorInRegion(d.Buffer(), 0, 0, 80, 16, theme.ColorFG) {
@@ -87,13 +87,13 @@ func TestDashboardThresholds(t *testing.T) {
 
 	// Test at exact boundaries where colors are deterministic
 	t.Run("at_crit", func(t *testing.T) {
-		d := &dashboardScreen{}
-		// filled by Update
 		m := &sysinfo.MockCollector{
 			Host: "pi", IP: "10.0.0.1",
 			CPU: theme.CPUCrit, RAM: theme.RAMCrit, Disk: theme.DiskCrit, Temp: 45,
 		}
-		d.Update(m, cfg)
+		d := &dashboardScreen{collector: m}
+		// filled by Update
+		d.Update(cfg)
 		if !hasColorInRegion(d.Buffer(), 2, 46, 74, 6, theme.ColorCrit) {
 			t.Error("CPU bar at crit should be ColorCrit")
 		}
@@ -101,13 +101,13 @@ func TestDashboardThresholds(t *testing.T) {
 
 	// Intermediate values produce visible (non-background) bars with lerped colors
 	t.Run("intermediate", func(t *testing.T) {
-		d := &dashboardScreen{}
-		// filled by Update
 		m := &sysinfo.MockCollector{
 			Host: "pi", IP: "10.0.0.1",
 			CPU: 30, RAM: 65, Disk: 50, Temp: 45,
 		}
-		d.Update(m, cfg)
+		d := &dashboardScreen{collector: m}
+		// filled by Update
+		d.Update(cfg)
 		if !hasNonBGInRegion(d.Buffer(), 2, 46, 74, 6) {
 			t.Error("CPU bar at 30% should have colored pixels")
 		}
@@ -121,8 +121,6 @@ func TestDashboardThresholds(t *testing.T) {
 }
 
 func TestDashboardDisplayFloor(t *testing.T) {
-	d := &dashboardScreen{}
-	// filled by Update
 	m := &sysinfo.MockCollector{
 		Host: "pi",
 		IP:   "10.0.0.1",
@@ -131,7 +129,9 @@ func TestDashboardDisplayFloor(t *testing.T) {
 		Disk: 0,
 		Temp: 30,
 	}
-	d.Update(m, defaultCfg())
+	d := &dashboardScreen{collector: m}
+	// filled by Update
+	d.Update(defaultCfg())
 
 	// Even with 0% values, bars should show 1% (some colored pixels)
 	if !hasNonBGInRegion(d.Buffer(), 2, 46, 65, 6) {
@@ -146,11 +146,11 @@ func TestDashboardDisplayFloor(t *testing.T) {
 }
 
 func TestDashboardDietPiDiamond(t *testing.T) {
-	d := &dashboardScreen{}
-	// filled by Update
 	m := defaultMock()
 	m.DietPi = sysinfo.DietPiUpdateAvail
-	d.Update(m, defaultCfg())
+	d := &dashboardScreen{collector: m}
+	// filled by Update
+	d.Update(defaultCfg())
 
 	// Diamond character should render near top-right corner in alert color (8x16 font)
 	if !hasColorInRegion(d.Buffer(), 148, 0, 12, 16, theme.ColorAlert) {
@@ -159,11 +159,11 @@ func TestDashboardDietPiDiamond(t *testing.T) {
 }
 
 func TestDashboardDietPiDiamondAbsent(t *testing.T) {
-	d := &dashboardScreen{}
-	// filled by Update
 	m := defaultMock()
 	m.DietPi = sysinfo.DietPiUpToDate
-	d.Update(m, defaultCfg())
+	d := &dashboardScreen{collector: m}
+	// filled by Update
+	d.Update(defaultCfg())
 
 	// No alert-colored pixels in the diamond area
 	if hasColorInRegion(d.Buffer(), 148, 0, 12, 16, theme.ColorAlert) {
@@ -172,11 +172,11 @@ func TestDashboardDietPiDiamondAbsent(t *testing.T) {
 }
 
 func TestDashboardAPTBadge(t *testing.T) {
-	d := &dashboardScreen{}
-	// filled by Update
 	m := defaultMock()
 	m.APT = 3
-	d.Update(m, defaultCfg())
+	d := &dashboardScreen{collector: m}
+	// filled by Update
+	d.Update(defaultCfg())
 
 	// APT badge "^3" should render on the IP row (y=18..29, 6x12 font) in warn color
 	if !hasColorInRegion(d.Buffer(), 120, 18, 40, 12, theme.ColorWarn) {
@@ -185,11 +185,11 @@ func TestDashboardAPTBadge(t *testing.T) {
 }
 
 func TestDashboardAPTBadgeCrit(t *testing.T) {
-	d := &dashboardScreen{}
-	// filled by Update
 	m := defaultMock()
 	m.APT = 15 // >= APTCrit (10)
-	d.Update(m, defaultCfg())
+	d := &dashboardScreen{collector: m}
+	// filled by Update
+	d.Update(defaultCfg())
 
 	// APT badge should render in crit color
 	if !hasColorInRegion(d.Buffer(), 120, 18, 40, 12, theme.ColorCrit) {
@@ -198,11 +198,11 @@ func TestDashboardAPTBadgeCrit(t *testing.T) {
 }
 
 func TestDashboardAPTBadgeAbsent(t *testing.T) {
-	d := &dashboardScreen{}
-	// filled by Update
 	m := defaultMock()
 	m.APT = 0
-	d.Update(m, defaultCfg())
+	d := &dashboardScreen{collector: m}
+	// filled by Update
+	d.Update(defaultCfg())
 
 	// No warn/crit pixels in the badge area (right side of IP row)
 	if hasColorInRegion(d.Buffer(), 140, 18, 20, 12, theme.ColorWarn) {

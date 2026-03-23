@@ -47,13 +47,13 @@ func main() {
 		cfg := cfgLoader.Load()
 
 		if cfg.Screen != lastScreenName {
-			activeScreen = screen.New(cfg.Screen, disp)
+			activeScreen = screen.New(cfg.Screen, disp, collector)
 			lastScreenName = cfg.Screen
 		}
 
 		collector.Refresh()
-		activeScreen.Update(collector, cfg)
-		activeScreen.Send(disp)
+		activeScreen.Update(cfg)
+		activeScreen.Send()
 
 		if shouldExit(ctx, cfg.Refresh-time.Since(start)) {
 			logger.Info("shutting down")

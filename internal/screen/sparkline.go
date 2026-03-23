@@ -15,6 +15,8 @@ import (
 const SparklineHistory = 13
 
 type sparklineScreen struct {
+	disp        st7735.Display
+	collector   sysinfo.Collector
 	front, back st7735.Framebuffer
 	cpuHistory  [SparklineHistory]float64
 	ramHistory  [SparklineHistory]float64
@@ -23,31 +25,34 @@ type sparklineScreen struct {
 
 func (s *sparklineScreen) Buffer() *st7735.Framebuffer { return &s.back }
 
-func (s *sparklineScreen) Update(c sysinfo.Collector, cfg config.Config) {
+func (s *sparklineScreen) Update(cfg config.Config) {
 	s.back.Fill(theme.ColorBG)
 	fb := &s.back
 
 	// Shift history left, add new values
 	copy(s.cpuHistory[0:], s.cpuHistory[1:])
-	s.cpuHistory[SparklineHistory-1] = c.CPUPercent()
+	s.cpuHistory[SparklineHistory-1] = s.collector.CPUPercent()
 	copy(s.ramHistory[0:], s.ramHistory[1:])
-	s.ramHistory[SparklineHistory-1] = c.RAMPercent()
+	s.ramHistory[SparklineHistory-1] = s.collector.RAMPercent()
 
 	sm := font.Spleen6x12
 
-	drawTicker(fb, sm, c, s)
-	drawUptimeRow(fb, sm, c)
-	drawFreqRow(fb, sm, c, cfg)
+	drawTicker(fb, sm, s.collector, s)
+	drawUptimeRow(fb, sm, s.collector)
+	drawFreqRow(fb, sm, s.collector, cfg)
 	fb.Rect(0, 35, st7735.Width, 1, theme.ColorSep)
 	drawSparklineGraph(fb, 0, s.cpuHistory[:], theme.CPUWarn, theme.CPUCrit)
 	drawSparklineGraph(fb, 82, s.ramHistory[:], theme.RAMWarn, theme.RAMCrit)
-	drawCPURAMValues(fb, sm, c)
-	drawIORow(fb, sm, c)
+	drawCPURAMValues(fb, sm, s.collector)
+	drawIORow(fb, sm, s.collector)
 }
 
-func (s *sparklineScreen) Send(disp st7735.Display) {
+func (s *sparklineScreen) Send() {
+	if s.disp == nil {
+		return
+	}
 	for _, r := range st7735.DiffRegions(&s.front, &s.back) {
-		disp.SendRegion(0, r.Y, st7735.Width, r.H,
+		s.disp.SendRegion(0, r.Y, st7735.Width, r.H,
 			s.back.Pixels[r.Y*st7735.Width:(r.Y+r.H)*st7735.Width])
 	}
 	s.front = s.back

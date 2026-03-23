@@ -62,8 +62,8 @@ func TestDiagnosticPageCount(t *testing.T) {
 // TestDiagnosticPage0Content renders page 0 and verifies the hostname row
 // appears at y=0 with white pixels.
 func TestDiagnosticPage0Content(t *testing.T) {
-	state := &diagnosticScreen{}
-	state.Update(diagMock(), diagCfg())
+	state := &diagnosticScreen{collector: diagMock()}
+	state.Update(diagCfg())
 
 	if !hasColorInRegion(state.Buffer(), 0, 0, st7735.Width, 12, theme.ColorFG) {
 		t.Error("expected white hostname pixels at y=0 on page 0")
@@ -87,9 +87,9 @@ func TestDiagnosticPage1Content(t *testing.T) {
 	}
 
 	// Verify page 1 renders non-empty content
-	state := &diagnosticScreen{}
-	state.Update(m, diagCfg()) // page 0
-	state.Update(m, diagCfg()) // page 1
+	state := &diagnosticScreen{collector: m}
+	state.Update(diagCfg()) // page 0
+	state.Update(diagCfg()) // page 1
 
 	if !hasNonBGInRegion(state.Buffer(), 0, 0, st7735.Width, 12) {
 		t.Error("expected non-background pixels at y=0 on page 1")
@@ -99,12 +99,12 @@ func TestDiagnosticPage1Content(t *testing.T) {
 // TestDiagnosticPageWraps verifies that after 3 renders the page wraps back to 0.
 func TestDiagnosticPageWraps(t *testing.T) {
 	m := diagMock()
-	state := &diagnosticScreen{}
+	state := &diagnosticScreen{collector: m}
 
 	for i := 0; i < 3; i++ {
 		var fb st7735.Framebuffer
 		fb.Fill(theme.ColorBG)
-		state.Update(m, diagCfg())
+		state.Update(diagCfg())
 	}
 
 	if state.page != 0 {
