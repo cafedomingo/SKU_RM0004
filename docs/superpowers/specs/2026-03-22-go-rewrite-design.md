@@ -107,7 +107,7 @@ SKU_RM0004/
 
 ### ST7735 Driver (`internal/st7735/driver.go`)
 
-Thin I2C transport layer. Two-method interface:
+Thin I2C transport layer:
 
 ```go
 type Display interface {
@@ -115,6 +115,9 @@ type Display interface {
     SendFull(pixels []uint16)
     Close() error
 }
+
+// Constructor opens the I2C bus and initializes the display
+func NewDisplay(bus string, logger *slog.Logger) (Display, error)
 ```
 
 Implementation details (from hardware testing — do not change without hardware verification):
@@ -141,9 +144,13 @@ Drawing methods:
 - `Fill(color uint16)`
 - `SetPixel(x, y int, color uint16)`
 - `Rect(x, y, w, h int, color uint16)`
-- `Char(x, y int, ch byte, f Font, fg, bg uint16)`
-- `String(x, y int, s string, f Font, fg, bg uint16)`
-- `Glyph(x, y int, g Glyph, fg, bg uint16)`
+- `Char(x, y int, ch byte, f Font, color uint16)` — foreground only, background untouched
+- `String(x, y int, s string, f Font, color uint16)` — foreground only
+- `Glyph(x, y int, g Glyph, color uint16)` — foreground only
+
+Renderers clear the framebuffer with `Fill(bg)` first, then draw foreground pixels. This matches the C framebuffer behavior where `lcd_fb_char` only sets foreground pixels.
+
+**Byte order:** The framebuffer stores pixels as native `uint16` for fast comparison during diffing. The `Display.SendRegion()`/`SendFull()` implementation converts to big-endian bytes before I2C transfer, since the ST7735 expects MSB-first RGB565 on the wire.
 
 ### Double Buffering & Diff-Based Updates
 
@@ -181,14 +188,19 @@ type Collector interface {
 }
 ```
 
-**gopsutil handles:** CPUPercent, RAMPercent, DiskPercent, Temperature, Hostname, IPAddress, NetBandwidth counters, Uptime
+**gopsutil handles:** CPUPercent, RAMPercent, Temperature, Hostname, Uptime, NetBandwidth counters
 
-**Direct file reads (Pi-specific):**
-- Throttle status: `/sys/firmware/devicetree/base/...`
-- CPU frequency: `/sys/devices/system/cpu/cpu0/cpufreq/*`
-- DietPi status: `/opt/dietpi/.version`
-- APT update count: read from DietPi file (`/var/lib/dietpi/dietpi-update/apt_updates` or similar). Non-DietPi systems return 0 (daily check deferred to future work).
-- IPv6 suffix: parsed from network interface
+**Custom implementation required (not suitable for gopsutil):**
+- DiskPercent: aggregates root filesystem (`/`) + any `/dev/sda*` or `/dev/nvme*` mount points via `/proc/mounts` + `statfs()`. This is Pi-specific behavior — gopsutil's `disk.Usage("/")` only reports root. The Go code must replicate this aggregation.
+- IPAddress / IPv6Suffix: detect default-route interface by parsing `/proc/net/route`, then read that interface's addresses. gopsutil's `net.Interfaces()` doesn't have default-route detection. Multi-homed systems must show the same IP as the C version.
+
+**Direct reads / ioctl (Pi-specific):**
+- Throttle status: reads via VideoCore mailbox (`/dev/vcio` ioctl, tag `0x00030046`). Requires a 16-byte-aligned buffer and `_IOWR(100, 0, char*)` ioctl. Neither gopsutil nor periph.io provides this — raw ioctl required.
+- CPU frequency (cur/min/max): `/sys/devices/system/cpu/cpu0/cpufreq/*`
+- DietPi detection: check `/run/dietpi` directory exists
+- DietPi update status: check `/run/dietpi/.update_available` exists (present = update available)
+- APT update count: read integer from `/run/dietpi/.apt_updates`. If file missing, check `/boot/dietpi/.version` exists (DietPi but no updates = 0). If neither exists, not DietPi — return -1. Non-DietPi systems show no APT badge (daily check deferred to future work).
+- IPv6 suffix: parsed from default-route network interface
 
 A `MockCollector` implementation provides fixed values for tests and the screenshot tool.
 
@@ -229,7 +241,11 @@ Behavior:
 | 12x24 | Available if needed |
 | 16x32 | Available if needed |
 
-Exact size mappings may shift once tested on the 160x80 display. Character range: ASCII 32-126 (printable).
+**Font size mapping challenge:** The current C code uses Font_7x10 extensively (diagnostic rows, sparkline labels). Spleen doesn't have a 7x10 equivalent — closest options are 5x8 (smaller) or 8x16 (taller). The diagnostic screen packs 8 rows at 10px each into 80px; with 8x16 only 5 rows fit.
+
+Resolution: screen layouts will be adjusted during implementation to work with available Spleen sizes. The 5x8 font is the most likely replacement for small text, with layouts reflowed to fit. This may mean fewer rows per diagnostic page or tighter spacing. Final layouts will be validated visually using the screenshot tool before merging.
+
+Character range: ASCII 32-126 (printable).
 
 **BDF → Go converter** (`tools/bdf2go/main.go`):
 - Reads Spleen BDF files from a release archive
@@ -263,6 +279,8 @@ Each renderer is a function that draws into a `Framebuffer` using data from a `C
 - Page 1: disk%, net RX/TX, disk I/O, IOPS, DietPi, APT
 - Alternates pages each refresh. Full screen redraw each time.
 - State: page counter (0/1)
+- Data refresh: metrics collected only on page 0. Page 1 displays the same data snapshot. This matches C behavior and ensures delta-based metrics (net bandwidth, disk I/O) measure a full refresh interval, not half.
+- Temperature row always shows both C and F regardless of `temp_unit` config. The `temp_unit` config only affects dashboard and sparkline formatting.
 
 **Sparkline** (`sparkline.go`) — scrolling history:
 - Ticker cycling hostname → IPv4 → IPv6
@@ -317,17 +335,21 @@ Logger created in `main()`, passed via struct fields (not global). Output: stder
 3. Log I2C bus speed, warn if not 400kHz
 4. Create Collector (gopsutil + Pi-specific)
 5. Allocate front + back framebuffers
-6. Loop:
+6. Register signal handler (SIGTERM, SIGINT) for graceful shutdown
+7. Loop:
    a. Load config (check mtime)
    b. Log if config changed
-   c. Refresh metrics
+   c. Refresh metrics (diagnostic: only on page 0)
    d. Clear back buffer
    e. Render current screen into back buffer
    f. Diff back vs front → dirty regions
    g. Send dirty regions to display
-   h. Swap front ← back
+   h. Copy back → front
    i. Sleep remaining time to hit refresh interval
+8. On shutdown signal: close I2C, log exit, return
 ```
+
+**Signal handling:** The main loop listens for `SIGTERM`/`SIGINT` via `signal.NotifyContext`. On signal, the loop exits cleanly, closing the I2C connection. No display blanking on exit — the last frame stays visible (same as current C behavior).
 
 ### Screenshot Tool (`cmd/screenshot/main.go`)
 
@@ -395,11 +417,12 @@ Cross-compilation is built into Go — no external toolchain needed.
 
 `install.sh` updated to install the Go binary. Same behavior:
 1. Detect Pi model (4 or 5)
-2. Enable I2C in boot config
-3. Create config file (if not exists)
-4. Download binary from latest release
-5. Install systemd service
-6. Enable and start service
+2. Enable I2C in boot config (`dtparam=i2c_arm=on,i2c_arm_baudrate=400000`)
+3. Configure GPIO shutdown overlay (`gpio-shutdown,gpio_pin=4`, Pi4/Pi5-specific params)
+4. Create config file (if not exists)
+5. Download binary from latest release
+6. Install systemd service
+7. Enable and start service
 
 Installs cleanly over existing C installation — same binary path, same service name, same config file. The new `temp_unit` config key is optional, so existing config files work unchanged.
 
