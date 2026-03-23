@@ -16,15 +16,15 @@ import (
 // Layout (160x80, two-font approach):
 //
 //	y=0:   Hostname (8x16, white)          ◆ (8x16, top-right if DietPi update)
-//	y=18:  IP address (5x8, light blue)    APT badge right-aligned (5x8)
-//	y=28:  ─── separator line (1px) ───
-//	y=30:  CPU:NNN% (5x8, left)            TMP:NNC (5x8, right)
-//	y=40:  [CPU bar]                       [Temp bar] (6px tall)
-//	y=48:  RAM:NNN% (5x8, left)            DSK:NNN% (5x8, right)
-//	y=58:  [RAM bar]                       [Disk bar] (6px tall)
+//	y=18:  IP address (6x12, light blue)   APT badge right-aligned (6x12)
+//	y=30:  ─── separator line (1px) ───
+//	y=34:  CPU:NNN% (6x12, left)           TEMP:NNC (6x12, right)
+//	y=46:  [CPU bar]                       [Temp bar] (6px tall)
+//	y=56:  RAM:NNN% (6x12, left)           DSK:NNN% (6x12, right)
+//	y=68:  [RAM bar]                       [Disk bar] (6px tall)
 func RenderDashboard(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config) {
 	big := font.Spleen8x16
-	sm := font.Spleen5x8
+	sm := font.Spleen6x12
 
 	// Header: hostname (big font)
 	fb.String(2, 0, c.Hostname(), big, theme.ColorFG)
@@ -49,7 +49,7 @@ func RenderDashboard(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Con
 	}
 
 	// Separator
-	fb.Rect(0, 28, st7735.Width, 1, theme.ColorSep)
+	fb.Rect(0, 30, st7735.Width, 1, theme.ColorSep)
 
 	// Clamp display values to minimum 1% so bars are always visible
 	cpu := clampMin(c.CPUPercent(), 1)
@@ -69,12 +69,12 @@ func RenderDashboard(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Con
 		fb.String(x, y, label, sm, theme.ColorFG)
 		valX := x + barW - len(value)*sm.Width
 		fb.String(valX, y, value, sm, color)
-		fb.Bar(x, y+10, barW, barH, pct, color, theme.ColorSep)
+		fb.Bar(x, y+12, barW, barH, pct, color, theme.ColorSep)
 	}
 
 	// CPU (left column)
 	cpuColor := theme.ThresholdColor(c.CPUPercent(), theme.CPUWarn, theme.CPUCrit)
-	drawMetric(leftX, 30, "CPU:", fmt.Sprintf("%3d%%", int(cpu)), int(cpu), cpuColor)
+	drawMetric(leftX, 34, "CPU:", fmt.Sprintf("%3d%%", int(cpu)), int(cpu), cpuColor)
 
 	// Temperature (right column)
 	tempColor := theme.TempRampColor(temp)
@@ -83,15 +83,15 @@ func RenderDashboard(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Con
 	if tempPct > 100 {
 		tempPct = 100
 	}
-	drawMetric(rightX, 30, "TEMP:", tempStr, tempPct, tempColor)
+	drawMetric(rightX, 34, "TEMP:", tempStr, tempPct, tempColor)
 
 	// RAM (left column)
 	ramColor := theme.ThresholdColor(c.RAMPercent(), theme.RAMWarn, theme.RAMCrit)
-	drawMetric(leftX, 52, "RAM:", fmt.Sprintf("%3d%%", int(ram)), int(ram), ramColor)
+	drawMetric(leftX, 56, "RAM:", fmt.Sprintf("%3d%%", int(ram)), int(ram), ramColor)
 
 	// Disk (right column)
 	diskColor := theme.ThresholdColor(c.DiskPercent(), theme.DiskWarn, theme.DiskCrit)
-	drawMetric(rightX, 52, "DISK:", fmt.Sprintf("%3d%%", int(disk)), int(disk), diskColor)
+	drawMetric(rightX, 56, "DISK:", fmt.Sprintf("%3d%%", int(disk)), int(disk), diskColor)
 }
 
 // clampMin returns v if v >= min, otherwise min.

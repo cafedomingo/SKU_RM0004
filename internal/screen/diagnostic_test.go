@@ -33,10 +33,10 @@ func diagCfg() config.Config {
 	return config.Config{TempUnit: "C"}
 }
 
-// pixelsInRow returns the set of unique colors found in the row at y offset [y, y+8) (5x8 font).
+// pixelsInRow returns the set of unique colors found in the row at y offset [y, y+12) (6x12 font).
 func pixelsInRow(fb *st7735.Framebuffer, y int) map[uint16]bool {
 	colors := make(map[uint16]bool)
-	for row := y; row < y+8 && row < st7735.Height; row++ {
+	for row := y; row < y+12 && row < st7735.Height; row++ {
 		for col := 0; col < st7735.Width; col++ {
 			c := fb.Pixels[row*st7735.Width+col]
 			if c != theme.ColorBG {
@@ -47,15 +47,15 @@ func pixelsInRow(fb *st7735.Framebuffer, y int) map[uint16]bool {
 	return colors
 }
 
-// TestDiagnosticPageCount verifies 15 rows produce exactly 2 pages.
+// TestDiagnosticPageCount verifies 15 rows produce exactly 3 pages.
 func TestDiagnosticPageCount(t *testing.T) {
 	rows := collectDiagData(diagMock())
 	if len(rows) != 15 {
 		t.Fatalf("expected 15 rows, got %d", len(rows))
 	}
 	numPages := (len(rows) + diagRowsPerPage - 1) / diagRowsPerPage
-	if numPages != 2 {
-		t.Errorf("expected 2 pages, got %d", numPages)
+	if numPages != 3 {
+		t.Errorf("expected 3 pages, got %d", numPages)
 	}
 }
 
@@ -68,7 +68,7 @@ func TestDiagnosticPage0Content(t *testing.T) {
 	RenderDiagnostic(&fb, diagMock(), diagCfg(), state)
 
 	// Row 0 is hostname header — should have white (ColorFG) pixels at y=0
-	if !hasColorInRegion(&fb, 0, 0, st7735.Width, 8, theme.ColorFG) {
+	if !hasColorInRegion(&fb, 0, 0, st7735.Width, 12, theme.ColorFG) {
 		t.Error("expected white hostname pixels at y=0 on page 0")
 	}
 }
@@ -79,8 +79,8 @@ func TestDiagnosticPage1Content(t *testing.T) {
 	m := diagMock()
 	rows := collectDiagData(m)
 
-	// Row 5 is the temp row; with diagRowsPerPage=10 it's on page 0
-	// Row 10 is the first row on page 1 (tx row)
+	// Row 5 is the temp row; with diagRowsPerPage=6 it's on page 0
+	// Row 6 is the first row on page 1 (ram row)
 	tempRow := rows[5]
 	if !strings.Contains(tempRow.value, "C") {
 		t.Errorf("temp row value %q missing C", tempRow.value)
@@ -99,25 +99,25 @@ func TestDiagnosticPage1Content(t *testing.T) {
 	fb.Fill(theme.ColorBG)
 	RenderDiagnostic(&fb, m, diagCfg(), state)
 
-	// Page 1 starts at row 10 (tx row); should have non-BG pixels
-	if !hasNonBGInRegion(&fb, 0, 0, st7735.Width, 8) {
+	// Page 1 starts at row 6 (ram row); should have non-BG pixels
+	if !hasNonBGInRegion(&fb, 0, 0, st7735.Width, 12) {
 		t.Error("expected non-background pixels at y=0 on page 1")
 	}
 }
 
-// TestDiagnosticPageWraps verifies that after 2 renders the page wraps back to 0.
+// TestDiagnosticPageWraps verifies that after 3 renders the page wraps back to 0.
 func TestDiagnosticPageWraps(t *testing.T) {
 	m := diagMock()
 	state := &DiagState{}
 
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 3; i++ {
 		var fb st7735.Framebuffer
 		fb.Fill(theme.ColorBG)
 		RenderDiagnostic(&fb, m, diagCfg(), state)
 	}
 
 	if state.Page != 0 {
-		t.Errorf("expected page 0 after 2 renders, got %d", state.Page)
+		t.Errorf("expected page 0 after 3 renders, got %d", state.Page)
 	}
 }
 

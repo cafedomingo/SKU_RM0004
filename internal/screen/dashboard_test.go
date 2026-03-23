@@ -61,23 +61,23 @@ func TestDashboardRenders(t *testing.T) {
 		t.Error("expected white hostname pixels in top row")
 	}
 
-	// IP address should appear at y=18..25 (5x8 font), light blue pixels
-	if !hasColorInRegion(&fb, 0, 18, 120, 8, theme.ColorIP) {
+	// IP address should appear at y=18..29 (6x12 font), light blue pixels
+	if !hasColorInRegion(&fb, 0, 18, 120, 12, theme.ColorIP) {
 		t.Error("expected light-blue IP pixels in second row")
 	}
 
-	// Separator line at y=28
-	if !hasColorInRegion(&fb, 0, 28, st7735.Width, 1, theme.ColorSep) {
-		t.Error("expected separator line at y=28")
+	// Separator line at y=30
+	if !hasColorInRegion(&fb, 0, 30, st7735.Width, 1, theme.ColorSep) {
+		t.Error("expected separator line at y=30")
 	}
 
-	// CPU bar area should have colored pixels (y=40, 6px tall)
-	if !hasNonBGInRegion(&fb, 2, 40, 65, 6) {
+	// CPU bar area should have colored pixels (y=46, 6px tall)
+	if !hasNonBGInRegion(&fb, 2, 46, 65, 6) {
 		t.Error("expected CPU bar pixels")
 	}
 
-	// RAM bar area should have colored pixels (y=58, 6px tall)
-	if !hasNonBGInRegion(&fb, 2, 58, 65, 6) {
+	// RAM bar area should have colored pixels (y=68, 6px tall)
+	if !hasNonBGInRegion(&fb, 2, 68, 65, 6) {
 		t.Error("expected RAM bar pixels")
 	}
 }
@@ -113,16 +113,16 @@ func TestDashboardThresholds(t *testing.T) {
 			}
 			RenderDashboard(&fb, m, cfg)
 
-			// CPU bar region (y=40, 6px tall)
-			if !hasColorInRegion(&fb, 2, 40, 65, 6, tt.wantCPU) {
+			// CPU bar region (y=46, 6px tall)
+			if !hasColorInRegion(&fb, 2, 46, 65, 6, tt.wantCPU) {
 				t.Errorf("CPU bar: expected color 0x%04X for cpu=%.0f%%", tt.wantCPU, tt.cpu)
 			}
-			// RAM bar region (y=58, 6px tall)
-			if !hasColorInRegion(&fb, 2, 58, 65, 6, tt.wantRAM) {
+			// RAM bar region (y=68, 6px tall)
+			if !hasColorInRegion(&fb, 2, 68, 65, 6, tt.wantRAM) {
 				t.Errorf("RAM bar: expected color 0x%04X for ram=%.0f%%", tt.wantRAM, tt.ram)
 			}
-			// Disk bar region (y=58, 6px tall)
-			if !hasColorInRegion(&fb, 82, 58, 65, 6, tt.wantDisk) {
+			// Disk bar region (y=68, 6px tall)
+			if !hasColorInRegion(&fb, 82, 68, 65, 6, tt.wantDisk) {
 				t.Errorf("Disk bar: expected color 0x%04X for disk=%.0f%%", tt.wantDisk, tt.disk)
 			}
 		})
@@ -143,13 +143,13 @@ func TestDashboardDisplayFloor(t *testing.T) {
 	RenderDashboard(&fb, m, defaultCfg())
 
 	// Even with 0% values, bars should show 1% (some colored pixels)
-	if !hasNonBGInRegion(&fb, 2, 40, 65, 6) {
+	if !hasNonBGInRegion(&fb, 2, 46, 65, 6) {
 		t.Error("CPU bar should show at least 1% when value is 0")
 	}
-	if !hasNonBGInRegion(&fb, 2, 58, 65, 6) {
+	if !hasNonBGInRegion(&fb, 2, 68, 65, 6) {
 		t.Error("RAM bar should show at least 1% when value is 0")
 	}
-	if !hasNonBGInRegion(&fb, 82, 58, 65, 6) {
+	if !hasNonBGInRegion(&fb, 82, 68, 65, 6) {
 		t.Error("Disk bar should show at least 1% when value is 0")
 	}
 }
@@ -187,8 +187,8 @@ func TestDashboardAPTBadge(t *testing.T) {
 	m.APT = 3
 	RenderDashboard(&fb, m, defaultCfg())
 
-	// APT badge "^3" should render on the IP row (y=18..25, 5x8 font) in warn color
-	if !hasColorInRegion(&fb, 120, 18, 40, 8, theme.ColorWarn) {
+	// APT badge "^3" should render on the IP row (y=18..29, 6x12 font) in warn color
+	if !hasColorInRegion(&fb, 120, 18, 40, 12, theme.ColorWarn) {
 		t.Error("expected APT badge (warn color) on IP row, right side")
 	}
 }
@@ -201,7 +201,7 @@ func TestDashboardAPTBadgeCrit(t *testing.T) {
 	RenderDashboard(&fb, m, defaultCfg())
 
 	// APT badge should render in crit color
-	if !hasColorInRegion(&fb, 120, 18, 40, 8, theme.ColorCrit) {
+	if !hasColorInRegion(&fb, 120, 18, 40, 12, theme.ColorCrit) {
 		t.Error("expected APT badge (crit color) when count >= 10")
 	}
 }
@@ -214,7 +214,7 @@ func TestDashboardAPTBadgeAbsent(t *testing.T) {
 	RenderDashboard(&fb, m, defaultCfg())
 
 	// No warn/crit pixels in the badge area (right side of IP row)
-	if hasColorInRegion(&fb, 140, 18, 20, 8, theme.ColorWarn) {
+	if hasColorInRegion(&fb, 140, 18, 20, 12, theme.ColorWarn) {
 		t.Error("APT badge should not appear when count is 0")
 	}
 }

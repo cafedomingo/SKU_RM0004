@@ -132,16 +132,16 @@ func TestSparklineThresholdColors(t *testing.T) {
 	state := &SparklineState{}
 	RenderSparkline(&fb, m, sparkCfg(), state)
 
-	// CPU graph is at x=0..77, y=35..56
+	// CPU graph is at x=0..77, y=35..54
 	// The last bar (newest) should be in warn color for CPU=70%
 	// Last bar x = 12 * 6 = 72, width 5 -> x=72..76
-	if !hasColorInRegion(&fb, 72, 35, 5, 22, theme.ColorWarn) {
+	if !hasColorInRegion(&fb, 72, 35, 5, 20, theme.ColorWarn) {
 		t.Error("expected CPU sparkline bar at 70% to use warn color")
 	}
 
-	// RAM graph is at x=82..159, y=35..56
+	// RAM graph is at x=82..159, y=35..54
 	// Last bar x = 82 + 12*6 = 154, width 5 -> x=154..158
-	if !hasColorInRegion(&fb, 154, 35, 5, 22, theme.ColorCrit) {
+	if !hasColorInRegion(&fb, 154, 35, 5, 20, theme.ColorCrit) {
 		t.Error("expected RAM sparkline bar at 90% to use crit color")
 	}
 }
@@ -159,13 +159,13 @@ func TestSparklineDisplayFloor(t *testing.T) {
 	state := &SparklineState{}
 	RenderSparkline(&fb, m, sparkCfg(), state)
 
-	// The CPU/RAM labels at y=58 should show 1% not 0%.
-	if !hasNonBGInRegion(&fb, 0, 58, 40, 8) {
-		t.Error("expected CPU label pixels at y=58 even when CPU=0")
+	// The CPU/RAM labels at y=56 should show 1% not 0%.
+	if !hasNonBGInRegion(&fb, 0, 56, 40, 12) {
+		t.Error("expected CPU label pixels at y=56 even when CPU=0")
 	}
 
-	if !hasNonBGInRegion(&fb, 82, 58, 40, 8) {
-		t.Error("expected RAM label pixels at y=58 even when RAM=0")
+	if !hasNonBGInRegion(&fb, 82, 56, 40, 12) {
+		t.Error("expected RAM label pixels at y=56 even when RAM=0")
 	}
 }
 
@@ -179,8 +179,8 @@ func TestSparklineRenders(t *testing.T) {
 	state := &SparklineState{}
 	RenderSparkline(&fb, m, sparkCfg(), state)
 
-	// Ticker row at y=1 should have white pixels (hostname, 5x8 font)
-	if !hasColorInRegion(&fb, 0, 1, 60, 8, theme.ColorFG) {
+	// Ticker row at y=1 should have white pixels (hostname, 6x12 font)
+	if !hasColorInRegion(&fb, 0, 1, 60, 12, theme.ColorFG) {
 		t.Error("expected ticker text pixels at y=1")
 	}
 
@@ -189,11 +189,11 @@ func TestSparklineRenders(t *testing.T) {
 		t.Error("expected separator line at y=33")
 	}
 
-	// Sparkline graph area should have colored bars (y=35..56, 22px tall)
-	if !hasNonBGInRegion(&fb, 0, 35, 78, 22) {
+	// Sparkline graph area should have colored bars (y=35..54, 20px tall)
+	if !hasNonBGInRegion(&fb, 0, 35, 78, 20) {
 		t.Error("expected CPU sparkline bars in graph area")
 	}
-	if !hasNonBGInRegion(&fb, 82, 35, 78, 22) {
+	if !hasNonBGInRegion(&fb, 82, 35, 78, 20) {
 		t.Error("expected RAM sparkline bars in graph area")
 	}
 }

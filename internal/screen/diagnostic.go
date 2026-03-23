@@ -11,7 +11,7 @@ import (
 	"github.com/cafedomingo/SKU_RM0004/internal/theme"
 )
 
-const diagRowsPerPage = 10
+const diagRowsPerPage = 6
 
 // DiagState holds the current page and cached row data for the diagnostic screen.
 type DiagState struct {
@@ -26,10 +26,10 @@ type diagRow struct {
 }
 
 // RenderDiagnostic draws the diagnostic detail screen onto the framebuffer.
-// It cycles through 2 pages of up to 10 rows each on successive calls.
+// It cycles through 3 pages of up to 6 rows each on successive calls.
 // Data is refreshed only when returning to page 0.
 func RenderDiagnostic(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config, state *DiagState) {
-	f := font.Spleen5x8
+	f := font.Spleen6x12
 
 	// Refresh data only on page 0
 	if state.Page == 0 {
@@ -104,7 +104,7 @@ func collectDiagData(c sysinfo.Collector) []diagRow {
 		color: theme.ThresholdColor(c.CPUPercent(), theme.CPUWarn, theme.CPUCrit),
 	})
 
-	// Row 5: Temperature — both C and F, no degree symbol (5x8 lacks it)
+	// Row 5: Temperature — both C and F, no degree symbol (6x12 lacks it)
 	tempC := c.Temperature()
 	tempVal := fmt.Sprintf("%s / %s", format.Temp(tempC, "C"), format.Temp(tempC, "F"))
 	rows = append(rows, diagRow{

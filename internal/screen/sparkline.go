@@ -23,18 +23,18 @@ type SparklineState struct {
 
 // RenderSparkline draws the sparkline history screen onto the framebuffer.
 //
-// Layout (160x80, Spleen 5x8 for text, matches original C layout):
+// Layout (160x80, Spleen 6x12 for text):
 //
 //	y=1:   Ticker (hostname -> IPv4 -> IPv6, cycling)     | badges right-aligned
 //	y=12:  Uptime                                         | DietPi/APT badges
 //	y=23:  CPU freq + throttle                            | Temp | D:N%
 //	y=33:  --- separator (1px) ---
 //	y=35:  [sparkline graph area -- CPU bars left, RAM bars right]
-//	       Graph height: 22px (y=35 to y=56)
-//	y=58:  CPU N% (left)                                  RAM N% (right)
-//	y=69:  down-arrow rx up-arrow tx (left)               R disk W disk (right)
+//	       Graph height: 20px (y=35 to y=54)
+//	y=56:  CPU N% (left)                                  RAM N% (right)
+//	y=68:  down-arrow rx up-arrow tx (left)               R disk W disk (right)
 func RenderSparkline(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config, state *SparklineState) {
-	sm := font.Spleen5x8
+	sm := font.Spleen6x12
 
 	// Shift history left, add new values
 	copy(state.CPUHistory[0:], state.CPUHistory[1:])
@@ -165,8 +165,8 @@ func drawSparklineGraph(fb *st7735.Framebuffer, xOff int, history []float64, war
 		barW     = 5
 		barGap   = 1
 		graphY   = 35
-		graphH   = 22
-		graphEnd = 56 // graphY + graphH - 1
+		graphH   = 20
+		graphEnd = 54 // graphY + graphH - 1
 	)
 
 	for i, val := range history {
@@ -189,9 +189,9 @@ func drawSparklineGraph(fb *st7735.Framebuffer, xOff int, history []float64, war
 	}
 }
 
-// drawCPURAMValues renders CPU and RAM labels (white) + values (threshold color) at y=58.
+// drawCPURAMValues renders CPU and RAM labels (white) + values (threshold color) at y=56.
 func drawCPURAMValues(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
-	const y = 58
+	const y = 56
 
 	cpu := clampMin(c.CPUPercent(), 1)
 	ram := clampMin(c.RAMPercent(), 1)
@@ -210,16 +210,16 @@ func drawCPURAMValues(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector)
 	fb.String(82+3*f.Width+1, y, ramVal, f, ramColor)
 }
 
-// drawIORow renders network rx/tx and disk R/W at y=69.
+// drawIORow renders network rx/tx and disk R/W at y=68.
 // Uses custom arrow indicators and separate R/W labels matching original C layout.
 func drawIORow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
-	const y = 69
+	const y = 68
 
 	net := c.NetBandwidth()
 	netWarn, netCrit := theme.NetThresholds(c.LinkSpeedMbps())
 
 	// Network: down-arrow + rx, up-arrow + tx
-	// Use + for down and - for up as simple arrow substitutes in 5x8
+	// Use + for down and - for up as simple arrow substitutes in 6x12
 	fb.String(0, y, "+", f, theme.ColorFG)
 	rxStr := format.Rate(net.RxBytesPerSec)
 	fb.String(f.Width, y, rxStr, f, theme.ThresholdColor(float64(net.RxBytesPerSec), float64(netWarn), float64(netCrit)))

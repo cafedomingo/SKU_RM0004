@@ -41,10 +41,9 @@ var wantedRunes8x16 = func() map[rune]bool {
 	return m
 }()
 
-// wantedRunes5x8 is the set of Unicode code points to extract from the 5x8 BDF file.
-// Spleen 5x8 only has printable ASCII, braille, and light box drawing — no
-// degree sign, geometric shapes, or block elements.
-var wantedRunes5x8 = func() map[rune]bool {
+// wantedRunes6x12 is the set of Unicode code points to extract from the 6x12 BDF file.
+// Spleen 6x12 covers ASCII and Latin-1 Supplement. We only need ASCII for our purposes.
+var wantedRunes6x12 = func() map[rune]bool {
 	m := make(map[rune]bool)
 	// ASCII printable range
 	for r := rune(32); r <= 126; r++ {
@@ -228,7 +227,7 @@ func main() {
 	flag.Parse()
 
 	specs := []bdfSpec{
-		{filename: "spleen-5x8.bdf", wanted: wantedRunes5x8},
+		{filename: "spleen-6x12.bdf", wanted: wantedRunes6x12},
 		{filename: "spleen-8x16.bdf", wanted: wantedRunes8x16},
 	}
 
@@ -249,8 +248,8 @@ func main() {
 		log.Printf("Extracted %d glyphs from %s", len(glyphs), spec.filename)
 
 		switch spec.filename {
-		case "spleen-5x8.bdf":
-			fonts = append(fonts, fontDef{varName: "Spleen5x8", width: 5, height: 8, glyphs: glyphs})
+		case "spleen-6x12.bdf":
+			fonts = append(fonts, fontDef{varName: "Spleen6x12", width: 6, height: 12, glyphs: glyphs})
 		case "spleen-8x16.bdf":
 			fonts = append(fonts, fontDef{varName: "Spleen8x16", width: 8, height: 16, glyphs: glyphs})
 		}

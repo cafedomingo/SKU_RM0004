@@ -52,7 +52,7 @@ func Uptime(d time.Duration) string {
 }
 
 // Temp formats temperature for display: "52C" or "125F".
-// The degree symbol is omitted because Spleen 5x8 lacks it.
+// The degree symbol is omitted because Spleen 6x12 lacks it.
 func Temp(celsius float64, unit string) string {
 	val := celsius
 	if unit == "F" {
