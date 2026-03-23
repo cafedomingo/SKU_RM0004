@@ -73,7 +73,7 @@ func RenderDashboard(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Con
 	}
 
 	// CPU (left column)
-	cpuColor := theme.ThresholdColor(c.CPUPercent(), theme.CPUWarn, theme.CPUCrit)
+	cpuColor := theme.CPUColor(c.CPUPercent())
 	drawMetric(leftX, 34, "CPU:", fmt.Sprintf("%3d%%", int(cpu)), int(cpu), cpuColor)
 
 	// Temperature (right column)
@@ -86,10 +86,10 @@ func RenderDashboard(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Con
 	drawMetric(rightX, 34, "TEMP:", tempStr, tempPct, tempColor)
 
 	// RAM (left column)
-	ramColor := theme.ThresholdColor(c.RAMPercent(), theme.RAMWarn, theme.RAMCrit)
+	ramColor := theme.RAMColor(c.RAMPercent())
 	drawMetric(leftX, 56, "RAM:", fmt.Sprintf("%3d%%", int(ram)), int(ram), ramColor)
 
 	// Disk (right column)
-	diskColor := theme.ThresholdColor(c.DiskPercent(), theme.DiskWarn, theme.DiskCrit)
+	diskColor := theme.DiskColor(c.DiskPercent())
 	drawMetric(rightX, 56, "DISK:", fmt.Sprintf("%3d%%", int(disk)), int(disk), diskColor)
 }

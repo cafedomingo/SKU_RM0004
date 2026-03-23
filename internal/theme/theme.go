@@ -51,6 +51,16 @@ const (
 	APTCrit = 10
 )
 
+// Convenience color functions for common metrics.
+func CPUColor(pct float64) uint16    { return ThresholdColor(pct, CPUWarn, CPUCrit) }
+func RAMColor(pct float64) uint16    { return ThresholdColor(pct, RAMWarn, RAMCrit) }
+func DiskColor(pct float64) uint16   { return ThresholdColor(pct, DiskWarn, DiskCrit) }
+func DiskIOColor(v float64) uint16   { return ThresholdColor(v, DiskIOWarn, DiskIOCrit) }
+func NetColor(v float64, linkSpeedMbps int) uint16 {
+	warn, crit := NetThresholds(linkSpeedMbps)
+	return ThresholdColor(v, float64(warn), float64(crit))
+}
+
 // ThresholdColor returns ColorOK, ColorWarn, or ColorCrit depending on how
 // value compares to the warn and crit thresholds (inclusive on the boundary).
 func ThresholdColor(value, warn, crit float64) uint16 {

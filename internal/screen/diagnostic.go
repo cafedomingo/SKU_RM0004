@@ -101,7 +101,7 @@ func collectDiagData(c sysinfo.Collector) []diagRow {
 	rows = append(rows, diagRow{
 		label: "cpu",
 		value: cpuVal,
-		color: theme.ThresholdColor(c.CPUPercent(), theme.CPUWarn, theme.CPUCrit),
+		color: theme.CPUColor(c.CPUPercent()),
 	})
 
 	// Row 5: Temperature — both C and F, no degree symbol (6x12 lacks it)
@@ -117,7 +117,7 @@ func collectDiagData(c sysinfo.Collector) []diagRow {
 	rows = append(rows, diagRow{
 		label: "ram",
 		value: fmt.Sprintf("%d%%", int(c.RAMPercent())),
-		color: theme.ThresholdColor(c.RAMPercent(), theme.RAMWarn, theme.RAMCrit),
+		color: theme.RAMColor(c.RAMPercent()),
 	})
 
 	// Row 7: Throttle status
@@ -145,7 +145,7 @@ func collectDiagData(c sysinfo.Collector) []diagRow {
 	rows = append(rows, diagRow{
 		label: "dsk",
 		value: fmt.Sprintf("%d%%", int(c.DiskPercent())),
-		color: theme.ThresholdColor(c.DiskPercent(), theme.DiskWarn, theme.DiskCrit),
+		color: theme.DiskColor(c.DiskPercent()),
 	})
 
 	// Row 9: Net RX rate

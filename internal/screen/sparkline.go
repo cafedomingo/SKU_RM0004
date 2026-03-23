@@ -148,7 +148,7 @@ func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg 
 	// Right side: build from right edge inward
 	// D:N% — "D:" label in white, value in threshold color, right-aligned
 	diskVal := fmt.Sprintf("%d%%", int(c.DiskPercent()))
-	diskColor := theme.ThresholdColor(c.DiskPercent(), theme.DiskWarn, theme.DiskCrit)
+	diskColor := theme.DiskColor(c.DiskPercent())
 	lblW := 2 * f.Width // "D:"
 	valW := len(diskVal) * f.Width
 	dx := colRightX + colWidth - lblW - valW
@@ -206,8 +206,8 @@ func drawCPURAMValues(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector)
 	cpu := format.ClampMin(c.CPUPercent(), 1)
 	ram := format.ClampMin(c.RAMPercent(), 1)
 
-	cpuColor := theme.ThresholdColor(c.CPUPercent(), theme.CPUWarn, theme.CPUCrit)
-	ramColor := theme.ThresholdColor(c.RAMPercent(), theme.RAMWarn, theme.RAMCrit)
+	cpuColor := theme.CPUColor(c.CPUPercent())
+	ramColor := theme.RAMColor(c.RAMPercent())
 
 	// CPU label (white) + value (colored)
 	fb.String(0, y, "CPU:", f, theme.ColorFG)
@@ -226,29 +226,24 @@ func drawIORow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
 	const y = 68
 
 	net := c.NetBandwidth()
-	netWarn, netCrit := theme.NetThresholds(c.LinkSpeedMbps())
+	linkSpeed := c.LinkSpeedMbps()
 
 	// Network: arrow+rx on left, arrow+tx centered in left column
 	fb.Char(0, y, font.ArrowDown, f, theme.ColorFG)
 	rxStr := format.Rate(net.RxBytesPerSec)
-	rxColor := theme.ThresholdColor(float64(net.RxBytesPerSec), float64(netWarn), float64(netCrit))
-	fb.String(f.Width, y, rxStr, f, rxColor)
+	fb.String(f.Width, y, rxStr, f, theme.NetColor(float64(net.RxBytesPerSec), linkSpeed))
 
-	// tx starts at midpoint of left column
 	txX := 40
 	fb.Char(txX, y, font.ArrowUp, f, theme.ColorFG)
 	txStr := format.Rate(net.TxBytesPerSec)
-	txColor := theme.ThresholdColor(float64(net.TxBytesPerSec), float64(netWarn), float64(netCrit))
-	fb.String(txX+f.Width, y, txStr, f, txColor)
+	fb.String(txX+f.Width, y, txStr, f, theme.NetColor(float64(net.TxBytesPerSec), linkSpeed))
 
 	// Disk: R+read on left of right column, W+write at midpoint
 	dio := c.DiskIO()
 	fb.String(82, y, "R", f, theme.ColorFG)
-	fb.String(82+f.Width, y, format.Rate(dio.ReadBytesPerSec), f,
-		theme.ThresholdColor(float64(dio.ReadBytesPerSec), theme.DiskIOWarn, theme.DiskIOCrit))
+	fb.String(82+f.Width, y, format.Rate(dio.ReadBytesPerSec), f, theme.DiskIOColor(float64(dio.ReadBytesPerSec)))
 
 	wX := 122
 	fb.String(wX, y, "W", f, theme.ColorFG)
-	fb.String(wX+f.Width, y, format.Rate(dio.WriteBytesPerSec), f,
-		theme.ThresholdColor(float64(dio.WriteBytesPerSec), theme.DiskIOWarn, theme.DiskIOCrit))
+	fb.String(wX+f.Width, y, format.Rate(dio.WriteBytesPerSec), f, theme.DiskIOColor(float64(dio.WriteBytesPerSec)))
 }
