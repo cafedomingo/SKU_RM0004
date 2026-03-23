@@ -10,14 +10,14 @@ import (
 )
 
 const (
-	cpuFreqBase      = "/sys/devices/system/cpu/cpu0/cpufreq/"
-	vcioPath         = "/dev/vcio"
-	tagGetThrottled  = 0x00030046
-	ioctlMailbox     = 0xC0046400
-	mailboxSuccess   = 0x80000000
-	dietpiRunDir     = "/run/dietpi"
-	dietpiUpdateFlag = "/run/dietpi/.update_available"
-	dietpiAPTCache   = "/run/dietpi/.apt_updates"
+	cpuFreqBase       = "/sys/devices/system/cpu/cpu0/cpufreq/"
+	vcioPath          = "/dev/vcio"
+	tagGetThrottled   = 0x00030046
+	ioctlMailbox      = 0xC0046400
+	mailboxSuccess    = 0x80000000
+	dietpiRunDir      = "/run/dietpi"
+	dietpiUpdateFlag  = "/run/dietpi/.update_available"
+	dietpiAPTCache    = "/run/dietpi/.apt_updates"
 	dietpiVersionFile = "/boot/dietpi/.version"
 )
 
