@@ -219,13 +219,12 @@ func drawIORow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
 	netWarn, netCrit := theme.NetThresholds(c.LinkSpeedMbps())
 
 	// Network: down-arrow + rx, up-arrow + tx
-	// Use + for down and - for up as simple arrow substitutes in 6x12
-	fb.String(0, y, "+", f, theme.ColorFG)
+	fb.Char(0, y, font.ArrowDown, f, theme.ColorFG)
 	rxStr := format.Rate(net.RxBytesPerSec)
 	fb.String(f.Width, y, rxStr, f, theme.ThresholdColor(float64(net.RxBytesPerSec), float64(netWarn), float64(netCrit)))
 
 	txX := (1 + len(rxStr)) * f.Width + f.Width
-	fb.String(txX, y, "-", f, theme.ColorFG)
+	fb.Char(txX, y, font.ArrowUp, f, theme.ColorFG)
 	txStr := format.Rate(net.TxBytesPerSec)
 	fb.String(txX+f.Width, y, txStr, f, theme.ThresholdColor(float64(net.TxBytesPerSec), float64(netWarn), float64(netCrit)))
 

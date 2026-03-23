@@ -1,7 +1,41 @@
 package font
 
+// Custom glyph runes (Private Use Area to avoid collisions).
+const (
+	ArrowUp   rune = '\uE000'
+	ArrowDown rune = '\uE001'
+)
+
 // AddGlyph registers a custom bitmap glyph for a rune.
 // Used as fallback when Spleen doesn't cover a needed symbol.
 func (f *Font) AddGlyph(r rune, data []byte) {
 	f.Glyphs[r] = data
+}
+
+// AddArrowGlyphs adds up/down arrow glyphs sized for this font.
+// Only supports 6-wide fonts (6x12). The arrows are 5x6 pixels,
+// centered vertically in the glyph cell.
+func (f *Font) AddArrowGlyphs() {
+	if f.Width != 6 || f.Height != 12 {
+		return
+	}
+	// Up arrow (5x6, centered in 6x12 cell with 3px top/bottom padding)
+	// Bit patterns are MSB-aligned in 8 bits (6 pixels used):
+	//   ..X...  = 0x20
+	//   .XXX..  = 0x70
+	//   XXXXX.  = 0xF8
+	//   ..X...  = 0x20
+	//   ..X...  = 0x20
+	//   ..X...  = 0x20
+	f.Glyphs[ArrowUp] = []byte{
+		0x00, 0x00, 0x00,
+		0x20, 0x70, 0xF8, 0x20, 0x20, 0x20,
+		0x00, 0x00, 0x00,
+	}
+	// Down arrow (reversed)
+	f.Glyphs[ArrowDown] = []byte{
+		0x00, 0x00, 0x00,
+		0x20, 0x20, 0x20, 0xF8, 0x70, 0x20,
+		0x00, 0x00, 0x00,
+	}
 }

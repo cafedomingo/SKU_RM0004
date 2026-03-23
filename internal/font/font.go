@@ -7,6 +7,10 @@ type Font struct {
 	Glyphs map[rune][]byte // height bytes per glyph, MSB = leftmost pixel
 }
 
+func init() {
+	Spleen6x12.AddArrowGlyphs()
+}
+
 // Glyph returns the bitmap data for a rune, or '?' if not found.
 func (f *Font) Glyph(r rune) []byte {
 	if g, ok := f.Glyphs[r]; ok {
