@@ -20,16 +20,17 @@ type diagRow struct {
 }
 
 type diagnosticScreen struct {
+	back st7735.Framebuffer
 	page int
 	rows []diagRow
 }
 
-func (d *diagnosticScreen) NeedsRefresh() bool { return d.page == 0 }
-func (d *diagnosticScreen) Send(disp st7735.Display, front, back *st7735.Framebuffer) {
-	sendFull(disp, front, back)
-}
+func (d *diagnosticScreen) NeedsRefresh() bool          { return d.page == 0 }
+func (d *diagnosticScreen) Buffer() *st7735.Framebuffer { return &d.back }
 
-func (d *diagnosticScreen) Render(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config) {
+func (d *diagnosticScreen) Update(c sysinfo.Collector, cfg config.Config) {
+	d.back.Fill(theme.ColorBG)
+
 	f := font.Spleen6x12
 
 	if d.page == 0 {
@@ -47,24 +48,25 @@ func (d *diagnosticScreen) Render(fb *st7735.Framebuffer, c sysinfo.Collector, c
 	for i, row := range d.rows[start:end] {
 		y := i * f.Height
 		if row.label == "" {
-			// Header row: value left-aligned
-			fb.String(0, y, row.value, f, row.color)
+			d.back.String(0, y, row.value, f, row.color)
 		} else {
-			// Label left-aligned in muted
-			fb.String(0, y, row.label, f, theme.ColorMuted)
-			// Value right-aligned
+			d.back.String(0, y, row.label, f, theme.ColorMuted)
 			vw := len([]rune(row.value)) * f.Width
 			vx := st7735.Width - vw
 			if vx < 0 {
 				vx = 0
 			}
-			fb.String(vx, y, row.value, f, row.color)
+			d.back.String(vx, y, row.value, f, row.color)
 		}
 	}
 
 	// Advance page
 	numPages := (len(d.rows) + diagRowsPerPage - 1) / diagRowsPerPage
 	d.page = (d.page + 1) % numPages
+}
+
+func (d *diagnosticScreen) Send(disp st7735.Display) {
+	disp.SendFull(d.back.Pixels[:])
 }
 
 func collectDiagData(c sysinfo.Collector) []diagRow {

@@ -22,14 +22,27 @@ import (
 //	y=46:  [CPU bar]                       [Temp bar] (6px tall)
 //	y=56:  RAM:NNN% (6x12, left)           DSK:NNN% (6x12, right)
 //	y=68:  [RAM bar]                       [Disk bar] (6px tall)
-type dashboardScreen struct{}
-
-func (d *dashboardScreen) NeedsRefresh() bool { return true }
-func (d *dashboardScreen) Send(disp st7735.Display, front, back *st7735.Framebuffer) {
-	sendDirty(disp, front, back)
+type dashboardScreen struct {
+	front, back st7735.Framebuffer
 }
 
-func (d *dashboardScreen) Render(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config) {
+func (d *dashboardScreen) NeedsRefresh() bool          { return true }
+func (d *dashboardScreen) Buffer() *st7735.Framebuffer  { return &d.back }
+
+func (d *dashboardScreen) Update(c sysinfo.Collector, cfg config.Config) {
+	d.back.Fill(theme.ColorBG)
+	d.render(&d.back, c, cfg)
+}
+
+func (d *dashboardScreen) Send(disp st7735.Display) {
+	for _, r := range st7735.DiffRegions(&d.front, &d.back) {
+		disp.SendRegion(0, r.Y, st7735.Width, r.H,
+			d.back.Pixels[r.Y*st7735.Width:(r.Y+r.H)*st7735.Width])
+	}
+	d.front = d.back
+}
+
+func (d *dashboardScreen) render(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config) {
 	big := font.Spleen8x16
 	sm := font.Spleen6x12
 

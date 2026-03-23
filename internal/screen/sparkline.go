@@ -15,18 +15,18 @@ import (
 const SparklineHistory = 13
 
 type sparklineScreen struct {
+	front, back st7735.Framebuffer
 	cpuHistory  [SparklineHistory]float64
 	ramHistory  [SparklineHistory]float64
 	tickerPhase int
 }
 
-func (s *sparklineScreen) NeedsRefresh() bool { return true }
-func (s *sparklineScreen) Send(disp st7735.Display, front, back *st7735.Framebuffer) {
-	sendDirty(disp, front, back)
-}
+func (s *sparklineScreen) NeedsRefresh() bool          { return true }
+func (s *sparklineScreen) Buffer() *st7735.Framebuffer { return &s.back }
 
-func (s *sparklineScreen) Render(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config) {
-	sm := font.Spleen6x12
+func (s *sparklineScreen) Update(c sysinfo.Collector, cfg config.Config) {
+	s.back.Fill(theme.ColorBG)
+	fb := &s.back
 
 	// Shift history left, add new values
 	copy(s.cpuHistory[0:], s.cpuHistory[1:])
@@ -34,27 +34,24 @@ func (s *sparklineScreen) Render(fb *st7735.Framebuffer, c sysinfo.Collector, cf
 	copy(s.ramHistory[0:], s.ramHistory[1:])
 	s.ramHistory[SparklineHistory-1] = c.RAMPercent()
 
-	// Row 1: Ticker
+	sm := font.Spleen6x12
+
 	drawTicker(fb, sm, c, s)
-
-	// Row 2: Uptime + badges
 	drawUptimeRow(fb, sm, c)
-
-	// Row 3: Freq + temp/disk
 	drawFreqRow(fb, sm, c, cfg)
-
-	// Separator
 	fb.Rect(0, 35, st7735.Width, 1, theme.ColorSep)
-
-	// Sparkline graphs
 	drawSparklineGraph(fb, 0, s.cpuHistory[:], theme.CPUWarn, theme.CPUCrit)
 	drawSparklineGraph(fb, 82, s.ramHistory[:], theme.RAMWarn, theme.RAMCrit)
-
-	// CPU/RAM summary
 	drawCPURAMValues(fb, sm, c)
-
-	// I/O row
 	drawIORow(fb, sm, c)
+}
+
+func (s *sparklineScreen) Send(disp st7735.Display) {
+	for _, r := range st7735.DiffRegions(&s.front, &s.back) {
+		disp.SendRegion(0, r.Y, st7735.Width, r.H,
+			s.back.Pixels[r.Y*st7735.Width:(r.Y+r.H)*st7735.Width])
+	}
+	s.front = s.back
 }
 
 // drawTicker renders the cycling ticker row at y=0.

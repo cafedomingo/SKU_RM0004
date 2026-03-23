@@ -62,13 +62,10 @@ func TestDiagnosticPageCount(t *testing.T) {
 // TestDiagnosticPage0Content renders page 0 and verifies the hostname row
 // appears at y=0 with white pixels.
 func TestDiagnosticPage0Content(t *testing.T) {
-	var fb st7735.Framebuffer
-	fb.Fill(theme.ColorBG)
 	state := &diagnosticScreen{}
-	state.Render(&fb, diagMock(), diagCfg())
+	state.Update(diagMock(), diagCfg())
 
-	// Row 0 is hostname header — should have white (ColorFG) pixels at y=0
-	if !hasColorInRegion(&fb, 0, 0, st7735.Width, 12, theme.ColorFG) {
+	if !hasColorInRegion(state.Buffer(), 0, 0, st7735.Width, 12, theme.ColorFG) {
 		t.Error("expected white hostname pixels at y=0 on page 0")
 	}
 }
@@ -90,17 +87,11 @@ func TestDiagnosticPage1Content(t *testing.T) {
 	}
 
 	// Verify page 1 renders non-empty content
-	var fb st7735.Framebuffer
-	fb.Fill(theme.ColorBG)
 	state := &diagnosticScreen{}
-	// Render page 0 (advances to page 1)
-	state.Render(&fb, m, diagCfg())
-	// Render page 1 (advances to page 0)
-	fb.Fill(theme.ColorBG)
-	state.Render(&fb, m, diagCfg())
+	state.Update(m, diagCfg()) // page 0
+	state.Update(m, diagCfg()) // page 1
 
-	// Page 1 starts at row 6 (ram row); should have non-BG pixels
-	if !hasNonBGInRegion(&fb, 0, 0, st7735.Width, 12) {
+	if !hasNonBGInRegion(state.Buffer(), 0, 0, st7735.Width, 12) {
 		t.Error("expected non-background pixels at y=0 on page 1")
 	}
 }
@@ -113,7 +104,7 @@ func TestDiagnosticPageWraps(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		var fb st7735.Framebuffer
 		fb.Fill(theme.ColorBG)
-		state.Render(&fb, m, diagCfg())
+		state.Update(m, diagCfg())
 	}
 
 	if state.page != 0 {

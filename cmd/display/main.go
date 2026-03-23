@@ -13,7 +13,6 @@ import (
 	"github.com/cafedomingo/SKU_RM0004/internal/screen"
 	"github.com/cafedomingo/SKU_RM0004/internal/st7735"
 	"github.com/cafedomingo/SKU_RM0004/internal/sysinfo"
-	"github.com/cafedomingo/SKU_RM0004/internal/theme"
 )
 
 const (
@@ -37,8 +36,6 @@ func main() {
 
 	collector := sysinfo.NewCollector(logger)
 	cfgLoader := config.NewLoader(config.ConfigPath, logger)
-
-	var front, back st7735.Framebuffer
 	var current screen.Screen
 	prevScreen := ""
 
@@ -50,30 +47,21 @@ func main() {
 		cfg := cfgLoader.Load()
 
 		if cfg.Screen != prevScreen {
-			current = screen.New(cfg.Screen)
-			clearScreen(&back, &front, disp)
+			current = screen.New(cfg.Screen, disp)
 			prevScreen = cfg.Screen
 		}
 
 		if current.NeedsRefresh() {
 			collector.Refresh()
 		}
-
-		back.Fill(theme.ColorBG)
-		current.Render(&back, collector, cfg)
-		current.Send(disp, &front, &back)
+		current.Update(collector, cfg)
+		current.Send(disp)
 
 		if shouldExit(ctx, cfg.Refresh-time.Since(start)) {
 			logger.Info("shutting down")
 			return
 		}
 	}
-}
-
-func clearScreen(back, front *st7735.Framebuffer, disp st7735.Display) {
-	back.Fill(theme.ColorBG)
-	disp.SendFull(back.Pixels[:])
-	*front = *back
 }
 
 func shouldExit(ctx context.Context, remaining time.Duration) bool {
