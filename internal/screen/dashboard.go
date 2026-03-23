@@ -25,7 +25,9 @@ import (
 type dashboardScreen struct{}
 
 func (d *dashboardScreen) NeedsRefresh() bool { return true }
-func (d *dashboardScreen) FullRedraw() bool   { return false }
+func (d *dashboardScreen) Send(disp st7735.Display, front, back *st7735.Framebuffer) {
+	sendDirty(disp, front, back)
+}
 
 func (d *dashboardScreen) Render(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config) {
 	big := font.Spleen8x16

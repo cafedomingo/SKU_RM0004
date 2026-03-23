@@ -25,7 +25,9 @@ type diagnosticScreen struct {
 }
 
 func (d *diagnosticScreen) NeedsRefresh() bool { return d.page == 0 }
-func (d *diagnosticScreen) FullRedraw() bool   { return true }
+func (d *diagnosticScreen) Send(disp st7735.Display, front, back *st7735.Framebuffer) {
+	sendFull(disp, front, back)
+}
 
 func (d *diagnosticScreen) Render(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config) {
 	f := font.Spleen6x12

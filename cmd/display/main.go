@@ -61,13 +61,7 @@ func main() {
 
 		back.Fill(theme.ColorBG)
 		current.Render(&back, collector, cfg)
-
-		if current.FullRedraw() {
-			disp.SendFull(back.Pixels[:])
-			front = back
-		} else {
-			sendDirty(disp, &front, &back)
-		}
+		current.Send(disp, &front, &back)
 
 		if shouldExit(ctx, cfg.Refresh-time.Since(start)) {
 			logger.Info("shutting down")
@@ -79,14 +73,6 @@ func main() {
 func clearScreen(back, front *st7735.Framebuffer, disp st7735.Display) {
 	back.Fill(theme.ColorBG)
 	disp.SendFull(back.Pixels[:])
-	*front = *back
-}
-
-func sendDirty(disp st7735.Display, front, back *st7735.Framebuffer) {
-	for _, r := range st7735.DiffRegions(front, back) {
-		disp.SendRegion(0, r.Y, st7735.Width, r.H,
-			back.Pixels[r.Y*st7735.Width:(r.Y+r.H)*st7735.Width])
-	}
 	*front = *back
 }
 

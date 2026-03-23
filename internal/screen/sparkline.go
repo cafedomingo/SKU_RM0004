@@ -21,7 +21,9 @@ type sparklineScreen struct {
 }
 
 func (s *sparklineScreen) NeedsRefresh() bool { return true }
-func (s *sparklineScreen) FullRedraw() bool   { return false }
+func (s *sparklineScreen) Send(disp st7735.Display, front, back *st7735.Framebuffer) {
+	sendDirty(disp, front, back)
+}
 
 func (s *sparklineScreen) Render(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config) {
 	sm := font.Spleen6x12
