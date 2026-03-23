@@ -19,7 +19,6 @@ import (
 
 const (
 	thermalPath      = "/sys/class/thermal/thermal_zone0/temp"
-	milliCPerCelsius = 1000.0
 	procRoutePath    = "/proc/net/route"
 	defaultRouteDest = "00000000"
 	procMountsPath   = "/proc/mounts"
@@ -126,7 +125,7 @@ func (c *liveCollector) refreshTemp() {
 	if data, err := os.ReadFile(thermalPath); err == nil {
 		var milliC int
 		if _, err := fmt.Sscanf(strings.TrimSpace(string(data)), "%d", &milliC); err == nil {
-			c.temp = float64(milliC) / milliCPerCelsius
+			c.temp = float64(milliC) / 1000
 			return
 		}
 	}

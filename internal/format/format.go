@@ -13,7 +13,6 @@ const (
 	secsPerHour = 60 * secsPerMin
 	secsPerDay  = 24 * secsPerHour
 
-	mhzPerGhz  = 1000
 	aptBadgeMax = 99
 )
 
@@ -35,10 +34,10 @@ func Rate(bytes uint64) string {
 
 // Freq formats CPU frequency: "600MHz" or "1.8GHz"
 func Freq(mhz uint16) string {
-	if mhz < mhzPerGhz {
+	if mhz < 1000 {
 		return fmt.Sprintf("%dMHz", mhz)
 	}
-	return fmt.Sprintf("%.1fGHz", float64(mhz)/mhzPerGhz)
+	return fmt.Sprintf("%.1fGHz", float64(mhz)/1000)
 }
 
 // Uptime formats a duration: "1d 2h", "5h 12m", "42m"

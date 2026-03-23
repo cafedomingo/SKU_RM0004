@@ -11,7 +11,6 @@ import (
 
 const (
 	cpuFreqBase      = "/sys/devices/system/cpu/cpu0/cpufreq/"
-	kHzPerMHz        = 1000
 	vcioPath         = "/dev/vcio"
 	tagGetThrottled  = 0x00030046
 	ioctlMailbox     = 0xC0046400
@@ -33,7 +32,7 @@ func readCPUFreq() CPUFreq {
 		if _, err := fmt.Sscanf(strings.TrimSpace(string(data)), "%d", &kHz); err != nil {
 			return 0
 		}
-		return uint16(kHz / kHzPerMHz)
+		return uint16(kHz / 1000)
 	}
 
 	const base = cpuFreqBase
