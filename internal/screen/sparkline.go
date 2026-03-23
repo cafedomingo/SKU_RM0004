@@ -26,11 +26,11 @@ type SparklineState struct {
 // Layout (160x80, Spleen 6x12 for text):
 //
 //	y=1:   Ticker (hostname -> IPv4 -> IPv6, cycling)     | badges right-aligned
-//	y=12:  Uptime                                         | DietPi/APT badges
-//	y=23:  CPU freq + throttle                            | Temp | D:N%
-//	y=33:  --- separator (1px) ---
-//	y=35:  [sparkline graph area -- CPU bars left, RAM bars right]
-//	       Graph height: 20px (y=35 to y=54)
+//	y=14:  Uptime                                         | DietPi/APT badges
+//	y=25:  CPU freq + throttle                            | Temp | D:N%
+//	y=35:  --- separator (1px) ---
+//	y=37:  [sparkline graph area -- CPU bars left, RAM bars right]
+//	       Graph height: 18px (y=37 to y=54)
 //	y=56:  CPU N% (left)                                  RAM N% (right)
 //	y=68:  down-arrow rx up-arrow tx (left)               R disk W disk (right)
 func RenderSparkline(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config, state *SparklineState) {
@@ -52,7 +52,7 @@ func RenderSparkline(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Con
 	drawFreqRow(fb, sm, c, cfg)
 
 	// Separator
-	fb.Rect(0, 33, st7735.Width, 1, theme.ColorSep)
+	fb.Rect(0, 35, st7735.Width, 1, theme.ColorSep)
 
 	// Sparkline graphs
 	drawSparklineGraph(fb, 0, state.CPUHistory[:], theme.CPUWarn, theme.CPUCrit)
@@ -95,9 +95,9 @@ func drawTicker(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, state
 	state.TickerPhase = (state.TickerPhase + 1) % (maxPhase + 1)
 }
 
-// drawUptimeRow renders uptime on the left, update badges on the right at y=12.
+// drawUptimeRow renders uptime on the left, update badges on the right at y=14.
 func drawUptimeRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
-	const y = 12
+	const y = 14
 
 	fb.String(0, y, format.Uptime(c.Uptime()), f, theme.ColorFG)
 
@@ -123,13 +123,13 @@ func drawUptimeRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
 	}
 }
 
-// drawFreqRow renders CPU freq + throttle on the left, temp | D:N% on the right at y=23.
+// drawFreqRow renders CPU freq + throttle on the left, temp | D:N% on the right at y=25.
 // Matches original C layout: right side built from right edge inward.
 func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg config.Config) {
 	const (
 		colRightX = 82
 		colWidth  = 78
-		y         = 23
+		y         = 25
 	)
 
 	// Left: CPU frequency
@@ -154,11 +154,11 @@ func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg 
 	fb.String(dx, y, "D:", f, theme.ColorFG)
 	fb.String(dx+lblW, y, diskVal, f, diskColor)
 
-	// Pipe separator — 2px gap before D:
-	pipeX := dx - 2 - f.Width - 2
-	fb.String(pipeX+2, y, "|", f, theme.ColorSep)
+	// Pipe separator — 1 char gap on each side
+	pipeX := dx - f.Width
+	fb.String(pipeX, y, "|", f, theme.ColorSep)
 
-	// Temperature before the pipe
+	// Temperature right before the pipe gap
 	tempStr := format.Temp(c.Temperature(), cfg.TempUnit)
 	tempColor := theme.TempRampColor(c.Temperature())
 	tempW := len(tempStr) * f.Width
@@ -172,8 +172,8 @@ func drawSparklineGraph(fb *st7735.Framebuffer, xOff int, history []float64, war
 	const (
 		barW     = 5
 		barGap   = 1
-		graphY   = 35
-		graphH   = 20
+		graphY   = 37
+		graphH   = 18
 		graphEnd = 54 // graphY + graphH - 1
 	)
 
