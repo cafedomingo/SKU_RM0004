@@ -70,6 +70,9 @@ func (fb *Framebuffer) String(x, y int, s string, f *font.Font, color uint16) {
 // pct is the fill percentage (0–100). Filled portion uses fg color, remainder uses bg color.
 func (fb *Framebuffer) Bar(x, y, w, h int, pct int, fg, bg uint16) {
 	filled := w * pct / 100
+	if pct > 0 {
+		filled = max(filled, 1)
+	}
 	for row := y; row < y+h; row++ {
 		for col := x; col < x+w; col++ {
 			if col-x < filled {
