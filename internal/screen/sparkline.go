@@ -124,8 +124,13 @@ func drawUptimeRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
 }
 
 // drawFreqRow renders CPU freq + throttle on the left, temp | D:N% on the right at y=23.
+// Matches original C layout: right side built from right edge inward.
 func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg config.Config) {
-	const y = 23
+	const (
+		colRightX = 82
+		colWidth  = 78
+		y         = 23
+	)
 
 	// Left: CPU frequency
 	freq := c.CPUFreq()
@@ -139,15 +144,18 @@ func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg 
 		fb.String(tx, y, "!", f, theme.ColorAlert)
 	}
 
-	// Right side: build from right edge inward
-	// D:N%
-	diskStr := fmt.Sprintf("D:%d%%", int(c.DiskPercent()))
+	// Right side: build from right edge inward (matching C layout)
+	// D:N% — "D:" label in white, value in threshold color
+	diskVal := fmt.Sprintf("%d%%", int(c.DiskPercent()))
 	diskColor := theme.ThresholdColor(c.DiskPercent(), theme.DiskWarn, theme.DiskCrit)
-	dx := st7735.Width - len(diskStr)*f.Width
-	fb.String(dx, y, diskStr, f, diskColor)
+	lblW := 2 * f.Width // "D:"
+	valW := len(diskVal) * f.Width
+	dx := colRightX + colWidth - lblW - valW
+	fb.String(dx, y, "D:", f, theme.ColorFG)
+	fb.String(dx+lblW, y, diskVal, f, diskColor)
 
-	// Pipe separator
-	pipeX := dx - f.Width - 2
+	// Pipe separator — 2px gap before D:
+	pipeX := dx - 2 - f.Width - 2
 	fb.String(pipeX+2, y, "|", f, theme.ColorSep)
 
 	// Temperature before the pipe
@@ -170,22 +178,22 @@ func drawSparklineGraph(fb *st7735.Framebuffer, xOff int, history []float64, war
 	)
 
 	for i, val := range history {
+		if val == 0 {
+			continue
+		}
 		x := xOff + i*(barW+barGap)
 		color := theme.ThresholdColor(val, warn, crit)
 
-		// Bar height proportional to value (0-100%)
-		h := int(val * float64(graphH) / 100.0)
-		if h < 0 {
-			h = 0
+		// Bar height proportional to value, with rounding and 1px minimum
+		h := int((val*float64(graphH) + 50) / 100)
+		if h < 1 {
+			h = 1
 		}
 		if h > graphH {
 			h = graphH
 		}
 
-		// Draw from bottom up
-		if h > 0 {
-			fb.Rect(x, graphEnd-h+1, barW, h, color)
-		}
+		fb.Rect(x, graphEnd-h+1, barW, h, color)
 	}
 }
 
@@ -228,14 +236,13 @@ func drawIORow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
 	txStr := format.Rate(net.TxBytesPerSec)
 	fb.String(txX+f.Width, y, txStr, f, theme.ThresholdColor(float64(net.TxBytesPerSec), float64(netWarn), float64(netCrit)))
 
-	// Disk: R + read rate, W + write rate
+	// Disk: R + read rate, W + write rate (fixed positions matching C layout)
 	dio := c.DiskIO()
 	fb.String(82, y, "R", f, theme.ColorFG)
-	rStr := format.Rate(dio.ReadBytesPerSec)
-	fb.String(82+f.Width, y, rStr, f, theme.ThresholdColor(float64(dio.ReadBytesPerSec), theme.DiskIOWarn, theme.DiskIOCrit))
+	fb.String(82+f.Width, y, format.Rate(dio.ReadBytesPerSec), f,
+		theme.ThresholdColor(float64(dio.ReadBytesPerSec), theme.DiskIOWarn, theme.DiskIOCrit))
 
-	wX := 82 + (1 + len(rStr)) * f.Width + f.Width
-	fb.String(wX, y, "W", f, theme.ColorFG)
-	wStr := format.Rate(dio.WriteBytesPerSec)
-	fb.String(wX+f.Width, y, wStr, f, theme.ThresholdColor(float64(dio.WriteBytesPerSec), theme.DiskIOWarn, theme.DiskIOCrit))
+	fb.String(120, y, "W", f, theme.ColorFG)
+	fb.String(120+f.Width, y, format.Rate(dio.WriteBytesPerSec), f,
+		theme.ThresholdColor(float64(dio.WriteBytesPerSec), theme.DiskIOWarn, theme.DiskIOCrit))
 }
