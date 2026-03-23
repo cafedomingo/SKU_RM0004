@@ -63,7 +63,7 @@ func drawTicker(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, s *sp
 		text = c.Hostname()
 		color = theme.ColorFG
 	case 1:
-		text = c.IPAddress()
+		text = c.IPv4Address()
 		color = theme.ColorIP
 	case 2:
 		text = c.IPv6Suffix()

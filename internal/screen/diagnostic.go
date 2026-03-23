@@ -79,7 +79,7 @@ func collectDiagData(c sysinfo.Collector) []diagRow {
 
 	// Row 1: IPv4 (header, no label)
 	rows = append(rows, diagRow{
-		value: c.IPAddress(),
+		value: c.IPv4Address(),
 		color: theme.ColorIP,
 	})
 

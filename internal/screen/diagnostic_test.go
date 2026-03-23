@@ -14,7 +14,7 @@ import (
 func diagMock() *sysinfo.MockCollector {
 	return &sysinfo.MockCollector{
 		Host:  "testhost",
-		IP:    "192.168.1.1",
+		IPv4:  "192.168.1.1",
 		IPv6:  "::1",
 		CPU:   47,
 		RAM:   63,

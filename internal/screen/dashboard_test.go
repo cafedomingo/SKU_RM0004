@@ -12,7 +12,7 @@ import (
 func defaultMock() *sysinfo.MockCollector {
 	return &sysinfo.MockCollector{
 		Host: "dietpi",
-		IP:   "192.168.1.42",
+		IPv4: "192.168.1.42",
 		CPU:  47,
 		RAM:  63,
 		Disk: 42,
@@ -88,7 +88,7 @@ func TestDashboardThresholds(t *testing.T) {
 	// Test at exact boundaries where colors are deterministic
 	t.Run("at_crit", func(t *testing.T) {
 		m := &sysinfo.MockCollector{
-			Host: "pi", IP: "10.0.0.1",
+			Host: "pi", IPv4: "10.0.0.1",
 			CPU: theme.CPUCrit, RAM: theme.RAMCrit, Disk: theme.DiskCrit, Temp: 45,
 		}
 		d := &dashboardScreen{collector: m}
@@ -102,7 +102,7 @@ func TestDashboardThresholds(t *testing.T) {
 	// Intermediate values produce visible (non-background) bars with lerped colors
 	t.Run("intermediate", func(t *testing.T) {
 		m := &sysinfo.MockCollector{
-			Host: "pi", IP: "10.0.0.1",
+			Host: "pi", IPv4: "10.0.0.1",
 			CPU: 30, RAM: 65, Disk: 50, Temp: 45,
 		}
 		d := &dashboardScreen{collector: m}
@@ -123,7 +123,7 @@ func TestDashboardThresholds(t *testing.T) {
 func TestDashboardDisplayFloor(t *testing.T) {
 	m := &sysinfo.MockCollector{
 		Host: "pi",
-		IP:   "10.0.0.1",
+		IPv4: "10.0.0.1",
 		CPU:  0,
 		RAM:  0,
 		Disk: 0,

@@ -9,7 +9,7 @@ type MockCollector struct {
 	Disk      float64
 	Temp      float64
 	Host      string
-	IP        string
+	IPv4      string
 	IPv6      string
 	Freq      CPUFreq
 	Net       NetBandwidth
@@ -26,7 +26,7 @@ func (m *MockCollector) RAMPercent() float64        { return m.RAM }
 func (m *MockCollector) DiskPercent() float64       { return m.Disk }
 func (m *MockCollector) Temperature() float64       { return m.Temp }
 func (m *MockCollector) Hostname() string           { return m.Host }
-func (m *MockCollector) IPAddress() string          { return m.IP }
+func (m *MockCollector) IPv4Address() string        { return m.IPv4 }
 func (m *MockCollector) IPv6Suffix() string         { return m.IPv6 }
 func (m *MockCollector) CPUFreq() CPUFreq           { return m.Freq }
 func (m *MockCollector) NetBandwidth() NetBandwidth { return m.Net }

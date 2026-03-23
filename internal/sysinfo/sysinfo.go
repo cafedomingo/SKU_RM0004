@@ -40,7 +40,7 @@ type Collector interface {
 	DiskPercent() float64
 	Temperature() float64
 	Hostname() string
-	IPAddress() string
+	IPv4Address() string
 	IPv6Suffix() string
 	CPUFreq() CPUFreq
 	NetBandwidth() NetBandwidth
