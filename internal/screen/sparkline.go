@@ -48,14 +48,7 @@ func (s *sparklineScreen) Update(cfg config.Config) {
 }
 
 func (s *sparklineScreen) Draw() {
-	if s.disp == nil {
-		return
-	}
-	for _, r := range st7735.DiffRegions(&s.front, &s.back) {
-		s.disp.SendRegion(0, r.Y, st7735.Width, r.H,
-			s.back.Pixels[r.Y*st7735.Width:(r.Y+r.H)*st7735.Width])
-	}
-	s.front = s.back
+	drawDirty(s.disp, &s.front, &s.back)
 }
 
 // drawTicker renders the cycling ticker row at y=0.

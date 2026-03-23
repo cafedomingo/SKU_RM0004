@@ -36,14 +36,7 @@ func (d *dashboardScreen) Update(cfg config.Config) {
 }
 
 func (d *dashboardScreen) Draw() {
-	if d.disp == nil {
-		return
-	}
-	for _, r := range st7735.DiffRegions(&d.front, &d.back) {
-		d.disp.SendRegion(0, r.Y, st7735.Width, r.H,
-			d.back.Pixels[r.Y*st7735.Width:(r.Y+r.H)*st7735.Width])
-	}
-	d.front = d.back
+	drawDirty(d.disp, &d.front, &d.back)
 }
 
 func (d *dashboardScreen) render(fb *st7735.Framebuffer, cfg config.Config) {
