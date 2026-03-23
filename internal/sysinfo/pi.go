@@ -4,6 +4,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"unsafe"
 
 	"golang.org/x/sys/unix"
@@ -80,11 +81,12 @@ func readThrottleStatus() uint32 {
 	return buf[5]
 }
 
-// isDietPi returns true if the system is running DietPi.
-func isDietPi() bool {
+// isDietPi reports whether the system is running DietPi.
+// Checked once and cached — can't change during program lifetime.
+var isDietPi = sync.OnceValue(func() bool {
 	_, err := os.Stat(dietpiRunPath)
 	return err == nil
-}
+})
 
 // readDietPiStatus checks DietPi installation and update status.
 func readDietPiStatus() DietPiStatus {
