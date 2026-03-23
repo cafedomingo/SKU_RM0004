@@ -203,8 +203,8 @@ func drawSparklineGraph(fb *st7735.Framebuffer, xOff int, history []float64, war
 func drawCPURAMValues(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
 	const y = 56
 
-	cpu := clampMin(c.CPUPercent(), 1)
-	ram := clampMin(c.RAMPercent(), 1)
+	cpu := format.ClampMin(c.CPUPercent(), 1)
+	ram := format.ClampMin(c.RAMPercent(), 1)
 
 	cpuColor := theme.ThresholdColor(c.CPUPercent(), theme.CPUWarn, theme.CPUCrit)
 	ramColor := theme.ThresholdColor(c.RAMPercent(), theme.RAMWarn, theme.RAMCrit)

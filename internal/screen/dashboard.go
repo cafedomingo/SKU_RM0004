@@ -52,9 +52,9 @@ func RenderDashboard(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Con
 	fb.Rect(0, 30, st7735.Width, 1, theme.ColorSep)
 
 	// Clamp display values to minimum 1% so bars are always visible
-	cpu := clampMin(c.CPUPercent(), 1)
-	ram := clampMin(c.RAMPercent(), 1)
-	disk := clampMin(c.DiskPercent(), 1)
+	cpu := format.ClampMin(c.CPUPercent(), 1)
+	ram := format.ClampMin(c.RAMPercent(), 1)
+	disk := format.ClampMin(c.DiskPercent(), 1)
 	temp := c.Temperature()
 
 	const (
@@ -92,12 +92,4 @@ func RenderDashboard(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Con
 	// Disk (right column)
 	diskColor := theme.ThresholdColor(c.DiskPercent(), theme.DiskWarn, theme.DiskCrit)
 	drawMetric(rightX, 56, "DISK:", fmt.Sprintf("%3d%%", int(disk)), int(disk), diskColor)
-}
-
-// clampMin returns v if v >= min, otherwise min.
-func clampMin(v, min float64) float64 {
-	if v < min {
-		return min
-	}
-	return v
 }

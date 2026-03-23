@@ -81,6 +81,14 @@ func RuneLen(s string) int {
 	return n
 }
 
+// ClampMin returns v if v >= min, otherwise min.
+func ClampMin(v, min float64) float64 {
+	if v < min {
+		return min
+	}
+	return v
+}
+
 // APTBadge formats APT update count: "^3" (capped at 99). Returns "" for count <= 0.
 func APTBadge(count int) string {
 	if count <= 0 {
