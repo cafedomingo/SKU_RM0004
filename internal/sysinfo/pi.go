@@ -54,13 +54,13 @@ func readThrottleStatus() uint32 {
 	// Mailbox property buffer for GET_THROTTLED (tag 0x00030046).
 	// Must be 16-byte aligned; [8]uint32 is 32 bytes, naturally aligned.
 	buf := [8]uint32{
-		32,         // buffer size
-		0,          // request code
+		32,              // buffer size
+		0,               // request code
 		tagGetThrottled, // GET_THROTTLED
-		4,          // value buffer size
-		0,          // request/response indicator
-		0,          // value (filled by firmware)
-		0,          // end tag
+		4,               // value buffer size
+		0,               // request/response indicator
+		0,               // value (filled by firmware)
+		0,               // end tag
 		0,
 	}
 
