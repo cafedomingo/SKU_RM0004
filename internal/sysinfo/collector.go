@@ -265,14 +265,16 @@ func interfaceAddresses(name string) (ipv4, ipv6suffix string) {
 		if ip4 := ipnet.IP.To4(); ip4 != nil {
 			ipv4 = ip4.String()
 		} else if ip6 := ipnet.IP.To16(); ip6 != nil && !ip6.IsLinkLocalUnicast() {
-			// Return last segment of the IPv6 address.
-			full := ipnet.IP.String()
-			parts := strings.Split(full, ":")
-			if len(parts) > 0 {
-				ipv6suffix = parts[len(parts)-1]
-				if ipv6suffix == "" {
-					ipv6suffix = "0"
-				}
+			// Return host portion: all groups after the prefix length.
+			ones, _ := ipnet.Mask.Size()
+			firstGroup := ones / 16
+			var groups []string
+			for g := firstGroup; g < 8; g++ {
+				val := uint16(ip6[g*2])<<8 | uint16(ip6[g*2+1])
+				groups = append(groups, fmt.Sprintf("%x", val))
+			}
+			if len(groups) > 0 {
+				ipv6suffix = "::" + strings.Join(groups, ":")
 			}
 		}
 	}
