@@ -45,8 +45,6 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-	clearScreen(&back, &front, disp)
-
 	for {
 		start := time.Now()
 		cfg := cfgLoader.Load()
