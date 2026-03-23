@@ -1,8 +1,8 @@
 package sysinfo
 
 import (
-	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"unsafe"
 
@@ -31,8 +31,8 @@ func readCPUFreq() CPUFreq {
 		if err != nil {
 			return 0
 		}
-		var kHz int
-		if _, err := fmt.Sscanf(strings.TrimSpace(string(data)), "%d", &kHz); err != nil {
+		kHz, err := strconv.Atoi(strings.TrimSpace(string(data)))
+		if err != nil {
 			return 0
 		}
 		return uint16(kHz / 1000)
@@ -96,11 +96,11 @@ func readDietPiStatus() DietPiStatus {
 func readAPTUpdateCount() int {
 	data, err := os.ReadFile(dietpiAPTPath)
 	if err == nil {
-		var count int
-		if _, err := fmt.Sscanf(strings.TrimSpace(string(data)), "%d", &count); err == nil {
-			return count
+		count, err := strconv.Atoi(strings.TrimSpace(string(data)))
+		if err != nil {
+			return 0
 		}
-		return 0
+		return count
 	}
 
 	// No .apt_updates file; check if this is DietPi at all.

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -126,8 +127,8 @@ func (c *liveCollector) refreshTemp() {
 	if err != nil {
 		return
 	}
-	var milliC int
-	if _, err := fmt.Sscanf(strings.TrimSpace(string(data)), "%d", &milliC); err == nil {
+	milliC, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err == nil {
 		c.temp = float64(milliC) / 1000
 	}
 }
@@ -275,8 +276,8 @@ func readLinkSpeed(iface string) int {
 	if err != nil {
 		return 0
 	}
-	var speed int
-	if _, err := fmt.Sscanf(strings.TrimSpace(string(data)), "%d", &speed); err != nil {
+	speed, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil {
 		return 0
 	}
 	return max(speed, 0)
