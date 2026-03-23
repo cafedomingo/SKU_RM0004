@@ -1,3 +1,4 @@
-obj/
-display
-.vscode/*
+/display
+/screenshot
+*.png
+!docs/*.png
