@@ -23,17 +23,17 @@ type SparklineState struct {
 
 // RenderSparkline draws the sparkline history screen onto the framebuffer.
 //
-// Layout (160x80, Spleen 8x16 font):
+// Layout (160x80, Spleen 5x8 for text, 8x16 for symbols):
 //
 //	y=0:   Ticker (hostname -> IPv4 -> IPv6, cycling)     | badges right-aligned
-//	y=16:  CPU freq + throttle indicator                  | Temp + Disk% right
-//	y=33:  --- separator (1px) ---
-//	y=35:  [sparkline graph area -- CPU bars left, RAM bars right]
-//	       Graph height: 24px (y=35 to y=58)
-//	y=60:  CPU N% (left)                                  RAM N% (right)
-//	y=76:  down-arrow rx up-arrow tx (left)               R/W disk (right)
+//	y=8:   CPU freq + throttle indicator                  | Temp + Disk% right
+//	y=17:  --- separator (1px) ---
+//	y=19:  [sparkline graph area -- CPU bars left, RAM bars right]
+//	       Graph height: 30px (y=19 to y=48)
+//	y=50:  CPU N% (left)                                  RAM N% (right)
+//	y=60:  down-arrow rx up-arrow tx (left)               R/W disk (right)
 func RenderSparkline(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config, state *SparklineState) {
-	f := font.Spleen8x16
+	sm := font.Spleen5x8
 
 	// Shift history left, add new values
 	copy(state.CPUHistory[0:], state.CPUHistory[1:])
@@ -42,23 +42,23 @@ func RenderSparkline(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Con
 	state.RAMHistory[SparklineHistory-1] = c.RAMPercent()
 
 	// Row 1: Ticker
-	drawTicker(fb, f, c, state)
+	drawTicker(fb, sm, c, state)
 
 	// Row 2: Freq + temp/disk
-	drawFreqRow(fb, f, c, cfg)
+	drawFreqRow(fb, sm, c, cfg)
 
 	// Separator
-	fb.Rect(0, 33, st7735.Width, 1, theme.ColorSep)
+	fb.Rect(0, 17, st7735.Width, 1, theme.ColorSep)
 
 	// Sparkline graphs
 	drawSparklineGraph(fb, 0, state.CPUHistory[:], theme.CPUWarn, theme.CPUCrit)
 	drawSparklineGraph(fb, 82, state.RAMHistory[:], theme.RAMWarn, theme.RAMCrit)
 
 	// CPU/RAM summary
-	drawCPURAMValues(fb, f, c)
+	drawCPURAMValues(fb, sm, c)
 
 	// I/O row
-	drawIORow(fb, f, c)
+	drawIORow(fb, sm, c)
 }
 
 // drawTicker renders the cycling ticker row at y=0.
@@ -82,9 +82,10 @@ func drawTicker(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, state
 
 	fb.String(2, 0, text, f, color)
 
-	// Right side: DietPi diamond + APT badge
+	// Right side: DietPi diamond (use 8x16 font for the symbol glyph)
+	big := font.Spleen8x16
 	if c.DietPiStatus() == sysinfo.DietPiUpdateAvail {
-		fb.Char(152, 0, '\u25C6', f, theme.ColorAlert)
+		fb.Char(152, 0, '\u25C6', big, theme.ColorAlert)
 	}
 
 	badge := format.APTBadge(c.APTUpdateCount())
@@ -109,11 +110,12 @@ func drawTicker(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, state
 	state.TickerPhase = (state.TickerPhase + 1) % (maxPhase + 1)
 }
 
-// drawFreqRow renders CPU freq + throttle on the left, temp + disk% on the right at y=16.
+// drawFreqRow renders CPU freq + throttle on the left, temp + disk% on the right at y=8.
 func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg config.Config) {
 	const (
 		leftX  = 2
 		rightX = 82
+		y      = 8
 	)
 
 	// Left: CPU frequency
@@ -138,33 +140,33 @@ func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg 
 		throttleColor = theme.ColorWarn
 	}
 
-	fb.String(leftX, 16, freqStr, f, theme.ColorFG)
+	fb.String(leftX, y, freqStr, f, theme.ColorFG)
 	if throttleStr != "" {
 		tx := leftX + len([]rune(freqStr))*f.Width
-		fb.String(tx, 16, throttleStr, f, throttleColor)
+		fb.String(tx, y, throttleStr, f, throttleColor)
 	}
 
 	// Right: Temp + Disk%
 	tempStr := format.Temp(c.Temperature(), cfg.TempUnit)
 	tempColor := theme.TempRampColor(c.Temperature())
-	fb.String(rightX, 16, tempStr, f, tempColor)
+	fb.String(rightX, y, tempStr, f, tempColor)
 
 	diskStr := fmt.Sprintf("D:%d%%", int(c.DiskPercent()))
 	diskColor := theme.ThresholdColor(c.DiskPercent(), theme.DiskWarn, theme.DiskCrit)
 	dx := st7735.Width - len([]rune(diskStr))*f.Width - 2
-	fb.String(dx, 16, diskStr, f, diskColor)
+	fb.String(dx, y, diskStr, f, diskColor)
 }
 
 // drawSparklineGraph renders 13 vertical bars in the graph area.
 // Each bar is 5px wide with 1px gap, starting at x offset xOff.
-// Graph area: y=35 to y=58 (24px tall).
+// Graph area: y=19 to y=48 (30px tall).
 func drawSparklineGraph(fb *st7735.Framebuffer, xOff int, history []float64, warn, crit float64) {
 	const (
 		barW     = 5
 		barGap   = 1
-		graphY   = 35
-		graphH   = 24
-		graphEnd = 59 // graphY + graphH - 1
+		graphY   = 19
+		graphH   = 30
+		graphEnd = 48 // graphY + graphH - 1
 	)
 
 	for i, val := range history {
@@ -187,12 +189,12 @@ func drawSparklineGraph(fb *st7735.Framebuffer, xOff int, history []float64, war
 	}
 }
 
-// drawCPURAMValues renders the CPU and RAM percentage labels at y=60.
+// drawCPURAMValues renders the CPU and RAM percentage labels at y=50.
 func drawCPURAMValues(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
 	const (
 		leftX  = 2
 		rightX = 82
-		y      = 60
+		y      = 50
 	)
 
 	cpu := clampMin(c.CPUPercent(), 1)
@@ -205,13 +207,13 @@ func drawCPURAMValues(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector)
 	fb.String(rightX, y, fmt.Sprintf("RAM %d%%", int(ram)), f, ramColor)
 }
 
-// drawIORow renders network and disk I/O at y=76 (partial, clipped to 80px height).
+// drawIORow renders network and disk I/O at y=60.
 func drawIORow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
-	const y = 64
+	const y = 60
 
 	net := c.NetBandwidth()
-	rxStr := fmt.Sprintf("\u2193%s", format.Rate(net.RxBytesPerSec))
-	txStr := fmt.Sprintf("\u2191%s", format.Rate(net.TxBytesPerSec))
+	rxStr := fmt.Sprintf("v%s", format.Rate(net.RxBytesPerSec))
+	txStr := fmt.Sprintf("^%s", format.Rate(net.TxBytesPerSec))
 	fb.String(2, y, rxStr, f, theme.ColorFG)
 	txX := 2 + len([]rune(rxStr))*f.Width + f.Width
 	fb.String(txX, y, txStr, f, theme.ColorFG)

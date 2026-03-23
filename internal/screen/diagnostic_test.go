@@ -33,10 +33,10 @@ func diagCfg() config.Config {
 	return config.Config{TempUnit: "C"}
 }
 
-// pixelsInRow returns the set of unique colors found in the row at y offset [y, y+16).
+// pixelsInRow returns the set of unique colors found in the row at y offset [y, y+8) (5x8 font).
 func pixelsInRow(fb *st7735.Framebuffer, y int) map[uint16]bool {
 	colors := make(map[uint16]bool)
-	for row := y; row < y+16 && row < st7735.Height; row++ {
+	for row := y; row < y+8 && row < st7735.Height; row++ {
 		for col := 0; col < st7735.Width; col++ {
 			c := fb.Pixels[row*st7735.Width+col]
 			if c != theme.ColorBG {
@@ -47,15 +47,15 @@ func pixelsInRow(fb *st7735.Framebuffer, y int) map[uint16]bool {
 	return colors
 }
 
-// TestDiagnosticPageCount verifies 15 rows produce exactly 3 pages.
+// TestDiagnosticPageCount verifies 15 rows produce exactly 2 pages.
 func TestDiagnosticPageCount(t *testing.T) {
 	rows := collectDiagData(diagMock())
 	if len(rows) != 15 {
 		t.Fatalf("expected 15 rows, got %d", len(rows))
 	}
 	numPages := (len(rows) + diagRowsPerPage - 1) / diagRowsPerPage
-	if numPages != 3 {
-		t.Errorf("expected 3 pages, got %d", numPages)
+	if numPages != 2 {
+		t.Errorf("expected 2 pages, got %d", numPages)
 	}
 }
 
@@ -68,60 +68,61 @@ func TestDiagnosticPage0Content(t *testing.T) {
 	RenderDiagnostic(&fb, diagMock(), diagCfg(), state)
 
 	// Row 0 is hostname header — should have white (ColorFG) pixels at y=0
-	if !hasColorInRegion(&fb, 0, 0, st7735.Width, 16, theme.ColorFG) {
+	if !hasColorInRegion(&fb, 0, 0, st7735.Width, 8, theme.ColorFG) {
 		t.Error("expected white hostname pixels at y=0 on page 0")
 	}
 }
 
 // TestDiagnosticPage1Content renders pages 0 then 1 and verifies the
-// temperature row (page 1, row 0 = y=0) shows both °C and °F.
+// temperature row (page 1, row 0 = y=0) shows both C and F.
 func TestDiagnosticPage1Content(t *testing.T) {
 	m := diagMock()
 	rows := collectDiagData(m)
 
-	// Row 5 is the temp row (page 1, first row)
+	// Row 5 is the temp row; with diagRowsPerPage=10 it's on page 0
+	// Row 10 is the first row on page 1 (tx row)
 	tempRow := rows[5]
-	if !strings.Contains(tempRow.value, "°C") {
-		t.Errorf("temp row value %q missing °C", tempRow.value)
+	if !strings.Contains(tempRow.value, "C") {
+		t.Errorf("temp row value %q missing C", tempRow.value)
 	}
-	if !strings.Contains(tempRow.value, "°F") {
-		t.Errorf("temp row value %q missing °F", tempRow.value)
+	if !strings.Contains(tempRow.value, "F") {
+		t.Errorf("temp row value %q missing F", tempRow.value)
 	}
 
-	// Also verify it renders on screen at y=0 on page 1
+	// Verify page 1 renders non-empty content
 	var fb st7735.Framebuffer
 	fb.Fill(theme.ColorBG)
 	state := &DiagState{}
 	// Render page 0 (advances to page 1)
 	RenderDiagnostic(&fb, m, diagCfg(), state)
-	// Render page 1 (advances to page 2)
+	// Render page 1 (advances to page 0)
 	fb.Fill(theme.ColorBG)
 	RenderDiagnostic(&fb, m, diagCfg(), state)
 
-	// Temp row renders at y=0 on page 1; it uses TempRampColor which is non-BG
-	if !hasNonBGInRegion(&fb, 0, 0, st7735.Width, 16) {
-		t.Error("expected non-background pixels at y=0 on page 1 (temp row)")
+	// Page 1 starts at row 10 (tx row); should have non-BG pixels
+	if !hasNonBGInRegion(&fb, 0, 0, st7735.Width, 8) {
+		t.Error("expected non-background pixels at y=0 on page 1")
 	}
 }
 
-// TestDiagnosticPageWraps verifies that after 3 renders the page wraps back to 0.
+// TestDiagnosticPageWraps verifies that after 2 renders the page wraps back to 0.
 func TestDiagnosticPageWraps(t *testing.T) {
 	m := diagMock()
 	state := &DiagState{}
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 2; i++ {
 		var fb st7735.Framebuffer
 		fb.Fill(theme.ColorBG)
 		RenderDiagnostic(&fb, m, diagCfg(), state)
 	}
 
 	if state.Page != 0 {
-		t.Errorf("expected page 0 after 3 renders, got %d", state.Page)
+		t.Errorf("expected page 0 after 2 renders, got %d", state.Page)
 	}
 }
 
 // TestDiagnosticTempBothUnits verifies that the temp row always includes
-// both °C and °F regardless of cfg.TempUnit.
+// both C and F regardless of cfg.TempUnit.
 func TestDiagnosticTempBothUnits(t *testing.T) {
 	m := diagMock()
 	m.Temp = 52
@@ -132,11 +133,11 @@ func TestDiagnosticTempBothUnits(t *testing.T) {
 		tempRow := rows[5]
 		_ = cfg // cfg is not used by collectDiagData, intentionally
 
-		if !strings.Contains(tempRow.value, "°C") {
-			t.Errorf("unit=%s: temp row %q missing °C", unit, tempRow.value)
+		if !strings.Contains(tempRow.value, "C") {
+			t.Errorf("unit=%s: temp row %q missing C", unit, tempRow.value)
 		}
-		if !strings.Contains(tempRow.value, "°F") {
-			t.Errorf("unit=%s: temp row %q missing °F", unit, tempRow.value)
+		if !strings.Contains(tempRow.value, "F") {
+			t.Errorf("unit=%s: temp row %q missing F", unit, tempRow.value)
 		}
 	}
 }
