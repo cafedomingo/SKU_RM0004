@@ -2,3 +2,4 @@
 /screenshot
 *.png
 !docs/*.png
+.claude/
