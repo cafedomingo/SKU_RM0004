@@ -37,7 +37,7 @@ func main() {
 	collector := sysinfo.NewCollector(logger)
 	cfgLoader := config.NewLoader(config.ConfigPath, logger)
 	var activeScreen screen.Screen
-	prevScreen := ""
+	lastScreenName := ""
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
@@ -46,9 +46,9 @@ func main() {
 		start := time.Now()
 		cfg := cfgLoader.Load()
 
-		if cfg.Screen != prevScreen {
+		if cfg.Screen != lastScreenName {
 			activeScreen = screen.New(cfg.Screen, disp)
-			prevScreen = cfg.Screen
+			lastScreenName = cfg.Screen
 		}
 
 		if activeScreen.NeedsRefresh() {
