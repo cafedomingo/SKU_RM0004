@@ -130,20 +130,6 @@ install_binary() {
     chmod +x "${INSTALL_DIR}/${BINARY}"
 }
 
-# --- Config file ---
-
-install_config() {
-    if [ ! -f /etc/uctronics-display.conf ]; then
-        log "Creating default config at /etc/uctronics-display.conf"
-        cat > /etc/uctronics-display.conf <<CONF
-# UCTRONICS LCD display configuration
-screen=dashboard
-refresh=5
-temp_unit=C
-CONF
-    fi
-}
-
 # --- Systemd service ---
 
 install_service() {
@@ -182,7 +168,6 @@ if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
 fi
 
 install_binary
-install_config
 install_service
 
 if [ "$needs_reboot" = true ]; then
