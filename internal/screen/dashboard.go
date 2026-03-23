@@ -47,7 +47,7 @@ func (d *dashboardScreen) render(fb *st7735.Framebuffer, cfg config.Config) {
 	fb.String(2, 0, d.collector.Hostname(), headerFont, theme.ColorFG)
 
 	// IP address (small font)
-	fb.String(2, 18, d.collector.IPv4Address(), metricFont, theme.ColorIP)
+	fb.String(2, 18, d.collector.IPv4Address(), metricFont, theme.ColorIdentity)
 
 	// DietPi update diamond indicator (big font for the symbol)
 	if d.collector.DietPiStatus() == sysinfo.DietPiUpdateAvail {

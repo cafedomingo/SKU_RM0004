@@ -164,7 +164,7 @@ func TestSparklineRenders(t *testing.T) {
 	state.Update(sparkCfg())
 
 	// Ticker row at y=1 should have IP-colored pixels (hostname, 6x12 font)
-	if !hasColorInRegion(state.Buffer(), 0, 1, 60, 12, theme.ColorIP) {
+	if !hasColorInRegion(state.Buffer(), 0, 1, 60, 12, theme.ColorIdentity) {
 		t.Error("expected ticker text pixels at y=1")
 	}
 

@@ -66,7 +66,7 @@ func drawTicker(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, s *sp
 		text = c.IPv6Suffix()
 	}
 
-	fb.String(0, 1, text, f, theme.ColorIP)
+	fb.String(0, 1, text, f, theme.ColorIdentity)
 
 	// Advance ticker phase
 	maxPhase := 2

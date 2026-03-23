@@ -14,15 +14,15 @@ func color565(r, g, b uint8) uint16 {
 // UI palette — sourced from the original C firmware color struct.
 // Values are pre-computed via the RGB565 formula: ((r>>3)<<11)|((g>>2)<<5)|(b>>3)
 const (
-	ColorBG    uint16 = 0x0000 // black    (0x00,0x00,0x00)
-	ColorFG    uint16 = 0xFFFF // white    (0xFF,0xFF,0xFF)
-	ColorMuted uint16 = 0x8410 // gray     (0x80,0x80,0x80)
-	ColorSep   uint16 = 0x39C7 // dark gray (0x3A,0x3A,0x3A)
-	ColorIP    uint16 = 0x7D5F // lt blue   (0x79,0xA8,0xFF)
-	ColorAlert uint16 = 0xFC0B // orange    (0xFF,0x80,0x59)
-	ColorOK    uint16 = 0x45E8 // green     (0x44,0xBC,0x44)
-	ColorWarn  uint16 = 0xD5E0 // yellow    (0xD0,0xBC,0x00)
-	ColorCrit  uint16 = 0xFC0B // red-orange (same as alert)
+	ColorBG       uint16 = 0x0000 // black      (0x00,0x00,0x00)
+	ColorFG       uint16 = 0xFFFF // white      (0xFF,0xFF,0xFF)
+	ColorMuted    uint16 = 0x8410 // gray       (0x80,0x80,0x80)
+	ColorSep      uint16 = 0x39C7 // dark gray  (0x3A,0x3A,0x3A)
+	ColorIdentity uint16 = 0x7D5F // lt blue    (0x79,0xA8,0xFF)
+	ColorAlert    uint16 = 0xFC0B // orange     (0xFF,0x80,0x59)
+	ColorOK       uint16 = 0x45E8 // green      (0x44,0xBC,0x44)
+	ColorWarn     uint16 = 0xD5E0 // yellow     (0xD0,0xBC,0x00)
+	ColorCrit     uint16 = 0xFC0B // red-orange (same as alert)
 )
 
 // Temperature ramp colors (DietPi-style breakpoints).

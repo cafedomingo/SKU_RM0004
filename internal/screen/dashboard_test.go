@@ -62,7 +62,7 @@ func TestDashboardRenders(t *testing.T) {
 	}
 
 	// IP address should appear at y=18..29 (6x12 font), light blue pixels
-	if !hasColorInRegion(d.Buffer(), 0, 18, 120, 12, theme.ColorIP) {
+	if !hasColorInRegion(d.Buffer(), 0, 18, 120, 12, theme.ColorIdentity) {
 		t.Error("expected light-blue IP pixels in second row")
 	}
 

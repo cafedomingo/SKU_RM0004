@@ -80,13 +80,13 @@ func collectDiagData(c sysinfo.Collector) []diagRow {
 	// Row 1: IPv4 (header, no label)
 	rows = append(rows, diagRow{
 		value: c.IPv4Address(),
-		color: theme.ColorIP,
+		color: theme.ColorIdentity,
 	})
 
 	// Row 2: IPv6 suffix (header, no label)
 	rows = append(rows, diagRow{
 		value: c.IPv6Suffix(),
-		color: theme.ColorIP,
+		color: theme.ColorIdentity,
 	})
 
 	// Row 3: Uptime
