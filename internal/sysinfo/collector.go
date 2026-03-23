@@ -121,17 +121,14 @@ func (c *liveCollector) refreshDisk() {
 }
 
 func (c *liveCollector) refreshTemp() {
-	// Try reading directly from sysfs (works on Linux).
-	if data, err := os.ReadFile(thermalPath); err == nil {
-		var milliC int
-		if _, err := fmt.Sscanf(strings.TrimSpace(string(data)), "%d", &milliC); err == nil {
-			c.temp = float64(milliC) / 1000
-			return
-		}
+	data, err := os.ReadFile(thermalPath)
+	if err != nil {
+		return
 	}
-	// Fallback: gopsutil sensors (works on macOS via smc).
-	// On unsupported platforms this returns 0.
-	c.temp = 0
+	var milliC int
+	if _, err := fmt.Sscanf(strings.TrimSpace(string(data)), "%d", &milliC); err == nil {
+		c.temp = float64(milliC) / 1000
+	}
 }
 
 func (c *liveCollector) refreshHostUptime() {
@@ -217,38 +214,19 @@ func (c *liveCollector) refreshPi() {
 }
 
 // defaultInterface finds the network interface used for the default route.
-// On Linux it parses /proc/net/route; on other platforms it falls back to
-// finding the first non-loopback interface with an IPv4 address.
+// defaultInterface finds the network interface used for the default route
+// by parsing /proc/net/route.
 func defaultInterface() string {
 	f, err := os.Open(procRoutePath)
-	if err == nil {
-		defer f.Close()
-		scanner := bufio.NewScanner(f)
-		for scanner.Scan() {
-			fields := strings.Fields(scanner.Text())
-			if len(fields) >= 2 && fields[1] == defaultRouteDest {
-				return fields[0]
-			}
-		}
-	}
-
-	// Fallback for non-Linux (e.g. macOS during development).
-	ifaces, err := net.Interfaces()
 	if err != nil {
 		return ""
 	}
-	for _, iface := range ifaces {
-		if iface.Flags&net.FlagLoopback != 0 || iface.Flags&net.FlagUp == 0 {
-			continue
-		}
-		addrs, err := iface.Addrs()
-		if err != nil {
-			continue
-		}
-		for _, addr := range addrs {
-			if ipnet, ok := addr.(*net.IPNet); ok && ipnet.IP.To4() != nil {
-				return iface.Name
-			}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) >= 2 && fields[1] == defaultRouteDest {
+			return fields[0]
 		}
 	}
 	return ""
@@ -371,9 +349,6 @@ func isWholeDisk(name string) bool {
 		return true // mmcblk0
 	case strings.HasPrefix(name, "nvme") && strings.HasSuffix(name, "n1") && !strings.Contains(name, "p"):
 		return true // nvme0n1
-	// macOS disk names
-	case name == "disk0" || name == "disk1" || name == "disk2":
-		return true
 	}
 	return false
 }
