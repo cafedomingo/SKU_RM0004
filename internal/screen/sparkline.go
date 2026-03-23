@@ -48,7 +48,7 @@ func (s *sparklineScreen) Update(cfg config.Config) {
 }
 
 func (s *sparklineScreen) Draw() {
-	drawDirty(s.disp, &s.front, &s.back)
+	drawChanged(s.disp, &s.front, &s.back)
 }
 
 // drawTicker renders the cycling ticker row at y=0.

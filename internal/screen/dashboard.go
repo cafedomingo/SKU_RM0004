@@ -36,7 +36,7 @@ func (d *dashboardScreen) Update(cfg config.Config) {
 }
 
 func (d *dashboardScreen) Draw() {
-	drawDirty(d.disp, &d.front, &d.back)
+	drawChanged(d.disp, &d.front, &d.back)
 }
 
 func (d *dashboardScreen) render(fb *st7735.Framebuffer, cfg config.Config) {

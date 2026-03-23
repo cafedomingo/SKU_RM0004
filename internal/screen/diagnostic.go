@@ -65,7 +65,7 @@ func (d *diagnosticScreen) Update(cfg config.Config) {
 }
 
 func (d *diagnosticScreen) Draw() {
-	drawFull(d.disp, &d.back)
+	drawAll(d.disp, &d.back)
 }
 
 func collectDiagData(c sysinfo.Collector) []diagRow {

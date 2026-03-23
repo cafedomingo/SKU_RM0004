@@ -33,8 +33,8 @@ func New(name string, disp st7735.Display, collector sysinfo.Collector) Screen {
 	}
 }
 
-// drawDirty compares front and back buffers and sends only changed regions.
-func drawDirty(disp st7735.Display, front, back *st7735.Framebuffer) {
+// drawChanged compares front and back buffers and sends only changed regions.
+func drawChanged(disp st7735.Display, front, back *st7735.Framebuffer) {
 	if disp == nil {
 		return
 	}
@@ -45,8 +45,8 @@ func drawDirty(disp st7735.Display, front, back *st7735.Framebuffer) {
 	*front = *back
 }
 
-// drawFull sends the entire back buffer to the display.
-func drawFull(disp st7735.Display, back *st7735.Framebuffer) {
+// drawAll sends the entire back buffer to the display.
+func drawAll(disp st7735.Display, back *st7735.Framebuffer) {
 	if disp == nil {
 		return
 	}
