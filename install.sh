@@ -109,12 +109,12 @@ install_binary() {
     mkdir -p "$INSTALL_DIR"
 
     # Developer path: use local binary if run from a repo clone
-    if [ -f "./${BINARY}" ] && [ -f "./Makefile" ]; then
+    if [ -f "./${BINARY}" ] && [ -f "./go.mod" ]; then
         log "Installing local ./${BINARY} to ${INSTALL_DIR}/${BINARY}"
         cp "./${BINARY}" "${INSTALL_DIR}/${BINARY}"
     else
-        if [ -f "./Makefile" ]; then
-            log "No local binary — downloading from release (run 'make' first to install a local build)"
+        if [ -f "./go.mod" ]; then
+            log "No local binary — downloading from release (run 'go build -o display ./cmd/display' first to install a local build)"
         else
             log "Downloading ${BINARY} from latest release"
         fi
@@ -139,6 +139,7 @@ install_config() {
 # UCTRONICS LCD display configuration
 screen=dashboard
 refresh=5
+temp_unit=C
 CONF
     fi
 }
