@@ -12,7 +12,10 @@ import (
 const (
 	ConfigPath     = "/etc/uctronics-display.conf"
 	DefaultRefresh  = 5 * time.Second
-	DefaultTempUnit = "C"
+	DefaultTempUnit = TempCelsius
+
+	TempCelsius    = "C"
+	TempFahrenheit = "F"
 
 	MinRefresh = 2 * time.Second
 	MaxRefresh = 30 * time.Second
@@ -114,7 +117,7 @@ func (l *Loader) Load() Config {
 				cfg.Refresh = d
 			}
 		case keyTempUnit:
-			if val == "C" || val == "F" {
+			if val == TempCelsius || val == TempFahrenheit {
 				cfg.TempUnit = val
 			} else {
 				l.logger.Warn("config: invalid temp_unit value, using default", "value", val, "default", DefaultTempUnit)
