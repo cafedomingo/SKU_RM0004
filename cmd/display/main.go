@@ -36,7 +36,7 @@ func main() {
 
 	collector := sysinfo.NewCollector(logger)
 	cfgLoader := config.NewLoader(config.ConfigPath, logger)
-	var current screen.Screen
+	var activeScreen screen.Screen
 	prevScreen := ""
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
@@ -47,15 +47,15 @@ func main() {
 		cfg := cfgLoader.Load()
 
 		if cfg.Screen != prevScreen {
-			current = screen.New(cfg.Screen, disp)
+			activeScreen = screen.New(cfg.Screen, disp)
 			prevScreen = cfg.Screen
 		}
 
-		if current.NeedsRefresh() {
+		if activeScreen.NeedsRefresh() {
 			collector.Refresh()
 		}
-		current.Update(collector, cfg)
-		current.Send(disp)
+		activeScreen.Update(collector, cfg)
+		activeScreen.Send(disp)
 
 		if shouldExit(ctx, cfg.Refresh-time.Since(start)) {
 			logger.Info("shutting down")
