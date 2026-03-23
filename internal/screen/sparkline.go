@@ -116,9 +116,10 @@ func drawUptimeRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
 		fb.String(ax, y, badge, f, badgeColor)
 	}
 
-	// DietPi diamond (custom 6x12 glyph)
+	// DietPi diamond — left of APT badge, built from right edge inward
 	if c.DietPiStatus() == sysinfo.DietPiUpdateAvail {
-		fb.Char(152, 1, font.Diamond, f, theme.ColorAlert)
+		ax -= f.Width
+		fb.Char(ax, y, font.Diamond, f, theme.ColorAlert)
 	}
 }
 
