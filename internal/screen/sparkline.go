@@ -23,15 +23,16 @@ type SparklineState struct {
 
 // RenderSparkline draws the sparkline history screen onto the framebuffer.
 //
-// Layout (160x80, Spleen 5x8 for text, 8x16 for symbols):
+// Layout (160x80, Spleen 5x8 for text, matches original C layout):
 //
-//	y=0:   Ticker (hostname -> IPv4 -> IPv6, cycling)     | badges right-aligned
-//	y=8:   CPU freq + throttle indicator                  | Temp + Disk% right
-//	y=17:  --- separator (1px) ---
-//	y=19:  [sparkline graph area -- CPU bars left, RAM bars right]
-//	       Graph height: 30px (y=19 to y=48)
-//	y=50:  CPU N% (left)                                  RAM N% (right)
-//	y=60:  down-arrow rx up-arrow tx (left)               R/W disk (right)
+//	y=1:   Ticker (hostname -> IPv4 -> IPv6, cycling)     | badges right-aligned
+//	y=12:  Uptime                                         | DietPi/APT badges
+//	y=23:  CPU freq + throttle                            | Temp | D:N%
+//	y=33:  --- separator (1px) ---
+//	y=35:  [sparkline graph area -- CPU bars left, RAM bars right]
+//	       Graph height: 22px (y=35 to y=56)
+//	y=58:  CPU N% (left)                                  RAM N% (right)
+//	y=69:  down-arrow rx up-arrow tx (left)               R disk W disk (right)
 func RenderSparkline(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config, state *SparklineState) {
 	sm := font.Spleen5x8
 
@@ -44,11 +45,14 @@ func RenderSparkline(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Con
 	// Row 1: Ticker
 	drawTicker(fb, sm, c, state)
 
-	// Row 2: Freq + temp/disk
+	// Row 2: Uptime + badges
+	drawUptimeRow(fb, sm, c)
+
+	// Row 3: Freq + temp/disk
 	drawFreqRow(fb, sm, c, cfg)
 
 	// Separator
-	fb.Rect(0, 17, st7735.Width, 1, theme.ColorSep)
+	fb.Rect(0, 33, st7735.Width, 1, theme.ColorSep)
 
 	// Sparkline graphs
 	drawSparklineGraph(fb, 0, state.CPUHistory[:], theme.CPUWarn, theme.CPUCrit)
@@ -80,81 +84,77 @@ func drawTicker(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, state
 		color = theme.ColorIP
 	}
 
-	fb.String(2, 0, text, f, color)
+	fb.String(0, 1, text, f, color)
 
-	// Right side: DietPi diamond (use 8x16 font for the symbol glyph)
-	big := font.Spleen8x16
-	if c.DietPiStatus() == sysinfo.DietPiUpdateAvail {
-		fb.Char(152, 0, '\u25C6', big, theme.ColorAlert)
+	// Advance ticker phase
+	maxPhase := 2
+	ipv6 := c.IPv6Suffix()
+	if ipv6 == "" || ipv6 == "no IPv6" {
+		maxPhase = 1
 	}
+	state.TickerPhase = (state.TickerPhase + 1) % (maxPhase + 1)
+}
 
+// drawUptimeRow renders uptime on the left, update badges on the right at y=12.
+func drawUptimeRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
+	const y = 12
+
+	fb.String(0, y, format.Uptime(c.Uptime()), f, theme.ColorFG)
+
+	// Build badges from right edge inward
+	ax := st7735.Width
+
+	// APT badge
 	badge := format.APTBadge(c.APTUpdateCount())
 	if badge != "" {
 		badgeColor := theme.ColorWarn
 		if c.APTUpdateCount() >= theme.APTCrit {
 			badgeColor = theme.ColorCrit
 		}
-		bx := st7735.Width - len(badge)*f.Width - 2
-		// Don't overlap the diamond
-		if c.DietPiStatus() == sysinfo.DietPiUpdateAvail {
-			bx = 152 - len(badge)*f.Width - 2
-		}
-		fb.String(bx, 0, badge, f, badgeColor)
+		bw := len(badge) * f.Width
+		ax -= bw
+		fb.String(ax, y, badge, f, badgeColor)
 	}
 
-	// Advance ticker phase
-	maxPhase := 2
-	if c.IPv6Suffix() == "" {
-		maxPhase = 1
+	// DietPi diamond (use 8x16 for the symbol, positioned on ticker row)
+	big := font.Spleen8x16
+	if c.DietPiStatus() == sysinfo.DietPiUpdateAvail {
+		fb.Char(152, 1, '\u25C6', big, theme.ColorAlert)
 	}
-	state.TickerPhase = (state.TickerPhase + 1) % (maxPhase + 1)
 }
 
-// drawFreqRow renders CPU freq + throttle on the left, temp + disk% on the right at y=8.
+// drawFreqRow renders CPU freq + throttle on the left, temp | D:N% on the right at y=23.
 func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg config.Config) {
-	const (
-		leftX  = 2
-		rightX = 82
-		y      = 8
-	)
+	const y = 23
 
 	// Left: CPU frequency
 	freq := c.CPUFreq()
 	freqStr := format.Freq(freq.Cur)
+	fb.String(0, y, freqStr, f, theme.ColorFG)
 
-	// Throttle indicator
+	// Throttle indicator right after freq
 	throttle := c.ThrottleStatus()
-	const (
-		throttleCurrent = uint32(0x0000000F)
-		throttlePast    = uint32(0x000F0000)
-	)
-
-	var throttleStr string
-	var throttleColor uint16
-	switch {
-	case throttle&throttleCurrent != 0:
-		throttleStr = "!"
-		throttleColor = theme.ColorCrit
-	case throttle&throttlePast != 0:
-		throttleStr = "~"
-		throttleColor = theme.ColorWarn
+	if throttle&0x0000000F != 0 {
+		tx := len(freqStr) * f.Width
+		fb.String(tx, y, "!", f, theme.ColorAlert)
 	}
 
-	fb.String(leftX, y, freqStr, f, theme.ColorFG)
-	if throttleStr != "" {
-		tx := leftX + len([]rune(freqStr))*f.Width
-		fb.String(tx, y, throttleStr, f, throttleColor)
-	}
-
-	// Right: Temp + Disk%
-	tempStr := format.Temp(c.Temperature(), cfg.TempUnit)
-	tempColor := theme.TempRampColor(c.Temperature())
-	fb.String(rightX, y, tempStr, f, tempColor)
-
+	// Right side: build from right edge inward
+	// D:N%
 	diskStr := fmt.Sprintf("D:%d%%", int(c.DiskPercent()))
 	diskColor := theme.ThresholdColor(c.DiskPercent(), theme.DiskWarn, theme.DiskCrit)
-	dx := st7735.Width - len([]rune(diskStr))*f.Width - 2
+	dx := st7735.Width - len(diskStr)*f.Width
 	fb.String(dx, y, diskStr, f, diskColor)
+
+	// Pipe separator
+	pipeX := dx - f.Width - 2
+	fb.String(pipeX+2, y, "|", f, theme.ColorSep)
+
+	// Temperature before the pipe
+	tempStr := format.Temp(c.Temperature(), cfg.TempUnit)
+	tempColor := theme.TempRampColor(c.Temperature())
+	tempW := len(tempStr) * f.Width
+	fb.String(pipeX-tempW, y, tempStr, f, tempColor)
 }
 
 // drawSparklineGraph renders 13 vertical bars in the graph area.
@@ -164,9 +164,9 @@ func drawSparklineGraph(fb *st7735.Framebuffer, xOff int, history []float64, war
 	const (
 		barW     = 5
 		barGap   = 1
-		graphY   = 19
-		graphH   = 30
-		graphEnd = 48 // graphY + graphH - 1
+		graphY   = 35
+		graphH   = 22
+		graphEnd = 56 // graphY + graphH - 1
 	)
 
 	for i, val := range history {
@@ -189,13 +189,9 @@ func drawSparklineGraph(fb *st7735.Framebuffer, xOff int, history []float64, war
 	}
 }
 
-// drawCPURAMValues renders the CPU and RAM percentage labels at y=50.
+// drawCPURAMValues renders CPU and RAM labels (white) + values (threshold color) at y=58.
 func drawCPURAMValues(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
-	const (
-		leftX  = 2
-		rightX = 82
-		y      = 50
-	)
+	const y = 58
 
 	cpu := clampMin(c.CPUPercent(), 1)
 	ram := clampMin(c.RAMPercent(), 1)
@@ -203,23 +199,44 @@ func drawCPURAMValues(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector)
 	cpuColor := theme.ThresholdColor(c.CPUPercent(), theme.CPUWarn, theme.CPUCrit)
 	ramColor := theme.ThresholdColor(c.RAMPercent(), theme.RAMWarn, theme.RAMCrit)
 
-	fb.String(leftX, y, fmt.Sprintf("CPU %d%%", int(cpu)), f, cpuColor)
-	fb.String(rightX, y, fmt.Sprintf("RAM %d%%", int(ram)), f, ramColor)
+	// CPU label (white) + value (colored)
+	fb.String(0, y, "CPU", f, theme.ColorFG)
+	cpuVal := fmt.Sprintf("%d%%", int(cpu))
+	fb.String(3*f.Width+1, y, cpuVal, f, cpuColor)
+
+	// RAM label (white) + value (colored)
+	fb.String(82, y, "RAM", f, theme.ColorFG)
+	ramVal := fmt.Sprintf("%d%%", int(ram))
+	fb.String(82+3*f.Width+1, y, ramVal, f, ramColor)
 }
 
-// drawIORow renders network and disk I/O at y=60.
+// drawIORow renders network rx/tx and disk R/W at y=69.
+// Uses custom arrow indicators and separate R/W labels matching original C layout.
 func drawIORow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
-	const y = 60
+	const y = 69
 
 	net := c.NetBandwidth()
-	rxStr := fmt.Sprintf("v%s", format.Rate(net.RxBytesPerSec))
-	txStr := fmt.Sprintf("^%s", format.Rate(net.TxBytesPerSec))
-	fb.String(2, y, rxStr, f, theme.ColorFG)
-	txX := 2 + len([]rune(rxStr))*f.Width + f.Width
-	fb.String(txX, y, txStr, f, theme.ColorFG)
+	netWarn, netCrit := theme.NetThresholds(c.LinkSpeedMbps())
 
+	// Network: down-arrow + rx, up-arrow + tx
+	// Use + for down and - for up as simple arrow substitutes in 5x8
+	fb.String(0, y, "+", f, theme.ColorFG)
+	rxStr := format.Rate(net.RxBytesPerSec)
+	fb.String(f.Width, y, rxStr, f, theme.ThresholdColor(float64(net.RxBytesPerSec), float64(netWarn), float64(netCrit)))
+
+	txX := (1 + len(rxStr)) * f.Width + f.Width
+	fb.String(txX, y, "-", f, theme.ColorFG)
+	txStr := format.Rate(net.TxBytesPerSec)
+	fb.String(txX+f.Width, y, txStr, f, theme.ThresholdColor(float64(net.TxBytesPerSec), float64(netWarn), float64(netCrit)))
+
+	// Disk: R + read rate, W + write rate
 	dio := c.DiskIO()
-	ioStr := fmt.Sprintf("%s/%s", format.Rate(dio.ReadBytesPerSec), format.Rate(dio.WriteBytesPerSec))
-	ix := st7735.Width - len([]rune(ioStr))*f.Width - 2
-	fb.String(ix, y, ioStr, f, theme.ColorFG)
+	fb.String(82, y, "R", f, theme.ColorFG)
+	rStr := format.Rate(dio.ReadBytesPerSec)
+	fb.String(82+f.Width, y, rStr, f, theme.ThresholdColor(float64(dio.ReadBytesPerSec), theme.DiskIOWarn, theme.DiskIOCrit))
+
+	wX := 82 + (1 + len(rStr)) * f.Width + f.Width
+	fb.String(wX, y, "W", f, theme.ColorFG)
+	wStr := format.Rate(dio.WriteBytesPerSec)
+	fb.String(wX+f.Width, y, wStr, f, theme.ThresholdColor(float64(dio.WriteBytesPerSec), theme.DiskIOWarn, theme.DiskIOCrit))
 }

@@ -64,30 +64,34 @@ func RenderDashboard(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Con
 		rightX = 82
 	)
 
+	// drawMetric renders "LABEL:" in white, value right-aligned in color, bar below
+	drawMetric := func(x, y int, label, value string, pct int, color uint16) {
+		fb.String(x, y, label, sm, theme.ColorFG)
+		valX := x + barW - len(value)*sm.Width
+		fb.String(valX, y, value, sm, color)
+		fb.Bar(x, y+10, barW, barH, pct, color, theme.ColorSep)
+	}
+
 	// CPU (left column)
 	cpuColor := theme.ThresholdColor(c.CPUPercent(), theme.CPUWarn, theme.CPUCrit)
-	fb.String(leftX, 30, fmt.Sprintf("CPU:%3d%%", int(cpu)), sm, cpuColor)
-	fb.Bar(leftX, 40, barW, barH, int(cpu), cpuColor, theme.ColorSep)
+	drawMetric(leftX, 30, "CPU:", fmt.Sprintf("%3d%%", int(cpu)), int(cpu), cpuColor)
 
 	// Temperature (right column)
 	tempColor := theme.TempRampColor(temp)
 	tempStr := format.Temp(temp, cfg.TempUnit)
-	fb.String(rightX, 30, "TMP:"+tempStr, sm, tempColor)
-	tempPct := temp
+	tempPct := int(temp)
 	if tempPct > 100 {
 		tempPct = 100
 	}
-	fb.Bar(rightX, 40, barW, barH, int(tempPct), tempColor, theme.ColorSep)
+	drawMetric(rightX, 30, "TEMP:", tempStr, tempPct, tempColor)
 
 	// RAM (left column)
 	ramColor := theme.ThresholdColor(c.RAMPercent(), theme.RAMWarn, theme.RAMCrit)
-	fb.String(leftX, 48, fmt.Sprintf("RAM:%3d%%", int(ram)), sm, ramColor)
-	fb.Bar(leftX, 58, barW, barH, int(ram), ramColor, theme.ColorSep)
+	drawMetric(leftX, 52, "RAM:", fmt.Sprintf("%3d%%", int(ram)), int(ram), ramColor)
 
 	// Disk (right column)
 	diskColor := theme.ThresholdColor(c.DiskPercent(), theme.DiskWarn, theme.DiskCrit)
-	fb.String(rightX, 48, fmt.Sprintf("DSK:%3d%%", int(disk)), sm, diskColor)
-	fb.Bar(rightX, 58, barW, barH, int(disk), diskColor, theme.ColorSep)
+	drawMetric(rightX, 52, "DISK:", fmt.Sprintf("%3d%%", int(disk)), int(disk), diskColor)
 }
 
 // clampMin returns v if v >= min, otherwise min.

@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make format:*)",
+      "Bash(git push:*)",
+      "Bash(do echo:*)",
+      "Bash(xargs git:*)",
+      "Bash(git:*)",
+      "Bash(python3:*)",
+      "Bash(open:*)",
+      "Bash(gh release:*)",
+      "Bash(gh:*)",
+      "Bash(gh api:*)",
+      "Bash(make:*)",
+      "Bash(find:*)",
+      "Bash(echo exit: $?:*)",
+      "Bash(brew list:*)",
+      "Read(//Users/pq/.claude/**)",
+      "Bash(echo:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(wc:*)",
+      "Bash(go mod:*)",
+      "Read(//usr/local/go/**)",
+      "Read(//opt/homebrew/bin/**)",
+      "Read(//Users/pq/go/**)",
+      "Bash(source ~/.zshrc)",
+      "Bash(source ~/.profile)",
+      "Bash(source ~/.bash_profile)",
+      "Bash(go version:*)",
+      "Bash(go test:*)",
+      "Bash(go build:*)",
+      "Bash(go vet:*)",
+      "Bash(go generate:*)",
+      "Bash(go get:*)",
+      "Bash(grep -n \"Width\\\\|Height\\\\|Framebuffer\\\\|Pixels\\\\|Fill\" /Users/pq/src/SKU_RM0004/internal/st7735/*.go)",
+      "Bash(./screenshot)",
+      "Bash(shellcheck:*)"
+    ]
+  }
+}
