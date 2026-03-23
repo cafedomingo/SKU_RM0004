@@ -1,5 +1,3 @@
 /display
 /screenshot
-*.png
-!docs/*.png
 .claude/
