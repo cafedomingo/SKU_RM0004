@@ -8,7 +8,7 @@ type Font struct {
 }
 
 func init() {
-	Spleen6x12.AddArrowGlyphs()
+	Spleen6x12.AddCustomGlyphs()
 }
 
 // Glyph returns the bitmap data for a rune, or '?' if not found.

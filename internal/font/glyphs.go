@@ -13,10 +13,9 @@ func (f *Font) AddGlyph(r rune, data []byte) {
 	f.Glyphs[r] = data
 }
 
-// AddArrowGlyphs adds up/down arrow glyphs sized for this font.
-// Only supports 6-wide fonts (6x12). The arrows are 5x6 pixels,
-// centered vertically in the glyph cell.
-func (f *Font) AddArrowGlyphs() {
+// AddCustomGlyphs adds arrow and diamond glyphs sized for this font.
+// Only supports 6-wide fonts (6x12).
+func (f *Font) AddCustomGlyphs() {
 	if f.Width != 6 || f.Height != 12 {
 		return
 	}
