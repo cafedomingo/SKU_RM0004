@@ -85,10 +85,10 @@ func ThresholdColor(value, warn, crit float64) uint16 {
 // step (cyan), so this slice starts at 40 to avoid division by zero.
 var tempRamp = [4]uint16{TempGreen, TempYellow, TempOrange, TempRed}
 
-// TempRampColor returns an interpolated RGB565 color for a CPU/GPU temperature.
+// TempColor returns an interpolated RGB565 color for a CPU/GPU temperature.
 // Below 40 °C it returns TempCyan. At and above 70 °C it returns TempRed.
 // Between breakpoints it linearly interpolates the RGB565 components.
-func TempRampColor(celsius float64) uint16 {
+func TempColor(celsius float64) uint16 {
 	if celsius < 40 {
 		return TempCyan
 	}

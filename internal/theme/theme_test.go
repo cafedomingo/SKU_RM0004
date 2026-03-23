@@ -68,7 +68,7 @@ func TestLerpColor(t *testing.T) {
 	}
 }
 
-func TestTempRampColor(t *testing.T) {
+func TestTempColor(t *testing.T) {
 	tests := []struct {
 		name    string
 		celsius float64
@@ -87,21 +87,21 @@ func TestTempRampColor(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := theme.TempRampColor(tt.celsius)
+			got := theme.TempColor(tt.celsius)
 			// For interpolated values, skip exact match
 			if tt.want == 0 {
 				return
 			}
 			if got != tt.want {
-				t.Errorf("TempRampColor(%v) = 0x%04X, want 0x%04X", tt.celsius, got, tt.want)
+				t.Errorf("TempColor(%v) = 0x%04X, want 0x%04X", tt.celsius, got, tt.want)
 			}
 		})
 	}
 }
 
-// TestTempRampColorInterpolation verifies the ramp is monotonically progressing
+// TestTempColorInterpolation verifies the ramp is monotonically progressing
 // through the hue range (no sudden jumps back).
-func TestTempRampColorInterpolation(t *testing.T) {
+func TestTempColorInterpolation(t *testing.T) {
 	// At midpoints the result must be strictly between the two boundary values
 	// We verify by checking the interpolated value differs from both endpoints.
 	tests := []struct {
@@ -114,9 +114,9 @@ func TestTempRampColorInterpolation(t *testing.T) {
 		{65, theme.TempOrange, theme.TempRed},
 	}
 	for _, tt := range tests {
-		got := theme.TempRampColor(tt.celsius)
+		got := theme.TempColor(tt.celsius)
 		if got == tt.lo || got == tt.hi {
-			t.Errorf("TempRampColor(%v) = 0x%04X; expected value interpolated between 0x%04X and 0x%04X", tt.celsius, got, tt.lo, tt.hi)
+			t.Errorf("TempColor(%v) = 0x%04X; expected value interpolated between 0x%04X and 0x%04X", tt.celsius, got, tt.lo, tt.hi)
 		}
 	}
 }

@@ -110,24 +110,6 @@ func TestCelsiusToF(t *testing.T) {
 	}
 }
 
-func TestClampMin(t *testing.T) {
-	tests := []struct {
-		v, min, want float64
-	}{
-		{0, 1, 1},
-		{0.5, 1, 1},
-		{1, 1, 1},
-		{50, 1, 50},
-		{-1, 0, 0},
-	}
-	for _, tt := range tests {
-		got := format.ClampMin(tt.v, tt.min)
-		if got != tt.want {
-			t.Errorf("ClampMin(%v, %v) = %v, want %v", tt.v, tt.min, got, tt.want)
-		}
-	}
-}
-
 func TestAPTBadge(t *testing.T) {
 	tests := []struct {
 		input int

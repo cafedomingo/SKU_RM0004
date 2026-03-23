@@ -69,9 +69,9 @@ func (d *dashboardScreen) render(fb *st7735.Framebuffer, cfg config.Config) {
 	fb.Rect(0, 30, st7735.Width, 1, theme.ColorSep)
 
 	// Clamp display values to minimum 1% so bars are always visible
-	cpu := format.ClampMin(d.collector.CPUPercent(), 1)
-	ram := format.ClampMin(d.collector.RAMPercent(), 1)
-	disk := format.ClampMin(d.collector.DiskPercent(), 1)
+	cpu := max(d.collector.CPUPercent(), 1)
+	ram := max(d.collector.RAMPercent(), 1)
+	disk := max(d.collector.DiskPercent(), 1)
 	temp := d.collector.Temperature()
 
 	const (
@@ -94,13 +94,9 @@ func (d *dashboardScreen) render(fb *st7735.Framebuffer, cfg config.Config) {
 	drawMetric(leftX, 34, "CPU:", fmt.Sprintf("%3d%%", int(cpu)), int(cpu), cpuColor)
 
 	// Temperature (right column)
-	tempColor := theme.TempRampColor(temp)
+	tempColor := theme.TempColor(temp)
 	tempStr := format.Temp(temp, cfg.TempUnit == config.TempFahrenheit)
-	tempPct := int(temp)
-	if tempPct > 100 {
-		tempPct = 100
-	}
-	drawMetric(rightX, 34, "TEMP:", tempStr, tempPct, tempColor)
+	drawMetric(rightX, 34, "TEMP:", tempStr, int(min(temp, 100)), tempColor)
 
 	// RAM (left column)
 	ramColor := theme.RAMColor(d.collector.RAMPercent())

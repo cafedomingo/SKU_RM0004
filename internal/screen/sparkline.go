@@ -148,7 +148,7 @@ func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg 
 
 	// Temperature right-aligned before the gap
 	tempStr := format.Temp(c.Temperature(), cfg.TempUnit == config.TempFahrenheit)
-	tempColor := theme.TempRampColor(c.Temperature())
+	tempColor := theme.TempColor(c.Temperature())
 	tempW := format.RuneLen(tempStr) * f.Width
 	fb.String(pipeX-gap-tempW, y, tempStr, f, tempColor)
 }
@@ -189,8 +189,8 @@ func drawSparklineGraph(fb *st7735.Framebuffer, xOff int, history []float64, war
 func drawCPURAMValues(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
 	const y = 56
 
-	cpu := format.ClampMin(c.CPUPercent(), 1)
-	ram := format.ClampMin(c.RAMPercent(), 1)
+	cpu := max(c.CPUPercent(), 1)
+	ram := max(c.RAMPercent(), 1)
 
 	cpuColor := theme.CPUColor(c.CPUPercent())
 	ramColor := theme.RAMColor(c.RAMPercent())

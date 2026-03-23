@@ -111,7 +111,7 @@ func collectDiagData(c sysinfo.Collector) []diagRow {
 	rows = append(rows, diagRow{
 		label: "tmp",
 		value: tempVal,
-		color: theme.TempRampColor(tempC),
+		color: theme.TempColor(tempC),
 	})
 
 	// Row 6: RAM%
