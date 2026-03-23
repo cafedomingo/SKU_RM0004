@@ -43,18 +43,18 @@ func (d *dashboardScreen) Send(disp st7735.Display) {
 }
 
 func (d *dashboardScreen) render(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Config) {
-	big := font.Spleen8x16
-	sm := font.Spleen6x12
+	headerFont := font.Spleen8x16
+	metricFont := font.Spleen6x12
 
 	// Header: hostname (big font)
-	fb.String(2, 0, c.Hostname(), big, theme.ColorFG)
+	fb.String(2, 0, c.Hostname(), headerFont, theme.ColorFG)
 
 	// IP address (small font)
-	fb.String(2, 18, c.IPAddress(), sm, theme.ColorIP)
+	fb.String(2, 18, c.IPAddress(), metricFont, theme.ColorIP)
 
 	// DietPi update diamond indicator (big font for the symbol)
 	if c.DietPiStatus() == sysinfo.DietPiUpdateAvail {
-		fb.Char(152, 0, '\u25C6', big, theme.ColorAlert)
+		fb.Char(152, 0, '\u25C6', headerFont, theme.ColorAlert)
 	}
 
 	// APT update badge (small font, right-aligned on IP row)
@@ -64,8 +64,8 @@ func (d *dashboardScreen) render(fb *st7735.Framebuffer, c sysinfo.Collector, cf
 		if c.APTUpdateCount() >= theme.APTCrit {
 			color = theme.ColorCrit
 		}
-		bx := st7735.Width - len(badge)*sm.Width - 2
-		fb.String(bx, 18, badge, sm, color)
+		badgeX := st7735.Width - len(badge)*metricFont.Width - 2
+		fb.String(badgeX, 18, badge, metricFont, color)
 	}
 
 	// Separator
@@ -86,9 +86,9 @@ func (d *dashboardScreen) render(fb *st7735.Framebuffer, c sysinfo.Collector, cf
 
 	// drawMetric renders "LABEL:" in white, value right-aligned in color, bar below
 	drawMetric := func(x, y int, label, value string, pct int, color uint16) {
-		fb.String(x, y, label, sm, theme.ColorFG)
-		valX := x + barW - format.RuneLen(value)*sm.Width
-		fb.String(valX, y, value, sm, color)
+		fb.String(x, y, label, metricFont, theme.ColorFG)
+		valX := x + barW - format.RuneLen(value)*metricFont.Width
+		fb.String(valX, y, value, metricFont, color)
 		fb.Bar(x, y+12, barW, barH, pct, color, theme.ColorSep)
 	}
 

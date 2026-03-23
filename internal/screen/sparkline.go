@@ -91,7 +91,7 @@ func drawUptimeRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
 	fb.String(0, y, format.Uptime(c.Uptime()), f, theme.ColorFG)
 
 	// Build badges from right edge inward
-	ax := st7735.Width
+	rightEdge := st7735.Width
 
 	// APT badge
 	badge := format.APTBadge(c.APTUpdateCount())
@@ -100,16 +100,16 @@ func drawUptimeRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
 		if c.APTUpdateCount() >= theme.APTCrit {
 			badgeColor = theme.ColorCrit
 		}
-		bw := len(badge) * f.Width
-		ax -= bw
-		fb.String(ax, y, badge, f, badgeColor)
+		badgeWidth := len(badge) * f.Width
+		rightEdge -= badgeWidth
+		fb.String(rightEdge, y, badge, f, badgeColor)
 	}
 
 	// DietPi diamond — left of APT badge with gap, built from right edge inward
 	if c.DietPiStatus() == sysinfo.DietPiUpdateAvail {
-		ax -= 3 // gap
-		ax -= f.Width
-		fb.Char(ax, y, font.Diamond, f, theme.ColorAlert)
+		rightEdge -= 3 // gap
+		rightEdge -= f.Width
+		fb.Char(rightEdge, y, font.Diamond, f, theme.ColorAlert)
 	}
 }
 
@@ -130,23 +130,23 @@ func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg 
 	// Throttle indicator right after freq
 	throttle := c.ThrottleStatus()
 	if throttle&sysinfo.ThrottleCurrentMask != 0 {
-		tx := len(freqStr) * f.Width
-		fb.String(tx, y, "!", f, theme.ColorAlert)
+		throttleX := len(freqStr) * f.Width
+		fb.String(throttleX, y, "!", f, theme.ColorAlert)
 	}
 
 	// Right side: build from right edge inward
 	// D:N% — "D:" label in white, value in threshold color, right-aligned
 	diskVal := fmt.Sprintf("%d%%", int(c.DiskPercent()))
 	diskColor := theme.DiskColor(c.DiskPercent())
-	lblW := 2 * f.Width // "D:"
-	valW := len(diskVal) * f.Width
-	dx := colRightX + colWidth - lblW - valW
-	fb.String(dx, y, "D:", f, theme.ColorFG)
-	fb.String(dx+lblW, y, diskVal, f, diskColor)
+	labelWidth := 2 * f.Width // "D:"
+	valueWidth := len(diskVal) * f.Width
+	diskX := colRightX + colWidth - labelWidth - valueWidth
+	fb.String(diskX, y, "D:", f, theme.ColorFG)
+	fb.String(diskX+labelWidth, y, diskVal, f, diskColor)
 
 	// Pipe separator with equal gaps: temp [gap] | [gap] D:N%
 	const gap = 3 // pixels between pipe and adjacent text
-	pipeX := dx - gap - f.Width
+	pipeX := diskX - gap - f.Width
 	fb.String(pipeX, y, "|", f, theme.ColorSep)
 
 	// Temperature right-aligned before the gap
