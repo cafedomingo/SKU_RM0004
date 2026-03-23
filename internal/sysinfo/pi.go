@@ -21,7 +21,6 @@ const (
 	dietpiRunPath     = "/run/dietpi"
 	dietpiUpdatePath  = dietpiRunPath + "/.update_available"
 	dietpiAPTPath     = dietpiRunPath + "/.apt_updates"
-	dietpiVersionPath = "/boot/dietpi/.version"
 )
 
 // readCPUFreq reads current/min/max CPU frequency from sysfs.
@@ -81,9 +80,15 @@ func readThrottleStatus() uint32 {
 	return buf[5]
 }
 
+// isDietPi returns true if the system is running DietPi.
+func isDietPi() bool {
+	_, err := os.Stat(dietpiRunPath)
+	return err == nil
+}
+
 // readDietPiStatus checks DietPi installation and update status.
 func readDietPiStatus() DietPiStatus {
-	if _, err := os.Stat(dietpiRunPath); os.IsNotExist(err) {
+	if !isDietPi() {
 		return DietPiNotInstalled
 	}
 	if _, err := os.Stat(dietpiUpdatePath); err == nil {
@@ -93,19 +98,18 @@ func readDietPiStatus() DietPiStatus {
 }
 
 // readAPTUpdateCount reads the APT update count from DietPi cache files.
+// Returns -1 if not running DietPi.
 func readAPTUpdateCount() int {
-	data, err := os.ReadFile(dietpiAPTPath)
-	if err == nil {
-		count, err := strconv.Atoi(strings.TrimSpace(string(data)))
-		if err != nil {
-			return 0
-		}
-		return count
+	if !isDietPi() {
+		return -1
 	}
-
-	// No .apt_updates file; check if this is DietPi at all.
-	if _, err := os.Stat(dietpiVersionPath); err == nil {
+	data, err := os.ReadFile(dietpiAPTPath)
+	if err != nil {
 		return 0
 	}
-	return -1
+	count, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil {
+		return 0
+	}
+	return count
 }
