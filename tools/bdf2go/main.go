@@ -49,6 +49,8 @@ var wantedRunes6x12 = func() map[rune]bool {
 	for r := rune(32); r <= 126; r++ {
 		m[r] = true
 	}
+	// Degree sign (Latin-1 Supplement, available in 6x12)
+	m[0x00B0] = true
 	return m
 }()
 

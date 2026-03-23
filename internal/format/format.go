@@ -51,14 +51,13 @@ func Uptime(d time.Duration) string {
 	}
 }
 
-// Temp formats temperature for display: "52C" or "125F".
-// The degree symbol is omitted because Spleen 6x12 lacks it.
+// Temp formats temperature for display: "52°C" or "125°F".
 func Temp(celsius float64, unit string) string {
 	val := celsius
 	if unit == "F" {
 		val = CelsiusToF(celsius)
 	}
-	return fmt.Sprintf("%2d%s", int(val), unit)
+	return fmt.Sprintf("%2d°%s", int(val), unit)
 }
 
 // CelsiusToF converts Celsius to Fahrenheit

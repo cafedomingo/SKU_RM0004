@@ -80,10 +80,10 @@ func TestTemp(t *testing.T) {
 		unit    string
 		want    string
 	}{
-		{52, "C", "52C"},
-		{0, "C", " 0C"},
-		{100, "C", "100C"},
-		{52, "F", "125F"},
+		{52, "C", "52°C"},
+		{0, "C", " 0°C"},
+		{100, "C", "100°C"},
+		{52, "F", "125°F"},
 	}
 	for _, tt := range tests {
 		got := format.Temp(tt.celsius, tt.unit)
