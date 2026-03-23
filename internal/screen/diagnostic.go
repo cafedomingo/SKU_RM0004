@@ -64,7 +64,7 @@ func (d *diagnosticScreen) Update(cfg config.Config) {
 	d.page = (d.page + 1) % numPages
 }
 
-func (d *diagnosticScreen) Send() {
+func (d *diagnosticScreen) Draw() {
 	if d.disp == nil {
 		return
 	}

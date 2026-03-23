@@ -10,7 +10,7 @@ import (
 // Screen renders a display mode and manages its own framebuffers.
 type Screen interface {
 	Update(cfg config.Config)
-	Send()
+	Draw()
 	Buffer() *st7735.Framebuffer
 }
 

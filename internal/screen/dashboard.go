@@ -35,7 +35,7 @@ func (d *dashboardScreen) Update(cfg config.Config) {
 	d.render(&d.back, cfg)
 }
 
-func (d *dashboardScreen) Send() {
+func (d *dashboardScreen) Draw() {
 	if d.disp == nil {
 		return
 	}

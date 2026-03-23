@@ -47,7 +47,7 @@ func (s *sparklineScreen) Update(cfg config.Config) {
 	drawIORow(fb, sm, s.collector)
 }
 
-func (s *sparklineScreen) Send() {
+func (s *sparklineScreen) Draw() {
 	if s.disp == nil {
 		return
 	}

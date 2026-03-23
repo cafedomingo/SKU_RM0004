@@ -53,7 +53,7 @@ func main() {
 
 		collector.Refresh()
 		activeScreen.Update(cfg)
-		activeScreen.Send()
+		activeScreen.Draw()
 
 		if shouldExit(ctx, cfg.Refresh-time.Since(start)) {
 			logger.Info("shutting down")
