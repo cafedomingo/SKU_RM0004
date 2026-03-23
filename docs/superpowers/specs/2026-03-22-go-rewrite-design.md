@@ -184,6 +184,7 @@ type Collector interface {
     ThrottleStatus() uint32
     DietPiStatus() DietPiStatus
     APTUpdateCount() int
+    LinkSpeedMbps() int         // Detected from default-route interface
     Refresh()                   // Update delta-based metrics
 }
 ```
