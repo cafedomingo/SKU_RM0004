@@ -116,10 +116,9 @@ func drawUptimeRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
 		fb.String(ax, y, badge, f, badgeColor)
 	}
 
-	// DietPi diamond (use 8x16 for the symbol, positioned on ticker row)
-	big := font.Spleen8x16
+	// DietPi diamond (custom 6x12 glyph)
 	if c.DietPiStatus() == sysinfo.DietPiUpdateAvail {
-		fb.Char(152, 1, '\u25C6', big, theme.ColorAlert)
+		fb.Char(152, 1, font.Diamond, f, theme.ColorAlert)
 	}
 }
 

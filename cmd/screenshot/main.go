@@ -27,7 +27,7 @@ func main() {
 		Net:  sysinfo.NetBandwidth{RxBytesPerSec: 15360, TxBytesPerSec: 2048},
 		DIO:  sysinfo.DiskIO{ReadBytesPerSec: 1048576, WriteBytesPerSec: 524288, ReadIOPS: 150, WriteIOPS: 80},
 		Up:   3*24*time.Hour + 2*time.Hour,
-		DietPi: sysinfo.DietPiUpToDate,
+		DietPi: sysinfo.DietPiUpdateAvail,
 		APT:     3,
 		LinkSpeed: 1000,
 	}

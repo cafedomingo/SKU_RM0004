@@ -4,6 +4,7 @@ package font
 const (
 	ArrowUp   rune = '\uE000'
 	ArrowDown rune = '\uE001'
+	Diamond   rune = '\uE002'
 )
 
 // AddGlyph registers a custom bitmap glyph for a rune.
@@ -36,6 +37,19 @@ func (f *Font) AddArrowGlyphs() {
 	f.Glyphs[ArrowDown] = []byte{
 		0x00, 0x00, 0x00,
 		0x20, 0x20, 0x20, 0xF8, 0x70, 0x20,
+		0x00, 0x00, 0x00,
+	}
+	// Diamond (6x6, centered in 6x12 cell with 3px top/bottom padding)
+	// Bit patterns:
+	//   ..XX..  = 0x30
+	//   .XXXX.  = 0x78
+	//   XXXXXX  = 0xFC
+	//   XXXXXX  = 0xFC
+	//   .XXXX.  = 0x78
+	//   ..XX..  = 0x30
+	f.Glyphs[Diamond] = []byte{
+		0x00, 0x00, 0x00,
+		0x30, 0x78, 0xFC, 0xFC, 0x78, 0x30,
 		0x00, 0x00, 0x00,
 	}
 }
