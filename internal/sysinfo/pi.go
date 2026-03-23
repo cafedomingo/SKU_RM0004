@@ -10,15 +10,18 @@ import (
 )
 
 const (
-	cpuFreqBase       = "/sys/devices/system/cpu/cpu0/cpufreq/"
+	cpuFreqPath       = "/sys/devices/system/cpu/cpu0/cpufreq/"
+	cpuFreqCurPath    = cpuFreqPath + "scaling_cur_freq"
+	cpuFreqMinPath    = cpuFreqPath + "cpuinfo_min_freq"
+	cpuFreqMaxPath    = cpuFreqPath + "cpuinfo_max_freq"
 	vcioPath          = "/dev/vcio"
 	tagGetThrottled   = 0x00030046
 	ioctlMailbox      = 0xC0046400
 	mailboxSuccess    = 0x80000000
-	dietpiRunDir      = "/run/dietpi"
-	dietpiUpdateFlag  = "/run/dietpi/.update_available"
-	dietpiAPTCache    = "/run/dietpi/.apt_updates"
-	dietpiVersionFile = "/boot/dietpi/.version"
+	dietpiRunPath     = "/run/dietpi"
+	dietpiUpdatePath  = "/run/dietpi/.update_available"
+	dietpiAPTPath     = "/run/dietpi/.apt_updates"
+	dietpiVersionPath = "/boot/dietpi/.version"
 )
 
 // readCPUFreq reads current/min/max CPU frequency from sysfs.
@@ -35,11 +38,10 @@ func readCPUFreq() CPUFreq {
 		return uint16(kHz / 1000)
 	}
 
-	const base = cpuFreqBase
 	return CPUFreq{
-		Cur: read(base + "scaling_cur_freq"),
-		Min: read(base + "cpuinfo_min_freq"),
-		Max: read(base + "cpuinfo_max_freq"),
+		Cur: read(cpuFreqCurPath),
+		Min: read(cpuFreqMinPath),
+		Max: read(cpuFreqMaxPath),
 	}
 }
 
@@ -81,10 +83,10 @@ func readThrottleStatus() uint32 {
 
 // readDietPiStatus checks DietPi installation and update status.
 func readDietPiStatus() DietPiStatus {
-	if _, err := os.Stat(dietpiRunDir); os.IsNotExist(err) {
+	if _, err := os.Stat(dietpiRunPath); os.IsNotExist(err) {
 		return DietPiNotInstalled
 	}
-	if _, err := os.Stat(dietpiUpdateFlag); err == nil {
+	if _, err := os.Stat(dietpiUpdatePath); err == nil {
 		return DietPiUpdateAvail
 	}
 	return DietPiUpToDate
@@ -92,7 +94,7 @@ func readDietPiStatus() DietPiStatus {
 
 // readAPTUpdateCount reads the APT update count from DietPi cache files.
 func readAPTUpdateCount() int {
-	data, err := os.ReadFile(dietpiAPTCache)
+	data, err := os.ReadFile(dietpiAPTPath)
 	if err == nil {
 		var count int
 		if _, err := fmt.Sscanf(strings.TrimSpace(string(data)), "%d", &count); err == nil {
@@ -102,7 +104,7 @@ func readAPTUpdateCount() int {
 	}
 
 	// No .apt_updates file; check if this is DietPi at all.
-	if _, err := os.Stat(dietpiVersionFile); err == nil {
+	if _, err := os.Stat(dietpiVersionPath); err == nil {
 		return 0
 	}
 	return -1
