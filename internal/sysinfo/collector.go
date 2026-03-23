@@ -300,10 +300,7 @@ func readLinkSpeed(iface string) int {
 	if _, err := fmt.Sscanf(strings.TrimSpace(string(data)), "%d", &speed); err != nil {
 		return 0
 	}
-	if speed < 0 {
-		return 0
-	}
-	return speed
+	return max(speed, 0)
 }
 
 // aggregateDiskUsage computes the weighted disk usage percentage across
