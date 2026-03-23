@@ -58,16 +58,16 @@ func RenderDashboard(fb *st7735.Framebuffer, c sysinfo.Collector, cfg config.Con
 	temp := c.Temperature()
 
 	const (
-		barW   = 65
+		barW   = 74
 		barH   = 6
 		leftX  = 2
-		rightX = 82
+		rightX = 84
 	)
 
 	// drawMetric renders "LABEL:" in white, value right-aligned in color, bar below
 	drawMetric := func(x, y int, label, value string, pct int, color uint16) {
 		fb.String(x, y, label, sm, theme.ColorFG)
-		valX := x + barW - len(value)*sm.Width
+		valX := x + barW - format.RuneLen(value)*sm.Width
 		fb.String(valX, y, value, sm, color)
 		fb.Bar(x, y+12, barW, barH, pct, color, theme.ColorSep)
 	}

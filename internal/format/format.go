@@ -65,6 +65,17 @@ func CelsiusToF(c float64) float64 {
 	return c*9/5 + 32
 }
 
+// RuneLen returns the number of runes in a string.
+// Use instead of len() when calculating pixel widths, since len() counts bytes
+// and multi-byte characters like ° would give wrong results.
+func RuneLen(s string) int {
+	n := 0
+	for range s {
+		n++
+	}
+	return n
+}
+
 // APTBadge formats APT update count: "^3" (capped at 99). Returns "" for count <= 0.
 func APTBadge(count int) string {
 	if count <= 0 {

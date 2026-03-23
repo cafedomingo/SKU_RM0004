@@ -144,8 +144,8 @@ func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg 
 		fb.String(tx, y, "!", f, theme.ColorAlert)
 	}
 
-	// Right side: build from right edge inward (matching C layout)
-	// D:N% — "D:" label in white, value in threshold color
+	// Right side: build from right edge inward
+	// D:N% — "D:" label in white, value in threshold color, right-aligned
 	diskVal := fmt.Sprintf("%d%%", int(c.DiskPercent()))
 	diskColor := theme.ThresholdColor(c.DiskPercent(), theme.DiskWarn, theme.DiskCrit)
 	lblW := 2 * f.Width // "D:"
@@ -154,15 +154,16 @@ func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg 
 	fb.String(dx, y, "D:", f, theme.ColorFG)
 	fb.String(dx+lblW, y, diskVal, f, diskColor)
 
-	// Pipe separator — 1 char gap on each side
-	pipeX := dx - f.Width
+	// Pipe separator with equal gaps: temp [gap] | [gap] D:N%
+	const gap = 3 // pixels between pipe and adjacent text
+	pipeX := dx - gap - f.Width
 	fb.String(pipeX, y, "|", f, theme.ColorSep)
 
-	// Temperature right before the pipe gap
+	// Temperature right-aligned before the gap
 	tempStr := format.Temp(c.Temperature(), cfg.TempUnit)
 	tempColor := theme.TempRampColor(c.Temperature())
-	tempW := len(tempStr) * f.Width
-	fb.String(pipeX-tempW, y, tempStr, f, tempColor)
+	tempW := format.RuneLen(tempStr) * f.Width
+	fb.String(pipeX-gap-tempW, y, tempStr, f, tempColor)
 }
 
 // drawSparklineGraph renders 13 vertical bars in the graph area.
@@ -219,30 +220,34 @@ func drawCPURAMValues(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector)
 }
 
 // drawIORow renders network rx/tx and disk R/W at y=68.
-// Uses custom arrow indicators and separate R/W labels matching original C layout.
+// Network fills left column (0-78), disk fills right column (82-160).
 func drawIORow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
 	const y = 68
 
 	net := c.NetBandwidth()
 	netWarn, netCrit := theme.NetThresholds(c.LinkSpeedMbps())
 
-	// Network: down-arrow + rx, up-arrow + tx
+	// Network: arrow+rx on left, arrow+tx centered in left column
 	fb.Char(0, y, font.ArrowDown, f, theme.ColorFG)
 	rxStr := format.Rate(net.RxBytesPerSec)
-	fb.String(f.Width, y, rxStr, f, theme.ThresholdColor(float64(net.RxBytesPerSec), float64(netWarn), float64(netCrit)))
+	rxColor := theme.ThresholdColor(float64(net.RxBytesPerSec), float64(netWarn), float64(netCrit))
+	fb.String(f.Width, y, rxStr, f, rxColor)
 
-	txX := (1 + len(rxStr)) * f.Width + f.Width
+	// tx starts at midpoint of left column
+	txX := 40
 	fb.Char(txX, y, font.ArrowUp, f, theme.ColorFG)
 	txStr := format.Rate(net.TxBytesPerSec)
-	fb.String(txX+f.Width, y, txStr, f, theme.ThresholdColor(float64(net.TxBytesPerSec), float64(netWarn), float64(netCrit)))
+	txColor := theme.ThresholdColor(float64(net.TxBytesPerSec), float64(netWarn), float64(netCrit))
+	fb.String(txX+f.Width, y, txStr, f, txColor)
 
-	// Disk: R + read rate, W + write rate (fixed positions matching C layout)
+	// Disk: R+read on left of right column, W+write at midpoint
 	dio := c.DiskIO()
 	fb.String(82, y, "R", f, theme.ColorFG)
 	fb.String(82+f.Width, y, format.Rate(dio.ReadBytesPerSec), f,
 		theme.ThresholdColor(float64(dio.ReadBytesPerSec), theme.DiskIOWarn, theme.DiskIOCrit))
 
-	fb.String(120, y, "W", f, theme.ColorFG)
-	fb.String(120+f.Width, y, format.Rate(dio.WriteBytesPerSec), f,
+	wX := 122
+	fb.String(wX, y, "W", f, theme.ColorFG)
+	fb.String(wX+f.Width, y, format.Rate(dio.WriteBytesPerSec), f,
 		theme.ThresholdColor(float64(dio.WriteBytesPerSec), theme.DiskIOWarn, theme.DiskIOCrit))
 }
