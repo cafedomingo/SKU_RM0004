@@ -54,27 +54,13 @@ func main() {
 		activeScreen.Update(cfg)
 		activeScreen.Draw()
 
-		if shouldExit(ctx, cfg.Refresh-time.Since(start)) {
-			logger.Info("shutting down")
-			return
-		}
-	}
-}
-
-func shouldExit(ctx context.Context, remaining time.Duration) bool {
-	if remaining <= 0 {
+		// Sleep until next refresh, or exit on shutdown signal
 		select {
 		case <-ctx.Done():
-			return true
-		default:
-			return false
+			logger.Info("shutting down")
+			return
+		case <-time.After(cfg.Refresh - time.Since(start)):
 		}
-	}
-	select {
-	case <-ctx.Done():
-		return true
-	case <-time.After(remaining):
-		return false
 	}
 }
 
