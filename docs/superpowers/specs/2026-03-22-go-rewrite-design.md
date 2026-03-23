@@ -58,6 +58,9 @@ SKU_RM0004/
 ├── THIRD_PARTY_LICENSES                # Spleen BSD-2-Clause
 ├── README.md
 ├── install.sh                          # Updated for Go binary
+├── .editorconfig
+├── .gitattributes                      # Line endings, linguist-generated markers
+├── .gitignore                          # Build artifacts, binaries
 ├── .golangci.yml
 │
 ├── cmd/
@@ -80,16 +83,14 @@ SKU_RM0004/
 │   │   └── pi.go                       # Pi-specific: throttle, dietpi
 │   ├── st7735/
 │   │   ├── driver.go                   # I2C display driver (periph.io)
-│   │   └── framebuffer.go             # 160x80 RGB565 buffer + drawing
+│   │   ├── framebuffer.go             # 160x80 RGB565 buffer + drawing
+│   │   └── README.md                   # Hardware reference (I2C protocol, timing)
 │   └── theme/theme.go                  # Colors, thresholds, temp ramp
 │
 ├── tools/
 │   └── bdf2go/main.go                 # BDF → Go source converter
 │
 ├── .github/workflows/build.yml
-│
-├── hardware/
-│   └── st7735/README.md                # Hardware reference (preserved)
 │
 └── docs/                               # Generated screenshots
 ```
@@ -144,9 +145,8 @@ Drawing methods:
 - `Fill(color uint16)`
 - `SetPixel(x, y int, color uint16)`
 - `Rect(x, y, w, h int, color uint16)`
-- `Char(x, y int, ch byte, f Font, color uint16)` — foreground only, background untouched
-- `String(x, y int, s string, f Font, color uint16)` — foreground only
-- `Glyph(x, y int, g Glyph, color uint16)` — foreground only
+- `Char(x, y int, ch rune, f Font, color uint16)` — foreground only, background untouched; rune supports Unicode
+- `String(x, y int, s string, f Font, color uint16)` — foreground only; iterates runes
 
 Renderers clear the framebuffer with `Fill(bg)` first, then draw foreground pixels. This matches the C framebuffer behavior where `lcd_fb_char` only sets foreground pixels.
 
@@ -211,14 +211,14 @@ A `MockCollector` implementation provides fixed values for tests and the screens
 ```ini
 # All settings optional. Missing keys or missing file = defaults.
 screen=dashboard       # dashboard | diagnostic | sparkline
-refresh=5              # 1-30 seconds
+refresh=5              # 2-30 seconds
 temp_unit=C            # C | F
 ```
 
 ```go
 type Config struct {
     Screen   string        // "dashboard", "diagnostic", "sparkline"
-    Refresh  time.Duration // 1s-30s
+    Refresh  time.Duration // 2s-30s
     TempUnit string        // "C" or "F"
 }
 ```
@@ -236,16 +236,21 @@ Behavior:
 
 | Size | Use case |
 |---|---|
-| 5x8 | Small labels, IP addresses |
-| 8x16 | Hostname, main text |
+| 5x8 | Available as fallback if 8x16 is too large somewhere |
+| 8x16 | Primary font — all text across all screens |
 | 12x24 | Available if needed |
 | 16x32 | Available if needed |
 
-**Font size mapping challenge:** The current C code uses Font_7x10 extensively (diagnostic rows, sparkline labels). Spleen doesn't have a 7x10 equivalent — closest options are 5x8 (smaller) or 8x16 (taller). The diagnostic screen packs 8 rows at 10px each into 80px; with 8x16 only 5 rows fit.
+**Font size strategy:** Use Spleen 8x16 as the single primary font, replacing both the old 7x10 (metric labels, values) and 8x16 (hostname). This simplifies rendering — one font size for everything — but requires layout adjustments since 8x16 is 6px taller than 7x10.
 
-Resolution: screen layouts will be adjusted during implementation to work with available Spleen sizes. The 5x8 font is the most likely replacement for small text, with layouts reflowed to fit. This may mean fewer rows per diagnostic page or tighter spacing. Final layouts will be validated visually using the screenshot tool before merging.
+**Layout adjustments:**
+- **Dashboard:** Tighten spacing around the separator, reduce gap between label text and progress bar, shrink bar height by 1-2px. The 2x2 metric grid (CPU/Temp, RAM/Disk) fits with these tweaks.
+- **Sparkline:** Reduce graph height to reclaim vertical space for taller text rows.
+- **Diagnostic:** With 8x16, only 5 rows fit in 80px. Diagnostic will need 3 pages instead of 2, or a reduced row count. Acceptable since diagnostic is for detailed inspection, not at-a-glance monitoring.
 
-Character range: ASCII 32-126 (printable).
+Final layouts will be validated visually using the screenshot tool before merging.
+
+Character ranges: ASCII 32-126 (printable), plus selected Unicode blocks (Latin-1 Supplement, Box Drawing, Block Elements, Geometric Shapes). The BDF converter extracts only the codepoints we use to keep the generated file compact.
 
 **BDF → Go converter** (`tools/bdf2go/main.go`):
 - Reads Spleen BDF files from a release archive
@@ -257,10 +262,15 @@ Character range: ASCII 32-126 (printable).
 - Invoked via `go generate` in `internal/font/`
 - Generated `spleen.go` is committed to the repo — normal builds need no network access
 
+**Unicode symbols from Spleen** (replacing custom glyphs where possible):
+- `◆` (U+25C6) — DietPi update indicator (replaces custom diamond glyph)
+- `▲` (U+25B2) / `▼` (U+25BC) — trend indicators (replaces custom arrow glyph)
+- `°` (U+00B0) — degree sign for temperature ("52°C" instead of "52C")
+- `▁▂▃▄▅▆▇█` (U+2581–U+2588) — block elements for sparkline bar rendering
+
 **Custom glyphs** (`internal/font/glyphs.go`):
-- Diamond (DietPi update indicator)
-- Arrow (trend indicator)
-- Defined as small bitmap arrays, drawn via `Framebuffer.Glyph()`
+- Infrastructure kept as a fallback for anything Spleen doesn't cover
+- BDF converter must handle multi-byte Unicode codepoints, not just ASCII 32-126
 
 **Attribution:** Spleen license included in `THIRD_PARTY_LICENSES` at repo root. Source noted in generated `spleen.go` header comment. Brief credit in README.
 
@@ -272,21 +282,32 @@ Each renderer is a function that draws into a `Framebuffer` using data from a `C
 - Hostname, IP, APT badge
 - CPU bar + temp bar
 - RAM bar + disk bar
-- DietPi diamond indicator
+- DietPi ◆ indicator
 
-**Diagnostic** (`diagnostic.go`) — two-page detail:
-- Page 0: hostname, IPs, uptime, CPU%, temp, RAM%, throttle
-- Page 1: disk%, net RX/TX, disk I/O, IOPS, DietPi, APT
+Layout adjustments for 8x16 font (was 7x10 for metrics):
+- Reduce gap between label text and progress bar (bar immediately below text, ~1px gap instead of 2px)
+- Shrink bar height by 1-2px (4-5px instead of 6px)
+- Tighten spacing around the separator line
+- Temperature uses `°` character ("52°C")
+
+**Diagnostic** (`diagnostic.go`) — multi-page detail:
+- Same data as before: hostname, IPs, uptime, CPU%, temp, RAM%, throttle, disk%, net RX/TX, disk I/O, IOPS, DietPi, APT
+- With 8x16 font, 5 rows fit per page (80px / 16px). Currently 15 rows total → 3 pages instead of 2.
 - Alternates pages each refresh. Full screen redraw each time.
-- State: page counter (0/1)
-- Data refresh: metrics collected only on page 0. Page 1 displays the same data snapshot. This matches C behavior and ensures delta-based metrics (net bandwidth, disk I/O) measure a full refresh interval, not half.
-- Temperature row always shows both C and F regardless of `temp_unit` config. The `temp_unit` config only affects dashboard and sparkline formatting.
+- State: page counter (0/1/2)
+- Data refresh: metrics collected only on page 0. Subsequent pages display the same data snapshot. This ensures delta-based metrics (net bandwidth, disk I/O) measure a full refresh interval.
+- Temperature row always shows both °C and °F regardless of `temp_unit` config. The `temp_unit` config only affects dashboard and sparkline formatting.
 
 **Sparkline** (`sparkline.go`) — scrolling history:
 - Ticker cycling hostname → IPv4 → IPv6
-- CPU/RAM rolling history (13 samples)
-- Sparkline bars + I/O stats
+- CPU/RAM rolling history
+- Sparkline charts using `▁▂▃▄▅▆▇█` block elements + I/O stats
 - State: history buffers + ticker phase
+
+Layout adjustments for 8x16 font:
+- Reduce sparkline graph height to reclaim vertical space for taller text rows
+- History sample count may decrease with shorter graphs (fewer pixel rows = fewer distinct values to display)
+- Block elements give 8 distinct heights per character cell, so even shorter graphs maintain resolution
 
 Dashboard and sparkline benefit from double-buffer diffing — most refreshes only change a few bars or values. Diagnostic always redraws fully.
 
@@ -298,10 +319,10 @@ Colors (RGB565) and threshold logic, centralized:
 - CPU: warn 60%, crit 80%
 - RAM: warn 60%, crit 80%
 - Disk: warn 70%, crit 90%
-- Net: warn 1 MB/s, crit 10 MB/s
-- Disk I/O: warn 512 KB/s, crit 5 MB/s
+- Net: dynamic — detect link speed of default-route interface via `/sys/class/net/<iface>/speed`, warn at 40%, crit at 80% of link capacity. If speed unavailable (some WiFi drivers), fall back to 100 Mbps assumption.
+- Disk I/O: warn 25 MB/s, crit 75 MB/s
 - APT: crit 10+ updates
-- Temp ramp: 30°C → 50°C → 65°C → 85°C (cold → cool → warm → hot)
+- Temp ramp (matches DietPi): <40°C cyan (cool) → 40°C green (optimal) → 50°C yellow (warm) → 60°C orange (hot) → 70°C red (critical)
 
 Functions: `ThresholdColor(value, warn, crit)`, `TempRampColor(celsius)`
 
@@ -311,8 +332,10 @@ Metric string formatting:
 - `Rate(bytes)` → "0B", "1.2K", "45K", "1.2M"
 - `Freq(mhz)` → "600MHz", "1.8GHz"
 - `Uptime(duration)` → "3d 2h", "5h 12m", "42m"
-- `Temp(celsius, unit)` → "52C", "125F"
+- `Temp(celsius, unit)` → "52°C", "125°F"
 - `APTBadge(count)` → "^3" (capped at 99)
+
+**Display floor:** When rendering percent values (CPU, RAM, disk), clamp to a minimum of 1% for display. The collector returns the real value (including 0); the floor is applied at the rendering layer only. A system that's truly at 0% CPU or 0% RAM isn't realistic in practice, and showing "0%" looks like a read failure.
 
 ### Logging
 
@@ -357,6 +380,7 @@ Logger created in `main()`, passed via struct fields (not global). Output: stder
 - Renders each screen into a `Framebuffer`
 - Converts `[]uint16` RGB565 → `image.RGBA`
 - Writes PNGs at 5x scale for readability
+- Optimize PNG output for small file size (indexed color palette where possible, maximum compression). The display only uses ~15 distinct colors, so indexed PNGs should be very compact.
 - Builds and runs natively on any platform (no cross-compilation needed)
 - CI runs this on the build runner (x86 Linux) to generate docs
 
@@ -436,4 +460,4 @@ Supports `curl | bash` installation pattern.
 
 ## Hardware Reference
 
-`hardware/st7735/README.md` preserved and updated as needed. Documents I2C protocol details, timing constraints, and hardware gotchas that inform driver implementation.
+`internal/st7735/README.md` — moved from `hardware/st7735/` to live alongside the driver code it documents. Preserved and updated as needed. Documents I2C protocol details, timing constraints, and hardware gotchas that inform driver implementation.
