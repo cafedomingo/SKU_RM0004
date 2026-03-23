@@ -3,4 +3,3 @@
 *.png
 !docs/*.png
 .claude/
-docs/superpowers/
