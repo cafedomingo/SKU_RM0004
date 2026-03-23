@@ -71,7 +71,7 @@ func (fb *Framebuffer) String(x, y int, s string, f *font.Font, color uint16) {
 func (fb *Framebuffer) Bar(x, y, w, h int, pct int, fg, bg uint16) {
 	filled := w * pct / 100
 	if pct > 0 {
-		filled = max(filled, 1)
+		filled = max(filled, 2)
 	}
 	for row := y; row < y+h; row++ {
 		for col := x; col < x+w; col++ {
