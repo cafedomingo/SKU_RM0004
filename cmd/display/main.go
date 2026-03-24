@@ -71,7 +71,7 @@ func checkI2CSpeed(logger *slog.Logger) {
 		return
 	}
 	if len(data) < 4 {
-		logger.Warn("I2C clock frequency file too short")
+		logger.Warn("I2C clock frequency file too short", "path", i2cClockFreqPath, "len", len(data))
 		return
 	}
 	freq := binary.BigEndian.Uint32(data[:4])
