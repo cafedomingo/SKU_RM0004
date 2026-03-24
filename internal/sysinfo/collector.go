@@ -148,7 +148,7 @@ func (c *liveCollector) refreshNetwork(elapsed float64) {
 	iface := defaultInterface()
 	if iface == "" {
 		c.ipv4 = "no network"
-		c.ipv6 = ""
+		c.ipv6 = NoIPv6
 		return
 	}
 

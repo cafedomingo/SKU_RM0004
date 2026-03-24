@@ -22,7 +22,7 @@ Display driver for the [UCTRONICS SKU_RM0004](https://github.com/UCTRONICS/SKU_R
 curl -sL https://github.com/cafedomingo/SKU_RM0004/releases/latest/download/install.sh | sudo bash
 ```
 
-The script handles both first install and updates. On first run it configures SPI and installs a systemd service. On subsequent runs it downloads the latest binary and restarts the service.
+The script handles both first install and updates. On first run it configures I2C and installs a systemd service. On subsequent runs it downloads the latest binary and restarts the service.
 
 ## Configuration
 

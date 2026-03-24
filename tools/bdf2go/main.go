@@ -11,6 +11,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -117,7 +118,8 @@ type bdfSpec struct {
 
 func downloadAndExtractBDFs(version string, specs []bdfSpec) (map[string][]byte, error) {
 	url := fmt.Sprintf("https://github.com/fcambus/spleen/releases/download/%s/spleen-%s.tar.gz", version, version)
-	resp, err := http.Get(url)
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("download: %w", err)
 	}

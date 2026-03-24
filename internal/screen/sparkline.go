@@ -151,7 +151,7 @@ func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg 
 
 // drawSparklineGraph renders 13 vertical bars in the graph area.
 // Each bar is 5px wide with 1px gap, starting at x offset xOff.
-// Graph area: y=19 to y=48 (30px tall).
+// Graph area: y=37 to y=54 (18px tall).
 func drawSparklineGraph(fb *st7735.Framebuffer, xOff int, history []float64, warn, crit float64) {
 	const (
 		barW     = 5
