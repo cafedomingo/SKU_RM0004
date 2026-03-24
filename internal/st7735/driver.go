@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	i2cBus        = "/dev/i2c-1"
-	i2cAddress    = 0x18
-	burstMaxLen   = 160 // hardware limit, do NOT increase
-	burstDelayUS  = 450 // empirically tuned at 400kHz
-	yOffset       = 24  // controller is 160x160, our 160x80 starts at row 24
+	i2cBus       = "/dev/i2c-1"
+	i2cAddress   = 0x18
+	burstMaxLen  = 160 // hardware limit, do NOT increase
+	burstDelayUS = 450 // empirically tuned at 400kHz
+	yOffset      = 24  // controller is 160x160, our 160x80 starts at row 24
 
 	regWriteData  = 0x00
 	regBurstWrite = 0x01

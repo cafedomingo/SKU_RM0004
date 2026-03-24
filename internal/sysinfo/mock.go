@@ -21,7 +21,7 @@ type MockCollector struct {
 	LinkSpeed int
 }
 
-func (m *MockCollector) CPUPercent() float64       { return m.CPU }
+func (m *MockCollector) CPUPercent() float64        { return m.CPU }
 func (m *MockCollector) RAMPercent() float64        { return m.RAM }
 func (m *MockCollector) DiskPercent() float64       { return m.Disk }
 func (m *MockCollector) Temperature() float64       { return m.Temp }

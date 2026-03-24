@@ -23,8 +23,8 @@ import (
 //	y=56:  RAM:NNN% (6x12, left)           DSK:NNN% (6x12, right)
 //	y=68:  [RAM bar]                       [Disk bar] (6px tall)
 type dashboardScreen struct {
-	disp      st7735.Display
-	collector sysinfo.Collector
+	disp        st7735.Display
+	collector   sysinfo.Collector
 	front, back st7735.Framebuffer
 }
 

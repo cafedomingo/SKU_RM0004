@@ -5,12 +5,6 @@
 // The RGB565 encoding is: ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
 package theme
 
-// color565 encodes an RGB triplet into an RGB565 uint16.
-// It is only used at package init time; constants are pre-computed below.
-func color565(r, g, b uint8) uint16 {
-	return (uint16(r>>3) << 11) | (uint16(g>>2) << 5) | uint16(b>>3)
-}
-
 // UI palette — sourced from the original C firmware color struct.
 // Values are pre-computed via the RGB565 formula: ((r>>3)<<11)|((g>>2)<<5)|(b>>3)
 const (
@@ -52,10 +46,10 @@ const (
 )
 
 // Convenience color functions for common metrics.
-func CPUColor(pct float64) uint16    { return ThresholdColor(pct, CPUWarn, CPUCrit) }
-func RAMColor(pct float64) uint16    { return ThresholdColor(pct, RAMWarn, RAMCrit) }
-func DiskColor(pct float64) uint16   { return ThresholdColor(pct, DiskWarn, DiskCrit) }
-func DiskIOColor(v float64) uint16   { return ThresholdColor(v, DiskIOWarn, DiskIOCrit) }
+func CPUColor(pct float64) uint16  { return ThresholdColor(pct, CPUWarn, CPUCrit) }
+func RAMColor(pct float64) uint16  { return ThresholdColor(pct, RAMWarn, RAMCrit) }
+func DiskColor(pct float64) uint16 { return ThresholdColor(pct, DiskWarn, DiskCrit) }
+func DiskIOColor(v float64) uint16 { return ThresholdColor(v, DiskIOWarn, DiskIOCrit) }
 func NetColor(v float64, linkSpeedMbps int) uint16 {
 	warn, crit := NetThresholds(linkSpeedMbps)
 	return ThresholdColor(v, float64(warn), float64(crit))
@@ -98,7 +92,7 @@ func TempColor(celsius float64) uint16 {
 
 	// Map [40, 70) onto [0, 3) in 10-degree segments.
 	pos := (celsius - 40) / 10.0 // 0.0 … <3.0
-	idx := int(pos)               // segment index: 0, 1, or 2
+	idx := int(pos)              // segment index: 0, 1, or 2
 	t := float32(pos - float64(idx))
 
 	return LerpColor(tempRamp[idx], tempRamp[idx+1], t)

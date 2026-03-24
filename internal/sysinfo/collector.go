@@ -48,10 +48,10 @@ type liveCollector struct {
 	apt       int
 
 	// state for delta calculations
-	prevNetRx, prevNetTx               uint64
-	prevDiskRead, prevDiskWrite        uint64
-	prevDiskReadOps, prevDiskWriteOps  uint64
-	lastRefresh                        time.Time
+	prevNetRx, prevNetTx              uint64
+	prevDiskRead, prevDiskWrite       uint64
+	prevDiskReadOps, prevDiskWriteOps uint64
+	lastRefresh                       time.Time
 }
 
 // NewCollector creates a live system metrics collector.
@@ -61,22 +61,23 @@ func NewCollector(logger *slog.Logger) Collector {
 	return c
 }
 
-func (c *liveCollector) CPUPercent() float64          { return c.cpu }
-func (c *liveCollector) RAMPercent() float64          { return c.ram }
-func (c *liveCollector) DiskPercent() float64         { return c.disk }
-func (c *liveCollector) Temperature() float64         { return c.temp }
-func (c *liveCollector) Hostname() string             { return c.hostname }
-func (c *liveCollector) Uptime() time.Duration        { return c.uptime }
-func (c *liveCollector) IPv4Address() string          { return c.ipv4 }
-func (c *liveCollector) IPv6Suffix() string           { return c.ipv6 }
-func (c *liveCollector) NetBandwidth() NetBandwidth   { return c.net }
-func (c *liveCollector) LinkSpeedMbps() int           { return c.linkSpeed }
-func (c *liveCollector) DiskIO() DiskIO               { return c.diskIO }
+func (c *liveCollector) CPUPercent() float64        { return c.cpu }
+func (c *liveCollector) RAMPercent() float64        { return c.ram }
+func (c *liveCollector) DiskPercent() float64       { return c.disk }
+func (c *liveCollector) Temperature() float64       { return c.temp }
+func (c *liveCollector) Hostname() string           { return c.hostname }
+func (c *liveCollector) Uptime() time.Duration      { return c.uptime }
+func (c *liveCollector) IPv4Address() string        { return c.ipv4 }
+func (c *liveCollector) IPv6Suffix() string         { return c.ipv6 }
+func (c *liveCollector) NetBandwidth() NetBandwidth { return c.net }
+func (c *liveCollector) LinkSpeedMbps() int         { return c.linkSpeed }
+func (c *liveCollector) DiskIO() DiskIO             { return c.diskIO }
+
 // Pi-specific
-func (c *liveCollector) CPUFreq() CPUFreq             { return c.freq }
-func (c *liveCollector) ThrottleStatus() uint32       { return c.throttle }
-func (c *liveCollector) DietPiStatus() DietPiStatus   { return c.dietpi }
-func (c *liveCollector) APTUpdateCount() int          { return c.apt }
+func (c *liveCollector) CPUFreq() CPUFreq           { return c.freq }
+func (c *liveCollector) ThrottleStatus() uint32     { return c.throttle }
+func (c *liveCollector) DietPiStatus() DietPiStatus { return c.dietpi }
+func (c *liveCollector) APTUpdateCount() int        { return c.apt }
 
 // Refresh collects all system metrics.
 func (c *liveCollector) Refresh() {

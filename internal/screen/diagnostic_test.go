@@ -13,38 +13,24 @@ import (
 
 func diagMock() *sysinfo.MockCollector {
 	return &sysinfo.MockCollector{
-		Host:  "testhost",
-		IPv4:  "192.168.1.1",
-		IPv6:  "::1",
-		CPU:   47,
-		RAM:   63,
-		Disk:  42,
-		Temp:  52,
-		Freq:  sysinfo.CPUFreq{Cur: 1800},
-		Up:    2*time.Hour + 30*time.Minute,
-		Net:   sysinfo.NetBandwidth{RxBytesPerSec: 1024, TxBytesPerSec: 512},
-		DIO:   sysinfo.DiskIO{ReadBytesPerSec: 1024 * 1024, WriteBytesPerSec: 512 * 1024, ReadIOPS: 150, WriteIOPS: 80},
-		APT:   3,
+		Host:   "testhost",
+		IPv4:   "192.168.1.1",
+		IPv6:   "::1",
+		CPU:    47,
+		RAM:    63,
+		Disk:   42,
+		Temp:   52,
+		Freq:   sysinfo.CPUFreq{Cur: 1800},
+		Up:     2*time.Hour + 30*time.Minute,
+		Net:    sysinfo.NetBandwidth{RxBytesPerSec: 1024, TxBytesPerSec: 512},
+		DIO:    sysinfo.DiskIO{ReadBytesPerSec: 1024 * 1024, WriteBytesPerSec: 512 * 1024, ReadIOPS: 150, WriteIOPS: 80},
+		APT:    3,
 		DietPi: sysinfo.DietPiUpToDate,
 	}
 }
 
 func diagCfg() config.Config {
 	return config.Config{TempUnit: "C"}
-}
-
-// pixelsInRow returns the set of unique colors found in the row at y offset [y, y+12) (6x12 font).
-func pixelsInRow(fb *st7735.Framebuffer, y int) map[uint16]bool {
-	colors := make(map[uint16]bool)
-	for row := y; row < y+12 && row < st7735.Height; row++ {
-		for col := 0; col < st7735.Width; col++ {
-			c := fb.Pixels[row*st7735.Width+col]
-			if c != theme.ColorBG {
-				colors[c] = true
-			}
-		}
-	}
-	return colors
 }
 
 // TestDiagnosticPageCount verifies 15 rows produce exactly 3 pages.

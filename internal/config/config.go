@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	ConfigPath     = "/etc/uctronics-display.conf"
+	ConfigPath      = "/etc/uctronics-display.conf"
 	DefaultRefresh  = 5 * time.Second
 	DefaultTempUnit = TempCelsius
 

@@ -11,17 +11,17 @@ import (
 )
 
 const (
-	cpuFreqPath       = "/sys/devices/system/cpu/cpu0/cpufreq/"
-	cpuFreqCurPath    = cpuFreqPath + "scaling_cur_freq"
-	cpuFreqMinPath    = cpuFreqPath + "cpuinfo_min_freq"
-	cpuFreqMaxPath    = cpuFreqPath + "cpuinfo_max_freq"
-	vcioPath          = "/dev/vcio"
-	tagGetThrottled   = 0x00030046
-	ioctlMailbox      = 0xC0046400
-	mailboxSuccess    = 0x80000000
-	dietpiRunPath     = "/run/dietpi"
-	dietpiUpdatePath  = dietpiRunPath + "/.update_available"
-	dietpiAPTPath     = dietpiRunPath + "/.apt_updates"
+	cpuFreqPath      = "/sys/devices/system/cpu/cpu0/cpufreq/"
+	cpuFreqCurPath   = cpuFreqPath + "scaling_cur_freq"
+	cpuFreqMinPath   = cpuFreqPath + "cpuinfo_min_freq"
+	cpuFreqMaxPath   = cpuFreqPath + "cpuinfo_max_freq"
+	vcioPath         = "/dev/vcio"
+	tagGetThrottled  = 0x00030046
+	ioctlMailbox     = 0xC0046400
+	mailboxSuccess   = 0x80000000
+	dietpiRunPath    = "/run/dietpi"
+	dietpiUpdatePath = dietpiRunPath + "/.update_available"
+	dietpiAPTPath    = dietpiRunPath + "/.apt_updates"
 )
 
 // readCPUFreq reads current/min/max CPU frequency from sysfs.
@@ -67,7 +67,7 @@ func readThrottleStatus() uint32 {
 	}
 
 	_, _, errno := unix.Syscall(
-		unix.SYS_IOCTL,
+		unix.SYS_IOCTL, //nolint:staticcheck // SYS_IOCTL is only deprecated on Darwin; this runs on Linux
 		f.Fd(),
 		ioctlMailbox,
 		uintptr(unsafe.Pointer(&buf[0])),

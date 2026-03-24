@@ -1,13 +1,16 @@
 linters:
   enable:
     - errcheck
-    - govet
-    - staticcheck
-    - unused
-    - ineffassign
     - goconst
     - gofmt
     - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - staticcheck
+    - unconvert
+    - unused
 
 linters-settings:
   goimports:

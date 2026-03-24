@@ -44,8 +44,8 @@ func TestFullConfig(t *testing.T) {
 	path := writeConfig(t, dir, "screen=sparkline\nrefresh=10\ntemp_unit=F\n")
 	l := newTestLoader(t, path)
 	cfg := l.Load()
-	if cfg.Screen != "sparkline" {
-		t.Errorf("Screen = %q, want %q", cfg.Screen, "sparkline")
+	if cfg.Screen != ScreenSparkline {
+		t.Errorf("Screen = %q, want %q", cfg.Screen, ScreenSparkline)
 	}
 	if cfg.Refresh != 10*time.Second {
 		t.Errorf("Refresh = %v, want %v", cfg.Refresh, 10*time.Second)
@@ -60,8 +60,8 @@ func TestPartialConfig(t *testing.T) {
 	path := writeConfig(t, dir, "screen=sparkline\n")
 	l := newTestLoader(t, path)
 	cfg := l.Load()
-	if cfg.Screen != "sparkline" {
-		t.Errorf("Screen = %q, want %q", cfg.Screen, "sparkline")
+	if cfg.Screen != ScreenSparkline {
+		t.Errorf("Screen = %q, want %q", cfg.Screen, ScreenSparkline)
 	}
 	if cfg.Refresh != DefaultRefresh {
 		t.Errorf("Refresh = %v, want %v", cfg.Refresh, DefaultRefresh)

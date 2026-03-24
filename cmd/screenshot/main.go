@@ -18,16 +18,16 @@ const scale = 5
 
 func main() {
 	mock := &sysinfo.MockCollector{
-		CPU:  47, RAM: 63, Disk: 42, Temp: 52,
-		Host: "raspberrypi",
-		IPv4: "192.168.1.100",
-		IPv6: "::a8f1:23bc:4567",
-		Freq: sysinfo.CPUFreq{Cur: 1800, Min: 600, Max: 2400},
-		Net:  sysinfo.NetBandwidth{RxBytesPerSec: 15360, TxBytesPerSec: 2048},
-		DIO:  sysinfo.DiskIO{ReadBytesPerSec: 1048576, WriteBytesPerSec: 524288, ReadIOPS: 150, WriteIOPS: 80},
-		Up:   3*24*time.Hour + 2*time.Hour,
-		DietPi: sysinfo.DietPiUpdateAvail,
-		APT:     3,
+		CPU: 47, RAM: 63, Disk: 42, Temp: 52,
+		Host:      "raspberrypi",
+		IPv4:      "192.168.1.100",
+		IPv6:      "::a8f1:23bc:4567",
+		Freq:      sysinfo.CPUFreq{Cur: 1800, Min: 600, Max: 2400},
+		Net:       sysinfo.NetBandwidth{RxBytesPerSec: 15360, TxBytesPerSec: 2048},
+		DIO:       sysinfo.DiskIO{ReadBytesPerSec: 1048576, WriteBytesPerSec: 524288, ReadIOPS: 150, WriteIOPS: 80},
+		Up:        3*24*time.Hour + 2*time.Hour,
+		DietPi:    sysinfo.DietPiUpdateAvail,
+		APT:       3,
 		LinkSpeed: 1000,
 	}
 	cfg := config.Config{Screen: "dashboard", Refresh: 5 * time.Second, TempUnit: "C"}
