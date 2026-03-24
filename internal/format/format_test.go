@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cafedomingo/SKU_RM0004/internal/font"
 	"github.com/cafedomingo/SKU_RM0004/internal/format"
 )
 
@@ -106,6 +107,25 @@ func TestCelsiusToF(t *testing.T) {
 		got := format.CelsiusToF(tt.input)
 		if got != tt.want {
 			t.Errorf("CelsiusToF(%v) = %v, want %v", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestStringWidth(t *testing.T) {
+	f := &font.Font{Width: 6}
+	tests := []struct {
+		s    string
+		want int
+	}{
+		{"", 0},
+		{"hello", 30},
+		{"52°C", 24},  // degree sign is 1 rune, not 2 bytes
+		{"::abcd", 36},
+	}
+	for _, tt := range tests {
+		got := format.StringWidth(tt.s, f)
+		if got != tt.want {
+			t.Errorf("StringWidth(%q, 6px) = %d, want %d", tt.s, got, tt.want)
 		}
 	}
 }

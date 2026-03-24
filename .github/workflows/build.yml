@@ -33,8 +33,11 @@ jobs:
         with:
           go-version: stable
 
-      - name: Run tests
-        run: go test ./...
+      - name: Run tests with coverage
+        run: go test -coverprofile=coverage.out ./...
+
+      - name: Coverage summary
+        run: go tool cover -func=coverage.out | tail -1
 
   build:
     runs-on: ubuntu-latest
