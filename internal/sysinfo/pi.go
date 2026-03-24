@@ -51,7 +51,7 @@ func readThrottleStatus() uint32 {
 	if err != nil {
 		return 0
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// Mailbox property buffer for GET_THROTTLED (tag 0x00030046).
 	// Must be 16-byte aligned; [8]uint32 is 32 bytes, naturally aligned.

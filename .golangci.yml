@@ -1,10 +1,9 @@
+version: "2"
+
 linters:
   enable:
     - errcheck
     - goconst
-    - gofmt
-    - goimports
-    - gosimple
     - govet
     - ineffassign
     - misspell
@@ -12,6 +11,12 @@ linters:
     - unconvert
     - unused
 
-linters-settings:
-  goimports:
-    local-prefixes: github.com/cafedomingo/SKU_RM0004
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/cafedomingo/SKU_RM0004

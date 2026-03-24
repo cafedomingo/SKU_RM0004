@@ -76,7 +76,7 @@ func writePNG(path string, fb *st7735.Framebuffer) {
 		fmt.Fprintf(os.Stderr, "error creating %s: %v\n", path, err)
 		return
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	encoder := &png.Encoder{CompressionLevel: png.BestCompression}
 	if err := encoder.Encode(f, img); err != nil {

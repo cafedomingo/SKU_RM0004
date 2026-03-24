@@ -121,7 +121,7 @@ func downloadAndExtractBDFs(version string, specs []bdfSpec) (map[string][]byte,
 	if err != nil {
 		return nil, fmt.Errorf("download: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("download: HTTP %d", resp.StatusCode)
@@ -131,7 +131,7 @@ func downloadAndExtractBDFs(version string, specs []bdfSpec) (map[string][]byte,
 	if err != nil {
 		return nil, fmt.Errorf("gzip: %w", err)
 	}
-	defer gz.Close()
+	defer func() { _ = gz.Close() }()
 
 	// Build target set
 	targets := make(map[string]string) // tarball path -> spec filename

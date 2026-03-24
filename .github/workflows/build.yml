@@ -10,19 +10,16 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
-          go-version: '1.22'
-
-      - name: Check formatting
-        run: test -z "$(gofmt -l ./...)" || { gofmt -l ./... ; exit 1; }
+          go-version: stable
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v8
         with:
-          version: latest
+          version: v2
 
       - name: Lint shell scripts
         run: shellcheck install.sh
@@ -30,11 +27,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
-          go-version: '1.22'
+          go-version: stable
 
       - name: Run tests
         run: go test ./...
@@ -42,11 +39,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
-          go-version: '1.22'
+          go-version: stable
 
       - name: Build display binary (arm64)
         run: GOOS=linux GOARCH=arm64 go build -o display ./cmd/display
@@ -72,7 +69,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v5
         with:
           sparse-checkout: install.sh
           sparse-checkout-cone-mode: false

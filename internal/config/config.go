@@ -79,7 +79,7 @@ func (l *Loader) Load() Config {
 		l.logger.Warn("config: could not open file", "path", l.path, "err", err)
 		return cfg
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {

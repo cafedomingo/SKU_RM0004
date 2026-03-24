@@ -31,7 +31,7 @@ func main() {
 		logger.Error("failed to open display", "error", err)
 		os.Exit(1)
 	}
-	defer disp.Close()
+	defer func() { _ = disp.Close() }()
 
 	collector := sysinfo.NewCollector(logger)
 	cfgLoader := config.NewLoader(config.ConfigPath, logger)
