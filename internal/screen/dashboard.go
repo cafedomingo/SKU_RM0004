@@ -51,7 +51,7 @@ func (d *dashboardScreen) render(fb *st7735.Framebuffer, cfg config.Config) {
 
 	// DietPi update diamond indicator (big font for the symbol)
 	if d.collector.DietPiStatus() == sysinfo.DietPiUpdateAvail {
-		fb.Char(152, 0, '\u25C6', headerFont, theme.ColorAlert)
+		fb.Char(st7735.Width-headerFont.Width-2, 0, '\u25C6', headerFont, theme.ColorAlert)
 	}
 
 	// APT update badge (small font, right-aligned on IP row)
