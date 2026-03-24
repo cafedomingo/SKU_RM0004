@@ -119,7 +119,7 @@ func TestStringWidth(t *testing.T) {
 	}{
 		{"", 0},
 		{"hello", 30},
-		{"52°C", 24},  // degree sign is 1 rune, not 2 bytes
+		{"52°C", 24}, // degree sign is 1 rune, not 2 bytes
 		{"::abcd", 36},
 	}
 	for _, tt := range tests {
