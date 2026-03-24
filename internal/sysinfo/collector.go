@@ -147,6 +147,8 @@ func (c *liveCollector) refreshHostUptime() {
 func (c *liveCollector) refreshNetwork(elapsed float64) {
 	iface := defaultInterface()
 	if iface == "" {
+		c.ipv4 = "no network"
+		c.ipv6 = ""
 		return
 	}
 
@@ -164,7 +166,8 @@ func (c *liveCollector) refreshNetwork(elapsed float64) {
 	}
 	for _, s := range counters {
 		if s.Name == iface {
-			if c.prevNetRx > 0 || c.prevNetTx > 0 {
+			if (c.prevNetRx > 0 || c.prevNetTx > 0) &&
+				s.BytesRecv >= c.prevNetRx && s.BytesSent >= c.prevNetTx {
 				c.net = NetBandwidth{
 					RxBytesPerSec: uint64(float64(s.BytesRecv-c.prevNetRx) / elapsed),
 					TxBytesPerSec: uint64(float64(s.BytesSent-c.prevNetTx) / elapsed),
@@ -195,7 +198,8 @@ func (c *liveCollector) refreshDiskIO(elapsed float64) {
 		}
 	}
 
-	if c.prevDiskRead > 0 || c.prevDiskWrite > 0 {
+	if (c.prevDiskRead > 0 || c.prevDiskWrite > 0) &&
+		totalRead >= c.prevDiskRead && totalWrite >= c.prevDiskWrite {
 		c.diskIO = DiskIO{
 			ReadBytesPerSec:  uint64(float64(totalRead-c.prevDiskRead) / elapsed),
 			WriteBytesPerSec: uint64(float64(totalWrite-c.prevDiskWrite) / elapsed),
