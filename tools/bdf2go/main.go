@@ -11,13 +11,13 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"time"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const defaultSpleenVersion = "2.1.0"
