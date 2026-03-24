@@ -61,7 +61,7 @@ func (d *dashboardScreen) render(fb *st7735.Framebuffer, cfg config.Config) {
 		if d.collector.APTUpdateCount() >= theme.APTCrit {
 			color = theme.ColorCrit
 		}
-		badgeX := st7735.Width - len(badge)*metricFont.Width - 2
+		badgeX := st7735.Width - format.StringWidth(badge, metricFont) - 2
 		fb.String(badgeX, 18, badge, metricFont, color)
 	}
 
@@ -84,7 +84,7 @@ func (d *dashboardScreen) render(fb *st7735.Framebuffer, cfg config.Config) {
 	// drawMetric renders "LABEL:" in white, value right-aligned in color, bar below
 	drawMetric := func(x, y int, label, value string, pct int, color uint16) {
 		fb.String(x, y, label, metricFont, theme.ColorFG)
-		valX := x + barW - format.RuneLen(value)*metricFont.Width
+		valX := x + barW - format.StringWidth(value, metricFont)
 		fb.String(valX, y, value, metricFont, color)
 		fb.Bar(x, y+12, barW, barH, pct, color, theme.ColorSep)
 	}

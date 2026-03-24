@@ -50,7 +50,7 @@ func (d *diagnosticScreen) Update(cfg config.Config) {
 			d.back.String(0, y, row.value, f, row.color)
 		} else {
 			d.back.String(0, y, row.label, f, theme.ColorMuted)
-			vw := len([]rune(row.value)) * f.Width
+			vw := format.StringWidth(row.value, f)
 			vx := st7735.Width - vw
 			if vx < 0 {
 				vx = 0
@@ -105,7 +105,7 @@ func collectDiagData(c sysinfo.Collector) []diagRow {
 		color: theme.CPUColor(c.CPUPercent()),
 	})
 
-	// Row 5: Temperature — both C and F, no degree symbol (6x12 lacks it)
+	// Row 5: Temperature — both C and F
 	tempC := c.Temperature()
 	tempVal := fmt.Sprintf("%s / %s", format.Temp(tempC, false), format.Temp(tempC, true))
 	rows = append(rows, diagRow{

@@ -3,6 +3,8 @@ package format
 import (
 	"fmt"
 	"time"
+
+	"github.com/cafedomingo/SKU_RM0004/internal/font"
 )
 
 const (
@@ -69,15 +71,15 @@ func CelsiusToF(c float64) float64 {
 	return c*9/5 + 32
 }
 
-// RuneLen returns the number of runes in a string.
-// Use instead of len() when calculating pixel widths, since len() counts bytes
-// and multi-byte characters like ° would give wrong results.
-func RuneLen(s string) int {
+// StringWidth returns the pixel width of s when rendered in the given font.
+// Use instead of len()*font.Width, since len() counts bytes and multi-byte
+// characters like ° would give wrong results.
+func StringWidth(s string, f *font.Font) int {
 	n := 0
 	for range s {
 		n++
 	}
-	return n
+	return n * f.Width
 }
 
 // APTBadge formats APT update count: "^3" (capped at 99). Returns "" for count <= 0.

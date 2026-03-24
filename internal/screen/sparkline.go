@@ -93,7 +93,7 @@ func drawUptimeRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
 		if c.APTUpdateCount() >= theme.APTCrit {
 			badgeColor = theme.ColorCrit
 		}
-		badgeWidth := len(badge) * f.Width
+		badgeWidth := format.StringWidth(badge, f)
 		rightEdge -= badgeWidth
 		fb.String(rightEdge, y, badge, f, badgeColor)
 	}
@@ -123,7 +123,7 @@ func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg 
 	// Throttle indicator right after freq
 	throttle := c.ThrottleStatus()
 	if throttle&sysinfo.ThrottleCurrentMask != 0 {
-		throttleX := len(freqStr) * f.Width
+		throttleX := format.StringWidth(freqStr, f)
 		fb.String(throttleX, y, "!", f, theme.ColorAlert)
 	}
 
@@ -132,7 +132,7 @@ func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg 
 	diskVal := fmt.Sprintf("%d%%", int(c.DiskPercent()))
 	diskColor := theme.DiskColor(c.DiskPercent())
 	labelWidth := 2 * f.Width // "D:"
-	valueWidth := len(diskVal) * f.Width
+	valueWidth := format.StringWidth(diskVal, f)
 	diskX := colRightX + colWidth - labelWidth - valueWidth
 	fb.String(diskX, y, "D:", f, theme.ColorFG)
 	fb.String(diskX+labelWidth, y, diskVal, f, diskColor)
@@ -145,7 +145,7 @@ func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg 
 	// Temperature right-aligned before the gap
 	tempStr := format.Temp(c.Temperature(), cfg.TempUnit == config.TempFahrenheit)
 	tempColor := theme.TempColor(c.Temperature())
-	tempW := format.RuneLen(tempStr) * f.Width
+	tempW := format.StringWidth(tempStr, f)
 	fb.String(pipeX-gap-tempW, y, tempStr, f, tempColor)
 }
 
