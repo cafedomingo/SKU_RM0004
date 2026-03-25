@@ -19,6 +19,15 @@ const (
 	ColorCrit     uint16 = 0xFC0B // red-orange (same as alert)
 )
 
+// Temperature color stops.
+const (
+	ColorTempCool uint16 = 0x07FF // cyan  (0x00,0xFF,0xFF)
+	ColorTempOK          = ColorOK
+	ColorTempWarn        = ColorWarn
+	ColorTempHot  uint16 = 0xFC00 // orange (0xFF,0x80,0x00)
+	ColorTempCrit        = ColorCrit
+)
+
 // Temperature ramp: color stops paired with °C thresholds (DietPi-style).
 // Below the first stop: that stop's color. At or above the last: that color.
 // Between stops: linearly interpolated.
@@ -26,11 +35,11 @@ var tempRamp = []struct {
 	celsius float64
 	color   uint16
 }{
-	{30, 0x07FF}, // cool (cyan)
-	{40, 0x07E0}, // optimal (green)
-	{50, 0xFFE0}, // warm (yellow)
-	{60, 0xFC00}, // hot (orange)
-	{70, 0xF800}, // critical (red)
+	{30, ColorTempCool},
+	{40, ColorTempOK},
+	{50, ColorTempWarn},
+	{60, ColorTempHot},
+	{70, ColorTempCrit},
 }
 
 // Metric thresholds (warn / crit percentages or absolute values).
@@ -42,19 +51,20 @@ const (
 	DiskWarn = 70.0
 	DiskCrit = 90.0
 
-	// Disk I/O in bytes/s
-	DiskIOWarn = 25 * 1024 * 1024
-	DiskIOCrit = 75 * 1024 * 1024
+	// Disk I/O in bytes/s (MiB thresholds)
+	mib        = 1024 * 1024
+	DiskIOWarn = 25 * mib
+	DiskIOCrit = 75 * mib
 
 	// APT pending upgrades
 	APTWarn = 1
 	APTCrit = 10
 
 	// Network bandwidth
-	netDefaultMbps  = 100     // assumed link speed when unknown
-	netWarnPct      = 40      // warn at 40% of link capacity
-	netCritPct      = 80      // crit at 80% of link capacity
-	mbpsToBytesPerS = 125_000 // 1 Mbps = 1_000_000 bits/s / 8
+	netDefaultMbps  = 100           // assumed link speed when unknown
+	netWarnPct      = 40            // warn at 40% of link capacity
+	netCritPct      = 80            // crit at 80% of link capacity
+	mbpsToBytesPerS = 1_000_000 / 8 // bits/s to bytes/s
 )
 
 // Convenience color functions for common metrics.
