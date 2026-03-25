@@ -4,8 +4,3 @@ updates:
     directory: /
     schedule:
       interval: monthly
-
-  - package-ecosystem: gomod-versions
-    directory: /
-    schedule:
-      interval: monthly
