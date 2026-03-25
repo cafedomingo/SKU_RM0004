@@ -1,8 +1,6 @@
 package screen
 
 import (
-	"fmt"
-
 	"github.com/cafedomingo/SKU_RM0004/internal/config"
 	"github.com/cafedomingo/SKU_RM0004/internal/font"
 	"github.com/cafedomingo/SKU_RM0004/internal/format"
@@ -75,34 +73,28 @@ func (d *dashboardScreen) render(fb *st7735.Framebuffer, cfg config.Config) {
 	temp := d.collector.Temperature()
 
 	const (
-		barW   = 74
-		barH   = 6
 		leftX  = 2
 		rightX = 84
+		row1Y  = 34
+		row2Y  = 56
 	)
 
-	// drawMetric renders "LABEL:" in white, value right-aligned in color, bar below
-	drawMetric := func(x, y int, label, value string, pct int, color uint16) {
-		fb.String(x, y, label, metricFont, theme.ColorFG)
-		valX := x + barW - format.StringWidth(value, metricFont)
-		fb.String(valX, y, value, metricFont, color)
-		fb.Bar(x, y+12, barW, barH, pct, color, theme.ColorSep)
-	}
-
-	// CPU (left column)
-	cpuColor := theme.CPUColor(d.collector.CPUPercent())
-	drawMetric(leftX, 34, "CPU:", fmt.Sprintf("%3d%%", int(cpu)), int(cpu), cpuColor)
-
-	// Temperature (right column)
-	tempColor := theme.TempColor(temp)
 	tempStr := format.Temp(temp, cfg.TempUnit == config.TempFahrenheit)
-	drawMetric(rightX, 34, "TEMP:", tempStr, int(min(temp, 100)), tempColor)
 
-	// RAM (left column)
-	ramColor := theme.RAMColor(d.collector.RAMPercent())
-	drawMetric(leftX, 56, "RAM:", fmt.Sprintf("%3d%%", int(ram)), int(ram), ramColor)
+	drawMetric(fb, metricFont, leftX, row1Y, "CPU:", format.Pct(cpu), cpu, theme.CPUColor(cpu))
+	drawMetric(fb, metricFont, rightX, row1Y, "TEMP:", tempStr, min(temp, 100), theme.TempColor(temp))
+	drawMetric(fb, metricFont, leftX, row2Y, "RAM:", format.Pct(ram), ram, theme.RAMColor(ram))
+	drawMetric(fb, metricFont, rightX, row2Y, "DISK:", format.Pct(disk), disk, theme.DiskColor(disk))
+}
 
-	// Disk (right column)
-	diskColor := theme.DiskColor(d.collector.DiskPercent())
-	drawMetric(rightX, 56, "DISK:", fmt.Sprintf("%3d%%", int(disk)), int(disk), diskColor)
+// drawMetric renders a labeled metric: "LABEL:" in white, value right-aligned in color, bar below.
+func drawMetric(fb *st7735.Framebuffer, f *font.Font, x, y int, label, value string, pct float64, color uint16) {
+	const (
+		barW = 74
+		barH = 6
+	)
+	fb.String(x, y, label, f, theme.ColorFG)
+	valX := x + barW - format.StringWidth(value, f)
+	fb.String(valX, y, value, f, color)
+	fb.Bar(x, y+f.Height, barW, barH, int(pct), color, theme.ColorSep)
 }

@@ -43,10 +43,10 @@ func Freq(mhz uint16) string {
 
 // Uptime formats a duration: "1d 2h", "5h 12m", "42m"
 func Uptime(d time.Duration) string {
-	total := int(d.Seconds())
-	days := total / secsPerDay
-	hours := (total % secsPerDay) / secsPerHour
-	minutes := (total % secsPerHour) / 60
+	seconds := int(d.Seconds())
+	days := seconds / secsPerDay
+	hours := (seconds % secsPerDay) / secsPerHour
+	minutes := (seconds % secsPerHour) / 60
 
 	switch {
 	case days > 0:
@@ -64,6 +64,11 @@ func Temp(celsius float64, toFahrenheit bool) string {
 		return fmt.Sprintf("%2d°F", int(CelsiusToF(celsius)))
 	}
 	return fmt.Sprintf("%2d°C", int(celsius))
+}
+
+// Pct formats a percentage for display: " 47%", "100%".
+func Pct(v float64) string {
+	return fmt.Sprintf("%3d%%", int(v))
 }
 
 // CelsiusToF converts Celsius to Fahrenheit

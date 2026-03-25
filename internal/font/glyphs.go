@@ -7,12 +7,6 @@ const (
 	Diamond   rune = '\uE002'
 )
 
-// AddGlyph registers a custom bitmap glyph for a rune.
-// Used as fallback when Spleen doesn't cover a needed symbol.
-func (f *Font) AddGlyph(r rune, data []byte) {
-	f.Glyphs[r] = data
-}
-
 // AddCustomGlyphs adds arrow and diamond glyphs sized for this font.
 // Only supports 6-wide fonts (6x12).
 func (f *Font) AddCustomGlyphs() {
