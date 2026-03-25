@@ -5,6 +5,7 @@ package main
 import (
 	"archive/tar"
 	"bufio"
+	"bytes"
 	"compress/gzip"
 	"flag"
 	"fmt"
@@ -22,16 +23,18 @@ import (
 
 const defaultSpleenVersion = "2.1.0"
 
-// wantedRunes8x16 is the set of Unicode code points to extract from the 8x16 BDF file.
-var wantedRunes8x16 = func() map[rune]bool {
-	m := make(map[rune]bool)
-	// ASCII printable range
+// asciiPrintable populates m with the printable ASCII range and the degree sign,
+// which are common to all font sizes.
+func asciiPrintable(m map[rune]bool) {
 	for r := rune(32); r <= 126; r++ {
 		m[r] = true
 	}
-	// Degree sign
-	m[0x00B0] = true
-	// Geometric shapes
+	m[0x00B0] = true // °
+}
+
+var wantedRunes8x16 = func() map[rune]bool {
+	m := make(map[rune]bool)
+	asciiPrintable(m)
 	m[0x25B2] = true // ▲
 	m[0x25BC] = true // ▼
 	m[0x25C6] = true // ◆
@@ -42,16 +45,9 @@ var wantedRunes8x16 = func() map[rune]bool {
 	return m
 }()
 
-// wantedRunes6x12 is the set of Unicode code points to extract from the 6x12 BDF file.
-// Spleen 6x12 covers ASCII and Latin-1 Supplement. We only need ASCII for our purposes.
 var wantedRunes6x12 = func() map[rune]bool {
 	m := make(map[rune]bool)
-	// ASCII printable range
-	for r := rune(32); r <= 126; r++ {
-		m[r] = true
-	}
-	// Degree sign (Latin-1 Supplement, available in 6x12)
-	m[0x00B0] = true
+	asciiPrintable(m)
 	return m
 }()
 
@@ -73,7 +69,7 @@ func ParseBDF(r io.Reader, wanted map[rune]bool) ([]BDFGlyph, error) {
 			continue
 		}
 
-		var encoding int
+		var encoding rune
 		inBitmap := false
 		var bitmap []byte
 
@@ -86,13 +82,13 @@ func ParseBDF(r io.Reader, wanted map[rune]bool) ([]BDFGlyph, error) {
 				if err != nil {
 					return nil, fmt.Errorf("bad ENCODING: %q", val)
 				}
-				encoding = n
+				encoding = rune(n)
 			} else if line == "BITMAP" {
 				inBitmap = true
 			} else if line == "ENDCHAR" {
-				if wanted[rune(encoding)] {
+				if wanted[encoding] {
 					glyphs = append(glyphs, BDFGlyph{
-						Encoding: rune(encoding),
+						Encoding: encoding,
 						Bitmap:   bitmap,
 					})
 				}
@@ -110,9 +106,13 @@ func ParseBDF(r io.Reader, wanted map[rune]bool) ([]BDFGlyph, error) {
 	return glyphs, scanner.Err()
 }
 
-// bdfSpec describes a BDF file to extract from the tarball.
+// bdfSpec describes a BDF file to extract from the tarball and the
+// corresponding Go variable to generate.
 type bdfSpec struct {
 	filename string
+	varName  string
+	width    int
+	height   int
 	wanted   map[rune]bool
 }
 
@@ -135,7 +135,6 @@ func downloadAndExtractBDFs(version string, specs []bdfSpec) (map[string][]byte,
 	}
 	defer func() { _ = gz.Close() }()
 
-	// Build target set
 	targets := make(map[string]string) // tarball path -> spec filename
 	for _, s := range specs {
 		target := fmt.Sprintf("spleen-%s/%s", version, s.filename)
@@ -187,10 +186,8 @@ func runeLabel(r rune) string {
 }
 
 type fontDef struct {
-	varName string
-	width   int
-	height  int
-	glyphs  []BDFGlyph
+	bdfSpec
+	glyphs []BDFGlyph
 }
 
 func generateGo(fonts []fontDef, version string) string {
@@ -231,8 +228,8 @@ func main() {
 	flag.Parse()
 
 	specs := []bdfSpec{
-		{filename: "spleen-6x12.bdf", wanted: wantedRunes6x12},
-		{filename: "spleen-8x16.bdf", wanted: wantedRunes8x16},
+		{filename: "spleen-6x12.bdf", varName: "Spleen6x12", width: 6, height: 12, wanted: wantedRunes6x12},
+		{filename: "spleen-8x16.bdf", varName: "Spleen8x16", width: 8, height: 16, wanted: wantedRunes8x16},
 	}
 
 	log.Printf("Downloading Spleen %s...", *version)
@@ -245,18 +242,12 @@ func main() {
 	for _, spec := range specs {
 		data := bdfData[spec.filename]
 		log.Printf("Parsing %s (%d bytes)...", spec.filename, len(data))
-		glyphs, err := ParseBDF(strings.NewReader(string(data)), spec.wanted)
+		glyphs, err := ParseBDF(bytes.NewReader(data), spec.wanted)
 		if err != nil {
 			log.Fatalf("parsing %s: %v", spec.filename, err)
 		}
 		log.Printf("Extracted %d glyphs from %s", len(glyphs), spec.filename)
-
-		switch spec.filename {
-		case "spleen-6x12.bdf":
-			fonts = append(fonts, fontDef{varName: "Spleen6x12", width: 6, height: 12, glyphs: glyphs})
-		case "spleen-8x16.bdf":
-			fonts = append(fonts, fontDef{varName: "Spleen8x16", width: 8, height: 16, glyphs: glyphs})
-		}
+		fonts = append(fonts, fontDef{bdfSpec: spec, glyphs: glyphs})
 	}
 
 	src := generateGo(fonts, *version)

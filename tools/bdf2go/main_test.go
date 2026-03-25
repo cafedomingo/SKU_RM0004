@@ -87,7 +87,7 @@ ENDFONT
 `
 
 func TestParseBDF(t *testing.T) {
-	wanted := map[rune]bool{32: true, 33: true, 63: true}
+	wanted := map[rune]bool{' ': true, '!': true, '?': true}
 	glyphs, err := ParseBDF(strings.NewReader(testBDF), wanted)
 	if err != nil {
 		t.Fatal(err)
@@ -97,36 +97,32 @@ func TestParseBDF(t *testing.T) {
 		t.Fatalf("got %d glyphs, want 3", len(glyphs))
 	}
 
-	// Check space is all zeros
+	byRune := make(map[rune]BDFGlyph, len(glyphs))
 	for _, g := range glyphs {
-		if g.Encoding == ' ' {
-			for i, b := range g.Bitmap {
-				if b != 0 {
-					t.Errorf("space byte %d = %#02x, want 0x00", i, b)
-				}
-			}
-			if len(g.Bitmap) != 16 {
-				t.Errorf("space bitmap len = %d, want 16", len(g.Bitmap))
-			}
+		byRune[g.Encoding] = g
+	}
+
+	space := byRune[' ']
+	if len(space.Bitmap) != 16 {
+		t.Fatalf("space bitmap len = %d, want 16", len(space.Bitmap))
+	}
+	for i, b := range space.Bitmap {
+		if b != 0 {
+			t.Errorf("space byte %d = %#02x, want 0x00", i, b)
 		}
 	}
 
-	// Check '!' has 0x18 at offset 3
-	for _, g := range glyphs {
-		if g.Encoding == '!' {
-			if len(g.Bitmap) != 16 {
-				t.Fatalf("'!' bitmap len = %d, want 16", len(g.Bitmap))
-			}
-			if g.Bitmap[3] != 0x18 {
-				t.Errorf("'!' byte 3 = %#02x, want 0x18", g.Bitmap[3])
-			}
-		}
+	exclam := byRune['!']
+	if len(exclam.Bitmap) != 16 {
+		t.Fatalf("'!' bitmap len = %d, want 16", len(exclam.Bitmap))
+	}
+	if exclam.Bitmap[3] != 0x18 {
+		t.Errorf("'!' byte 3 = %#02x, want 0x18", exclam.Bitmap[3])
 	}
 }
 
 func TestParseBDFFiltersUnwanted(t *testing.T) {
-	// Only request space
-	wanted := map[rune]bool{32: true}
+	wanted := map[rune]bool{' ': true}
 	glyphs, err := ParseBDF(strings.NewReader(testBDF), wanted)
 	if err != nil {
 		t.Fatal(err)
@@ -135,6 +131,6 @@ func TestParseBDFFiltersUnwanted(t *testing.T) {
 		t.Fatalf("got %d glyphs, want 1", len(glyphs))
 	}
 	if glyphs[0].Encoding != ' ' {
-		t.Errorf("got encoding %d, want 32", glyphs[0].Encoding)
+		t.Errorf("got encoding %q, want %q", glyphs[0].Encoding, ' ')
 	}
 }
