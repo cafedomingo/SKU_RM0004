@@ -5,8 +5,7 @@
 // The RGB565 encoding is: ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
 package theme
 
-// UI palette — sourced from the original C firmware color struct.
-// Values are pre-computed via the RGB565 formula: ((r>>3)<<11)|((g>>2)<<5)|(b>>3)
+// Display palette (RGB565).
 const (
 	ColorBG       uint16 = 0x0000 // black      (0x00,0x00,0x00)
 	ColorFG       uint16 = 0xFFFF // white      (0xFF,0xFF,0xFF)
