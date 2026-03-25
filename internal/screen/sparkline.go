@@ -35,16 +35,16 @@ func (s *sparklineScreen) Update(cfg config.Config) {
 	copy(s.ramHistory[0:], s.ramHistory[1:])
 	s.ramHistory[SparklineHistory-1] = s.collector.RAMPercent()
 
-	sm := font.Spleen6x12
+	f := font.Spleen6x12
 
-	drawTicker(fb, sm, s.collector, s)
-	drawUptimeRow(fb, sm, s.collector)
-	drawFreqRow(fb, sm, s.collector, cfg)
+	drawTicker(fb, f, s.collector, s)
+	drawUptimeRow(fb, f, s.collector)
+	drawFreqRow(fb, f, s.collector, cfg)
 	fb.Rect(0, 35, st7735.Width, 1, theme.ColorSep)
 	drawSparklineGraph(fb, 0, s.cpuHistory[:], theme.CPUWarn, theme.CPUCrit)
 	drawSparklineGraph(fb, 82, s.ramHistory[:], theme.RAMWarn, theme.RAMCrit)
-	drawCPURAMValues(fb, sm, s.collector)
-	drawIORow(fb, sm, s.collector)
+	drawCPURAMValues(fb, f, s.collector)
+	drawIORow(fb, f, s.collector)
 }
 
 func (s *sparklineScreen) Draw() {
@@ -68,13 +68,12 @@ func drawTicker(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, s *sp
 
 	fb.String(0, 1, text, f, theme.ColorIdentity)
 
-	// Advance ticker phase
-	maxPhase := 2
-	ipv6 := c.IPv6Suffix()
-	if ipv6 == "" || ipv6 == sysinfo.NoIPv6 {
-		maxPhase = 1
+	// Advance: hostname -> ipv4 -> ipv6 (if available) -> hostname
+	s.tickerPhase++
+	hasIPv6 := c.IPv6Suffix() != "" && c.IPv6Suffix() != sysinfo.NoIPv6
+	if s.tickerPhase > 2 || (s.tickerPhase == 2 && !hasIPv6) {
+		s.tickerPhase = 0
 	}
-	s.tickerPhase = (s.tickerPhase + 1) % (maxPhase + 1)
 }
 
 // drawUptimeRow renders uptime on the left, update badges on the right at y=14.
@@ -89,13 +88,9 @@ func drawUptimeRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
 	// APT badge
 	badge := format.APTBadge(c.APTUpdateCount())
 	if badge != "" {
-		badgeColor := theme.ColorWarn
-		if c.APTUpdateCount() >= theme.APTCrit {
-			badgeColor = theme.ColorCrit
-		}
 		badgeWidth := format.StringWidth(badge, f)
 		rightEdge -= badgeWidth
-		fb.String(rightEdge, y, badge, f, badgeColor)
+		fb.String(rightEdge, y, badge, f, theme.APTColor(c.APTUpdateCount()))
 	}
 
 	// DietPi diamond — left of APT badge with gap, built from right edge inward
