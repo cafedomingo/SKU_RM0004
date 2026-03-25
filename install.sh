@@ -109,12 +109,12 @@ install_binary() {
     mkdir -p "$INSTALL_DIR"
 
     # Developer path: use local binary if run from a repo clone
-    if [ -f "./${BINARY}" ] && [ -f "./Makefile" ]; then
+    if [ -f "./${BINARY}" ] && [ -f "./go.mod" ]; then
         log "Installing local ./${BINARY} to ${INSTALL_DIR}/${BINARY}"
         cp "./${BINARY}" "${INSTALL_DIR}/${BINARY}"
     else
-        if [ -f "./Makefile" ]; then
-            log "No local binary — downloading from release (run 'make' first to install a local build)"
+        if [ -f "./go.mod" ]; then
+            log "No local binary — downloading from release (run 'go build -o display ./cmd/display' first to install a local build)"
         else
             log "Downloading ${BINARY} from latest release"
         fi
@@ -128,19 +128,6 @@ install_binary() {
     fi
 
     chmod +x "${INSTALL_DIR}/${BINARY}"
-}
-
-# --- Config file ---
-
-install_config() {
-    if [ ! -f /etc/uctronics-display.conf ]; then
-        log "Creating default config at /etc/uctronics-display.conf"
-        cat > /etc/uctronics-display.conf <<CONF
-# UCTRONICS LCD display configuration
-screen=dashboard
-refresh=5
-CONF
-    fi
 }
 
 # --- Systemd service ---
@@ -181,7 +168,6 @@ if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
 fi
 
 install_binary
-install_config
 install_service
 
 if [ "$needs_reboot" = true ]; then

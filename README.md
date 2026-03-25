@@ -1,79 +1,79 @@
 # UCTRONICS LCD Display Driver
 
-Display driver for the [UCTRONICS SKU_RM0004](https://github.com/UCTRONICS/SKU_RM0004) 160x80 ST7735 TFT LCD on Raspberry Pi 4/5. Forked from the original and simplified to focus on the all-in-one status view.
+![build](https://github.com/cafedomingo/SKU_RM0004/actions/workflows/build.yml/badge.svg)
+![coverage](https://img.shields.io/badge/coverage-71.9%25-yellow)
+![go](https://img.shields.io/badge/go-1.26-blue)
 
-| Dashboard | Sparkline |
-|:---------:|:---------:|
-| ![Dashboard](docs/dashboard.png) | ![Sparkline](docs/sparkline.png) |
+Display driver for the [UCTRONICS Pi Rack Pro (RM0004)](https://www.uctronics.com/raspberry-pi/uctronics-pi-rack-pro-for-raspberry-pi-4b-19-1u-rack-mount-support-for-4-2-5-ssds.html) 160x80 ST7735 TFT LCD on Raspberry Pi 4/5. Shows live system metrics: CPU, RAM, temperature, disk, and network.
 
-- Hostname and auto-detected IP address
-- CPU, RAM, temperature, and disk usage with color-coded bars
-- DietPi update indicator (◆) and APT upgrade count (^N)
-- Three screen modes: dashboard (single-page bars), diagnostic (two-page detail), and sparkline (live CPU/RAM history charts with I/O rates)
-- Refreshes every 5 seconds
+## Screenshots
 
-## Install / Update
+![Dashboard](docs/dashboard.png)
+
+![Sparkline](docs/sparkline.png)
+
+## Screens
+
+**Dashboard** — single-page status view with color-coded bars for CPU, RAM, temperature, and disk usage.
+
+**Sparkline** — scrolling history charts for CPU and RAM, plus live network and disk I/O rates, temperature, frequency, and alert badges.
+
+**Diagnostic** — multi-page detailed metrics that alternate each refresh cycle: system overview (hostname, IPs, CPU, temperature, RAM) and I/O (disk, network, IOPS, update status).
+
+## Installation
 
 ```bash
 curl -sL https://github.com/cafedomingo/SKU_RM0004/releases/latest/download/install.sh | sudo bash
 ```
 
-The script is idempotent — it handles both first install and updates. On first run it configures I2C, GPIO, and installs a systemd service. On subsequent runs it downloads the latest binary and restarts the service.
-
-To update multiple Pis:
-
-```bash
-for host in pi1 pi2 pi3 pi4; do
-  ssh "$host" 'curl -sL https://github.com/cafedomingo/SKU_RM0004/releases/latest/download/install.sh | sudo bash'
-done
-```
-
-## Development install
-
-To run a locally built binary instead of the release:
-
-```bash
-git clone https://github.com/cafedomingo/SKU_RM0004.git
-cd SKU_RM0004
-make
-make test
-sudo ./install.sh
-```
-
-When a `./display` binary exists in the current directory, `install.sh` uses it instead of downloading from GitHub.
-
-Regenerate documentation screenshots: `make screenshot`
-
-## Uninstall
-
-```bash
-sudo systemctl disable uctronics-display.service
-sudo rm /etc/systemd/system/uctronics-display.service
-sudo rm -rf /opt/uctronics-lcd
-sudo systemctl daemon-reload
-```
+The script is idempotent — it handles both first install and updates. On first run it configures I2C, GPIO shutdown, and installs a systemd service. On subsequent runs it downloads the latest binary and restarts the service.
 
 ## Configuration
 
-Runtime settings are in `/etc/uctronics-display.conf` (created on first install):
+No configuration is required — sensible defaults are built in. Optional runtime settings in `/etc/uctronics-display.conf`:
 
 ```ini
-# Screen to display: "dashboard", "diagnostic", or "sparkline"
-screen=dashboard
-
-# Refresh interval in seconds (1-30)
-refresh=5
+screen=dashboard    # dashboard | diagnostic | sparkline
+refresh=5           # 2-30 seconds
+temp_unit=C         # C | F
 ```
 
-Changes take effect on the next refresh cycle — no restart required.
+Changes take effect immediately — no restart needed.
 
-The **diagnostic** screen shows detailed system metrics across two pages that alternate each refresh cycle: system overview (hostname, IPs, CPU, temperature, RAM, throttle) and I/O (disk, network, IOPS, update status).
+## Building from source
 
-The **sparkline** screen shows a compact live view with CPU and RAM bar charts that scroll over time, plus network and disk I/O rates, temperature, frequency, and alert badges.
-
-Compile-time settings are in `hardware/rpiInfo/rpiInfo.h`. Rebuild after changing.
-
-```c
-#define TEMPERATURE_TYPE  CELSIUS    // or FAHRENHEIT
-#define REFRESH_INTERVAL_SECS  5     // default refresh interval
+```bash
+go build -o display ./cmd/display
 ```
+
+Cross-compile for Pi:
+
+```bash
+GOOS=linux GOARCH=arm64 go build -o display ./cmd/display
+```
+
+## Development
+
+Run tests:
+
+```bash
+go test ./...
+```
+
+Generate font data:
+
+```bash
+go generate ./internal/font/
+```
+
+Generate screenshots:
+
+```bash
+go build -o screenshot ./cmd/screenshot && ./screenshot
+```
+
+## Credits
+
+For the original C display driver, see [UCTRONICS/SKU_RM0004](https://github.com/UCTRONICS/SKU_RM0004).
+
+Spleen font by Frederic Cambus (BSD 2-Clause).

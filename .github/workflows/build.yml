@@ -12,8 +12,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Check formatting
-        run: make format-check
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.11
 
       - name: Lint shell scripts
         run: shellcheck install.sh
@@ -23,24 +29,54 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Run integration tests
-        run: make test
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+
+      - name: Run tests with coverage
+        run: go test -coverpkg=./cmd/display/...,./internal/... -coverprofile=coverage.out ./...
+
+      - name: Coverage summary
+        run: go tool cover -func=coverage.out | tail -1
+
+      - name: Check coverage badge
+        run: |
+          actual=$(go tool cover -func=coverage.out | tail -1 | awk '{print $NF}')
+          badge=$(sed -n 's/.*coverage-\([0-9.]*\)%.*/\1/p' README.md)
+          if [ "$badge" != "${actual%\%}" ]; then
+            echo "::error::Coverage badge in README.md shows ${badge}% but actual coverage is ${actual}. Update the badge to: coverage-${actual%\%}%25"
+            exit 1
+          fi
 
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install cross-compiler and dependencies
-        run: sudo apt-get install -y gcc-aarch64-linux-gnu libi2c-dev
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
 
-      - name: Build for aarch64
-        run: CC=aarch64-linux-gnu-gcc make
+      - name: Build display binary (arm64)
+        run: GOOS=linux GOARCH=arm64 go build -o display ./cmd/display
 
-      - name: Upload binary
+      - name: Build screenshot tool (native)
+        run: go build -o screenshot ./cmd/screenshot
+
+      - name: Generate screenshots
+        run: ./screenshot
+
+      - name: Check screenshots are up to date
+        run: |
+          if ! git diff --quiet docs/*.png; then
+            echo "::error::Screenshots are out of date. Run 'go build -o screenshot ./cmd/screenshot && ./screenshot' and commit the updated PNGs."
+            exit 1
+          fi
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: display
+          name: build
           path: display
 
   release:
@@ -57,7 +93,7 @@ jobs:
 
       - uses: actions/download-artifact@v8
         with:
-          name: display
+          name: build
 
       - name: Create release
         env:
@@ -65,9 +101,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           chmod +x display install.sh
-
           TAG=$(date -u +%Y.%m.%d.%H%M)
-
           gh release create "$TAG" display install.sh \
             --title "$TAG" \
             --notes "Built from commit ${GITHUB_SHA::7}."
