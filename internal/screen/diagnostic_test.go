@@ -77,8 +77,8 @@ func TestDiagnosticPage1Content(t *testing.T) {
 	state.Update(diagCfg()) // page 0
 	state.Update(diagCfg()) // page 1
 
-	if !hasNonBGInRegion(state.Buffer(), 0, 0, st7735.Width, 12) {
-		t.Error("expected non-background pixels at y=0 on page 1")
+	if !hasColorInRegion(state.Buffer(), 0, 0, st7735.Width, 12, theme.ColorMuted) {
+		t.Error("expected label pixels at y=0 on page 1")
 	}
 }
 

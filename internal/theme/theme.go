@@ -42,6 +42,7 @@ const (
 	DiskIOCrit = 75 * 1024 * 1024
 
 	// APT pending upgrades
+	APTWarn = 1
 	APTCrit = 10
 )
 
@@ -50,6 +51,7 @@ func CPUColor(pct float64) uint16  { return ThresholdColor(pct, CPUWarn, CPUCrit
 func RAMColor(pct float64) uint16  { return ThresholdColor(pct, RAMWarn, RAMCrit) }
 func DiskColor(pct float64) uint16 { return ThresholdColor(pct, DiskWarn, DiskCrit) }
 func DiskIOColor(v float64) uint16 { return ThresholdColor(v, DiskIOWarn, DiskIOCrit) }
+func APTColor(count int) uint16    { return ThresholdColor(float64(count), APTWarn, APTCrit) }
 func NetColor(v float64, linkSpeedMbps int) uint16 {
 	warn, crit := NetThresholds(linkSpeedMbps)
 	return ThresholdColor(v, float64(warn), float64(crit))

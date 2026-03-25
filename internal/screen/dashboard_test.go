@@ -13,9 +13,9 @@ func defaultMock() *sysinfo.MockCollector {
 	return &sysinfo.MockCollector{
 		Host: "dietpi",
 		IPv4: "192.168.1.42",
-		CPU:  47,
-		RAM:  63,
-		Disk: 42,
+		CPU:  theme.CPUWarn,
+		RAM:  theme.RAMCrit,
+		Disk: theme.DiskWarn,
 		Temp: 52,
 	}
 }
@@ -30,19 +30,6 @@ func hasColorInRegion(fb *st7735.Framebuffer, x, y, w, h int, color uint16) bool
 	for row := y; row < y+h && row < st7735.Height; row++ {
 		for col := x; col < x+w && col < st7735.Width; col++ {
 			if fb.Pixels[row*st7735.Width+col] == color {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// hasNonBGInRegion returns true if any pixel in the rectangle is not the
-// background color.
-func hasNonBGInRegion(fb *st7735.Framebuffer, x, y, w, h int) bool {
-	for row := y; row < y+h && row < st7735.Height; row++ {
-		for col := x; col < x+w && col < st7735.Width; col++ {
-			if fb.Pixels[row*st7735.Width+col] != theme.ColorBG {
 				return true
 			}
 		}
@@ -71,14 +58,14 @@ func TestDashboardRenders(t *testing.T) {
 		t.Error("expected separator line at y=30")
 	}
 
-	// CPU bar area should have colored pixels (y=46, 6px tall)
-	if !hasNonBGInRegion(d.Buffer(), 2, 46, 65, 6) {
-		t.Error("expected CPU bar pixels")
+	// CPU bar at CPUWarn should be exactly ColorWarn
+	if !hasColorInRegion(d.Buffer(), 2, 46, 65, 6, theme.ColorWarn) {
+		t.Error("expected CPU bar in warn color at CPUWarn threshold")
 	}
 
-	// RAM bar area should have colored pixels (y=68, 6px tall)
-	if !hasNonBGInRegion(d.Buffer(), 2, 68, 65, 6) {
-		t.Error("expected RAM bar pixels")
+	// RAM bar at RAMCrit should be exactly ColorCrit
+	if !hasColorInRegion(d.Buffer(), 2, 68, 65, 6, theme.ColorCrit) {
+		t.Error("expected RAM bar in crit color at RAMCrit threshold")
 	}
 }
 
@@ -99,23 +86,22 @@ func TestDashboardThresholds(t *testing.T) {
 		}
 	})
 
-	// Intermediate values produce visible (non-background) bars with lerped colors
-	t.Run("intermediate", func(t *testing.T) {
+	// At warn thresholds, colors should be exactly ColorWarn
+	t.Run("at_warn", func(t *testing.T) {
 		m := &sysinfo.MockCollector{
 			Host: "pi", IPv4: "10.0.0.1",
-			CPU: 30, RAM: 65, Disk: 50, Temp: 45,
+			CPU: theme.CPUWarn, RAM: theme.RAMWarn, Disk: theme.DiskWarn, Temp: 45,
 		}
 		d := &dashboardScreen{collector: m}
-		// filled by Update
 		d.Update(cfg)
-		if !hasNonBGInRegion(d.Buffer(), 2, 46, 74, 6) {
-			t.Error("CPU bar at 30% should have colored pixels")
+		if !hasColorInRegion(d.Buffer(), 2, 46, 74, 6, theme.ColorWarn) {
+			t.Error("CPU bar at CPUWarn should be ColorWarn")
 		}
-		if !hasNonBGInRegion(d.Buffer(), 2, 68, 74, 6) {
-			t.Error("RAM bar at 65% should have colored pixels")
+		if !hasColorInRegion(d.Buffer(), 2, 68, 74, 6, theme.ColorWarn) {
+			t.Error("RAM bar at RAMWarn should be ColorWarn")
 		}
-		if !hasNonBGInRegion(d.Buffer(), 84, 68, 74, 6) {
-			t.Error("Disk bar at 50% should have colored pixels")
+		if !hasColorInRegion(d.Buffer(), 84, 68, 74, 6, theme.ColorWarn) {
+			t.Error("Disk bar at DiskWarn should be ColorWarn")
 		}
 	})
 }
@@ -133,15 +119,17 @@ func TestDashboardDisplayFloor(t *testing.T) {
 	// filled by Update
 	d.Update(defaultCfg())
 
-	// Even with 0% values, bars should show 1% (some colored pixels)
-	if !hasNonBGInRegion(d.Buffer(), 2, 46, 65, 6) {
-		t.Error("CPU bar should show at least 1% when value is 0")
+	// Even with 0% values, bars should show 1% (clamped) in the expected color
+	floorColor := theme.CPUColor(1)
+	if !hasColorInRegion(d.Buffer(), 2, 46, 65, 6, floorColor) {
+		t.Error("CPU bar should render at 1% when value is 0")
 	}
-	if !hasNonBGInRegion(d.Buffer(), 2, 68, 65, 6) {
-		t.Error("RAM bar should show at least 1% when value is 0")
+	if !hasColorInRegion(d.Buffer(), 2, 68, 65, 6, floorColor) {
+		t.Error("RAM bar should render at 1% when value is 0")
 	}
-	if !hasNonBGInRegion(d.Buffer(), 82, 68, 65, 6) {
-		t.Error("Disk bar should show at least 1% when value is 0")
+	diskFloorColor := theme.DiskColor(1)
+	if !hasColorInRegion(d.Buffer(), 82, 68, 65, 6, diskFloorColor) {
+		t.Error("Disk bar should render at 1% when value is 0")
 	}
 }
 
@@ -173,27 +161,23 @@ func TestDashboardDietPiDiamondAbsent(t *testing.T) {
 
 func TestDashboardAPTBadge(t *testing.T) {
 	m := defaultMock()
-	m.APT = 3
+	m.APT = 1 // exactly at APTWarn threshold
 	d := &dashboardScreen{collector: m}
-	// filled by Update
 	d.Update(defaultCfg())
 
-	// APT badge "^3" should render on the IP row (y=18..29, 6x12 font) in warn color
 	if !hasColorInRegion(d.Buffer(), 120, 18, 40, 12, theme.ColorWarn) {
-		t.Error("expected APT badge (warn color) on IP row, right side")
+		t.Error("expected APT badge in warn color at threshold")
 	}
 }
 
 func TestDashboardAPTBadgeCrit(t *testing.T) {
 	m := defaultMock()
-	m.APT = 15 // >= APTCrit (10)
+	m.APT = 10 // exactly at APTCrit threshold
 	d := &dashboardScreen{collector: m}
-	// filled by Update
 	d.Update(defaultCfg())
 
-	// APT badge should render in crit color
 	if !hasColorInRegion(d.Buffer(), 120, 18, 40, 12, theme.ColorCrit) {
-		t.Error("expected APT badge (crit color) when count >= 10")
+		t.Error("expected APT badge in crit color at threshold")
 	}
 }
 

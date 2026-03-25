@@ -55,12 +55,8 @@ func (d *dashboardScreen) render(fb *st7735.Framebuffer, cfg config.Config) {
 	// APT update badge (small font, right-aligned on IP row)
 	badge := format.APTBadge(d.collector.APTUpdateCount())
 	if badge != "" {
-		color := theme.ColorWarn
-		if d.collector.APTUpdateCount() >= theme.APTCrit {
-			color = theme.ColorCrit
-		}
 		badgeX := st7735.Width - format.StringWidth(badge, metricFont) - 2
-		fb.String(badgeX, 18, badge, metricFont, color)
+		fb.String(badgeX, 18, badge, metricFont, theme.APTColor(d.collector.APTUpdateCount()))
 	}
 
 	// Separator

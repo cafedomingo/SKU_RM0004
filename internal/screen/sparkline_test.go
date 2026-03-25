@@ -14,9 +14,9 @@ func sparkMock() *sysinfo.MockCollector {
 		Host: "sparkhost",
 		IPv4: "10.0.0.1",
 		IPv6: "::a8f1:23bc:abcd",
-		CPU:  47,
-		RAM:  63,
-		Disk: 42,
+		CPU:  theme.CPUWarn,
+		RAM:  theme.RAMCrit,
+		Disk: theme.DiskWarn,
 		Temp: 52,
 		Freq: sysinfo.CPUFreq{Cur: 1800},
 		Net:  sysinfo.NetBandwidth{RxBytesPerSec: 1024, TxBytesPerSec: 512},
@@ -113,24 +113,20 @@ func TestSparklineTickerCycle(t *testing.T) {
 func TestSparklineThresholdColors(t *testing.T) {
 
 	m := sparkMock()
-	m.CPU = 70 // above CPUWarn (60), below CPUCrit (80) -> warn color
-	m.RAM = 90 // above RAMCrit (80) -> crit color
+	m.CPU = theme.CPUWarn // exactly at warn -> ColorWarn
+	m.RAM = theme.RAMCrit // exactly at crit -> ColorCrit
 
 	state := &sparklineScreen{collector: m}
 	state.Update(sparkCfg())
 
-	// CPU graph is at x=0..77, y=37..54
-	// The last bar (newest) at 70% should have visible colored pixels (lerped between warn and crit)
-	// Last bar x = 12 * 6 = 72, width 5 -> x=72..76
-	if !hasNonBGInRegion(state.Buffer(), 72, 37, 5, 18) {
-		t.Error("expected CPU sparkline bar at 70% to have colored pixels")
+	// CPU graph: last bar x = 12 * 6 = 72, width 5
+	if !hasColorInRegion(state.Buffer(), 72, 37, 5, 18, theme.ColorWarn) {
+		t.Error("expected CPU sparkline bar at CPUWarn to be ColorWarn")
 	}
 
-	// RAM graph is at x=82..159, y=37..54
-	// At 90% (above crit), should be exact ColorCrit
-	// Last bar x = 82 + 12*6 = 154, width 5 -> x=154..158
+	// RAM graph: last bar x = 82 + 12*6 = 154, width 5
 	if !hasColorInRegion(state.Buffer(), 154, 37, 5, 18, theme.ColorCrit) {
-		t.Error("expected RAM sparkline bar at 90% to use crit color")
+		t.Error("expected RAM sparkline bar at RAMCrit to be ColorCrit")
 	}
 }
 
@@ -146,12 +142,13 @@ func TestSparklineDisplayFloor(t *testing.T) {
 	state.Update(sparkCfg())
 
 	// The CPU/RAM labels at y=56 should show 1% not 0%.
-	if !hasNonBGInRegion(state.Buffer(), 0, 56, 40, 12) {
-		t.Error("expected CPU label pixels at y=56 even when CPU=0")
+	// Labels ("cpu:", "ram:") render in ColorFG.
+	if !hasColorInRegion(state.Buffer(), 0, 56, 40, 12, theme.ColorFG) {
+		t.Error("expected CPU label at y=56 even when CPU=0")
 	}
 
-	if !hasNonBGInRegion(state.Buffer(), 82, 56, 40, 12) {
-		t.Error("expected RAM label pixels at y=56 even when RAM=0")
+	if !hasColorInRegion(state.Buffer(), 82, 56, 40, 12, theme.ColorFG) {
+		t.Error("expected RAM label at y=56 even when RAM=0")
 	}
 }
 
@@ -173,11 +170,12 @@ func TestSparklineRenders(t *testing.T) {
 		t.Error("expected separator line at y=35")
 	}
 
-	// Sparkline graph area should have colored bars (y=37..54, 18px tall)
-	if !hasNonBGInRegion(state.Buffer(), 0, 37, 78, 18) {
-		t.Error("expected CPU sparkline bars in graph area")
+	// CPU sparkline bars at CPUWarn should be ColorWarn
+	if !hasColorInRegion(state.Buffer(), 0, 37, 78, 18, theme.ColorWarn) {
+		t.Error("expected CPU sparkline bars in warn color")
 	}
-	if !hasNonBGInRegion(state.Buffer(), 82, 37, 78, 18) {
-		t.Error("expected RAM sparkline bars in graph area")
+	// RAM sparkline bars at RAMCrit should be ColorCrit
+	if !hasColorInRegion(state.Buffer(), 82, 37, 78, 18, theme.ColorCrit) {
+		t.Error("expected RAM sparkline bars in crit color")
 	}
 }
