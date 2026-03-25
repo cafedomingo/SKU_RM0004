@@ -1,5 +1,9 @@
 # UCTRONICS LCD Display Driver
 
+![build](https://github.com/cafedomingo/SKU_RM0004/actions/workflows/build.yml/badge.svg)
+![coverage](https://img.shields.io/badge/coverage-65.5%25-yellow)
+![go](https://img.shields.io/badge/go-1.26-blue)
+
 Display driver for the [UCTRONICS SKU_RM0004](https://github.com/UCTRONICS/SKU_RM0004) 160x80 ST7735 TFT LCD on Raspberry Pi. Shows live system metrics: CPU, RAM, temperature, disk, and network.
 
 ## Screenshots
@@ -12,9 +16,9 @@ Display driver for the [UCTRONICS SKU_RM0004](https://github.com/UCTRONICS/SKU_R
 
 **Dashboard** — single-page status view with color-coded bars for CPU, RAM, temperature, and disk usage.
 
-**Diagnostic** — multi-page detailed metrics that alternate each refresh cycle: system overview (hostname, IPs, CPU, temperature, RAM) and I/O (disk, network, IOPS, update status).
-
 **Sparkline** — scrolling history charts for CPU and RAM, plus live network and disk I/O rates, temperature, frequency, and alert badges.
+
+**Diagnostic** — multi-page detailed metrics that alternate each refresh cycle: system overview (hostname, IPs, CPU, temperature, RAM) and I/O (disk, network, IOPS, update status).
 
 ## Installation
 
@@ -22,7 +26,7 @@ Display driver for the [UCTRONICS SKU_RM0004](https://github.com/UCTRONICS/SKU_R
 curl -sL https://github.com/cafedomingo/SKU_RM0004/releases/latest/download/install.sh | sudo bash
 ```
 
-The script handles both first install and updates. On first run it configures I2C and installs a systemd service. On subsequent runs it downloads the latest binary and restarts the service.
+The script handles both first install and updates. On first run it configures I2C, GPIO shutdown, and installs a systemd service. On subsequent runs it downloads the latest binary and restarts the service.
 
 ## Configuration
 

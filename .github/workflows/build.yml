@@ -34,10 +34,19 @@ jobs:
           go-version: stable
 
       - name: Run tests with coverage
-        run: go test -coverprofile=coverage.out ./...
+        run: go test -coverpkg=./cmd/display/...,./internal/... -coverprofile=coverage.out ./...
 
       - name: Coverage summary
         run: go tool cover -func=coverage.out | tail -1
+
+      - name: Check coverage badge
+        run: |
+          actual=$(go tool cover -func=coverage.out | tail -1 | awk '{print $NF}')
+          badge=$(sed -n 's/.*coverage-\([0-9.]*\)%.*/\1/p' README.md)
+          if [ "$badge" != "${actual%\%}" ]; then
+            echo "::error::Coverage badge in README.md shows ${badge}% but actual coverage is ${actual}. Update the badge to: coverage-${actual%\%}%25"
+            exit 1
+          fi
 
   build:
     runs-on: ubuntu-latest
