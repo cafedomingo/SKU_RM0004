@@ -17,14 +17,11 @@ const (
 	ColorOK       uint16 = 0x45E8 // green      (0x44,0xBC,0x44)
 	ColorWarn     uint16 = 0xD5E0 // yellow     (0xD0,0xBC,0x00)
 	ColorCrit     uint16 = 0xFC0B // red-orange (same as alert)
-)
 
-// Temperature color stops.
-const (
-	ColorTempCool uint16 = 0x07FF // cyan  (0x00,0xFF,0xFF)
+	ColorTempCool uint16 = 0x07FF // cyan       (0x00,0xFF,0xFF)
 	ColorTempOK          = ColorOK
 	ColorTempWarn        = ColorWarn
-	ColorTempHot  uint16 = 0xFC00 // orange (0xFF,0x80,0x00)
+	ColorTempHot  uint16 = 0xFC00 // orange     (0xFF,0x80,0x00)
 	ColorTempCrit        = ColorCrit
 )
 
