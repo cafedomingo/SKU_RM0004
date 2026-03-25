@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"image/png"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/cafedomingo/SKU_RM0004/internal/config"
@@ -103,9 +104,14 @@ func collectPalette(fb *st7735.Framebuffer) color.Palette {
 	for _, px := range fb.Pixels {
 		seen[px] = true
 	}
-	p := make(color.Palette, 0, len(seen))
+	colors := make([]uint16, 0, len(seen))
 	for c := range seen {
-		p = append(p, rgb565ToRGBA(c))
+		colors = append(colors, c)
+	}
+	slices.Sort(colors)
+	p := make(color.Palette, len(colors))
+	for i, c := range colors {
+		p[i] = rgb565ToRGBA(c)
 	}
 	return p
 }
