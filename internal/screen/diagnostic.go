@@ -117,7 +117,7 @@ func collectDiagData(c sysinfo.Collector) []diagRow {
 	// Row 6: RAM%
 	rows = append(rows, diagRow{
 		label: "ram",
-		value: fmt.Sprintf("%d%%", int(c.RAMPercent())),
+		value: format.Pct(c.RAMPercent()),
 		color: theme.RAMColor(c.RAMPercent()),
 	})
 
@@ -145,7 +145,7 @@ func collectDiagData(c sysinfo.Collector) []diagRow {
 	// Row 8: Disk%
 	rows = append(rows, diagRow{
 		label: "dsk",
-		value: fmt.Sprintf("%d%%", int(c.DiskPercent())),
+		value: format.Pct(c.DiskPercent()),
 		color: theme.DiskColor(c.DiskPercent()),
 	})
 

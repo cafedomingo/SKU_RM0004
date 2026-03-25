@@ -66,9 +66,9 @@ func Temp(celsius float64, toFahrenheit bool) string {
 	return fmt.Sprintf("%2d°C", int(celsius))
 }
 
-// Pct formats a percentage for display: " 47%", "100%".
+// Pct formats a percentage for display: "47%", "100%".
 func Pct(v float64) string {
-	return fmt.Sprintf("%3d%%", int(v))
+	return fmt.Sprintf("%d%%", int(v))
 }
 
 // CelsiusToF converts Celsius to Fahrenheit

@@ -38,29 +38,35 @@ func (d *dashboardScreen) Draw() {
 }
 
 func (d *dashboardScreen) render(fb *st7735.Framebuffer, cfg config.Config) {
+	const (
+		margin = 2
+		ipY    = 18
+		sepY   = 30
+	)
+
 	headerFont := font.Spleen8x16
 	metricFont := font.Spleen6x12
 
 	// Header: hostname (big font)
-	fb.String(2, 0, d.collector.Hostname(), headerFont, theme.ColorFG)
+	fb.String(margin, 0, d.collector.Hostname(), headerFont, theme.ColorFG)
 
 	// IP address (small font)
-	fb.String(2, 18, d.collector.IPv4Address(), metricFont, theme.ColorIdentity)
+	fb.String(margin, ipY, d.collector.IPv4Address(), metricFont, theme.ColorIdentity)
 
 	// DietPi update diamond indicator (big font for the symbol)
 	if d.collector.DietPiStatus() == sysinfo.DietPiUpdateAvail {
-		fb.Char(st7735.Width-headerFont.Width-2, 0, '\u25C6', headerFont, theme.ColorAlert)
+		fb.Char(st7735.Width-headerFont.Width-margin, 0, '\u25C6', headerFont, theme.ColorAlert)
 	}
 
 	// APT update badge (small font, right-aligned on IP row)
 	badge := format.APTBadge(d.collector.APTUpdateCount())
 	if badge != "" {
-		badgeX := st7735.Width - format.StringWidth(badge, metricFont) - 2
-		fb.String(badgeX, 18, badge, metricFont, theme.APTColor(d.collector.APTUpdateCount()))
+		badgeX := st7735.Width - format.StringWidth(badge, metricFont) - margin
+		fb.String(badgeX, ipY, badge, metricFont, theme.APTColor(d.collector.APTUpdateCount()))
 	}
 
 	// Separator
-	fb.Rect(0, 30, st7735.Width, 1, theme.ColorSep)
+	fb.Rect(0, sepY, st7735.Width, 1, theme.ColorSep)
 
 	// Clamp display values to minimum 1% so bars are always visible
 	cpu := max(d.collector.CPUPercent(), 1)

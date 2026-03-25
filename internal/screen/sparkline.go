@@ -1,8 +1,6 @@
 package screen
 
 import (
-	"fmt"
-
 	"github.com/cafedomingo/SKU_RM0004/internal/config"
 	"github.com/cafedomingo/SKU_RM0004/internal/font"
 	"github.com/cafedomingo/SKU_RM0004/internal/format"
@@ -13,6 +11,13 @@ import (
 
 // SparklineHistory is the number of historical samples stored per metric.
 const SparklineHistory = 13
+
+// Sparkline layout constants shared across draw functions.
+const (
+	rightColX = 82 // x offset where the right column starts
+	sepY      = 35 // y coordinate of separator between header and graph
+	badgeGap  = 3  // pixel gap between adjacent badges/elements
+)
 
 type sparklineScreen struct {
 	disp        st7735.Display
@@ -40,9 +45,9 @@ func (s *sparklineScreen) Update(cfg config.Config) {
 	drawTicker(fb, f, s.collector, s)
 	drawUptimeRow(fb, f, s.collector)
 	drawFreqRow(fb, f, s.collector, cfg)
-	fb.Rect(0, 35, st7735.Width, 1, theme.ColorSep)
+	fb.Rect(0, sepY, st7735.Width, 1, theme.ColorSep)
 	drawSparklineGraph(fb, 0, s.cpuHistory[:], theme.CPUWarn, theme.CPUCrit)
-	drawSparklineGraph(fb, 82, s.ramHistory[:], theme.RAMWarn, theme.RAMCrit)
+	drawSparklineGraph(fb, rightColX, s.ramHistory[:], theme.RAMWarn, theme.RAMCrit)
 	drawCPURAMValues(fb, f, s.collector)
 	drawIORow(fb, f, s.collector)
 }
@@ -95,7 +100,7 @@ func drawUptimeRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
 
 	// DietPi diamond — left of APT badge with gap, built from right edge inward
 	if c.DietPiStatus() == sysinfo.DietPiUpdateAvail {
-		rightEdge -= 3 // gap
+		rightEdge -= badgeGap
 		rightEdge -= f.Width
 		fb.Char(rightEdge, y, font.Diamond, f, theme.ColorAlert)
 	}
@@ -105,9 +110,9 @@ func drawUptimeRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
 // Matches original C layout: right side built from right edge inward.
 func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg config.Config) {
 	const (
-		colRightX = 82
 		colWidth  = 78
 		y         = 25
+		diskLabel = "D:"
 	)
 
 	// Left: CPU frequency
@@ -123,25 +128,24 @@ func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg 
 	}
 
 	// Right side: build from right edge inward
-	// D:N% — "D:" label in white, value in threshold color, right-aligned
-	diskVal := fmt.Sprintf("%d%%", int(c.DiskPercent()))
+	// D:N% — label in white, value in threshold color, right-aligned
+	diskVal := format.Pct(c.DiskPercent())
 	diskColor := theme.DiskColor(c.DiskPercent())
-	labelWidth := 2 * f.Width // "D:"
-	valueWidth := format.StringWidth(diskVal, f)
-	diskX := colRightX + colWidth - labelWidth - valueWidth
-	fb.String(diskX, y, "D:", f, theme.ColorFG)
-	fb.String(diskX+labelWidth, y, diskVal, f, diskColor)
+	diskLabelW := format.StringWidth(diskLabel, f)
+	diskValW := format.StringWidth(diskVal, f)
+	diskX := rightColX + colWidth - diskLabelW - diskValW
+	fb.String(diskX, y, diskLabel, f, theme.ColorFG)
+	fb.String(diskX+diskLabelW, y, diskVal, f, diskColor)
 
 	// Pipe separator with equal gaps: temp [gap] | [gap] D:N%
-	const gap = 3 // pixels between pipe and adjacent text
-	pipeX := diskX - gap - f.Width
+	pipeX := diskX - badgeGap - f.Width
 	fb.String(pipeX, y, "|", f, theme.ColorSep)
 
 	// Temperature right-aligned before the gap
 	tempStr := format.Temp(c.Temperature(), cfg.TempUnit == config.TempFahrenheit)
 	tempColor := theme.TempColor(c.Temperature())
 	tempW := format.StringWidth(tempStr, f)
-	fb.String(pipeX-gap-tempW, y, tempStr, f, tempColor)
+	fb.String(pipeX-badgeGap-tempW, y, tempStr, f, tempColor)
 }
 
 // drawSparklineGraph renders 13 vertical bars in the graph area.
@@ -186,41 +190,46 @@ func drawCPURAMValues(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector)
 	cpuColor := theme.CPUColor(c.CPUPercent())
 	ramColor := theme.RAMColor(c.RAMPercent())
 
-	// CPU label (white) + value (colored)
-	fb.String(0, y, "CPU:", f, theme.ColorFG)
-	cpuVal := fmt.Sprintf("%d%%", int(cpu))
-	fb.String(4*f.Width, y, cpuVal, f, cpuColor)
+	const (
+		cpuX     = 0
+		ramX     = rightColX
+		cpuLabel = "CPU:"
+		ramLabel = "RAM:"
+	)
 
-	// RAM label (white) + value (colored)
-	fb.String(82, y, "RAM:", f, theme.ColorFG)
-	ramVal := fmt.Sprintf("%d%%", int(ram))
-	fb.String(82+4*f.Width, y, ramVal, f, ramColor)
+	fb.String(cpuX, y, cpuLabel, f, theme.ColorFG)
+	fb.String(cpuX+format.StringWidth(cpuLabel, f), y, format.Pct(cpu), f, cpuColor)
+
+	fb.String(ramX, y, ramLabel, f, theme.ColorFG)
+	fb.String(ramX+format.StringWidth(ramLabel, f), y, format.Pct(ram), f, ramColor)
 }
 
 // drawIORow renders network rx/tx and disk R/W at y=68.
 // Network fills left column (0-78), disk fills right column (82-160).
 func drawIORow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
-	const y = 68
+	const (
+		y      = 68
+		rxX    = 0
+		txX    = 40
+		readX  = rightColX
+		writeX = 122
+	)
 
 	net := c.NetBandwidth()
 	linkSpeed := c.LinkSpeedMbps()
 
 	// Network: arrow+rx on left, arrow+tx centered in left column
-	fb.Char(0, y, font.ArrowDown, f, theme.ColorFG)
-	rxStr := format.Rate(net.RxBytesPerSec)
-	fb.String(f.Width, y, rxStr, f, theme.NetColor(float64(net.RxBytesPerSec), linkSpeed))
+	fb.Char(rxX, y, font.ArrowDown, f, theme.ColorFG)
+	fb.String(rxX+f.Width, y, format.Rate(net.RxBytesPerSec), f, theme.NetColor(net.RxBytesPerSec, linkSpeed))
 
-	txX := 40
 	fb.Char(txX, y, font.ArrowUp, f, theme.ColorFG)
-	txStr := format.Rate(net.TxBytesPerSec)
-	fb.String(txX+f.Width, y, txStr, f, theme.NetColor(float64(net.TxBytesPerSec), linkSpeed))
+	fb.String(txX+f.Width, y, format.Rate(net.TxBytesPerSec), f, theme.NetColor(net.TxBytesPerSec, linkSpeed))
 
 	// Disk: R+read on left of right column, W+write at midpoint
 	dio := c.DiskIO()
-	fb.String(82, y, "R", f, theme.ColorFG)
-	fb.String(82+f.Width, y, format.Rate(dio.ReadBytesPerSec), f, theme.DiskIOColor(float64(dio.ReadBytesPerSec)))
+	fb.String(readX, y, "R", f, theme.ColorFG)
+	fb.String(readX+f.Width, y, format.Rate(dio.ReadBytesPerSec), f, theme.DiskIOColor(dio.ReadBytesPerSec))
 
-	wX := 122
-	fb.String(wX, y, "W", f, theme.ColorFG)
-	fb.String(wX+f.Width, y, format.Rate(dio.WriteBytesPerSec), f, theme.DiskIOColor(float64(dio.WriteBytesPerSec)))
+	fb.String(writeX, y, "W", f, theme.ColorFG)
+	fb.String(writeX+f.Width, y, format.Rate(dio.WriteBytesPerSec), f, theme.DiskIOColor(dio.WriteBytesPerSec))
 }
