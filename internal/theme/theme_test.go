@@ -1,80 +1,81 @@
-package theme_test
+package theme
 
-import (
-	"testing"
-
-	"github.com/cafedomingo/SKU_RM0004/internal/theme"
-)
+import "testing"
 
 func TestThresholdColor(t *testing.T) {
-	// Exact boundary values
 	t.Run("at zero", func(t *testing.T) {
-		got := theme.ThresholdColor(0, 60, 80)
-		if got != theme.ColorOK {
-			t.Errorf("got 0x%04X, want ColorOK 0x%04X", got, theme.ColorOK)
+		got := ThresholdColor(0, 60, 80)
+		if got != ColorOK {
+			t.Errorf("got 0x%04X, want ColorOK 0x%04X", got, ColorOK)
 		}
 	})
 	t.Run("at warn", func(t *testing.T) {
-		got := theme.ThresholdColor(60, 60, 80)
-		if got != theme.ColorWarn {
-			t.Errorf("got 0x%04X, want ColorWarn 0x%04X", got, theme.ColorWarn)
+		got := ThresholdColor(60, 60, 80)
+		if got != ColorWarn {
+			t.Errorf("got 0x%04X, want ColorWarn 0x%04X", got, ColorWarn)
 		}
 	})
 	t.Run("at crit", func(t *testing.T) {
-		got := theme.ThresholdColor(80, 60, 80)
-		if got != theme.ColorCrit {
-			t.Errorf("got 0x%04X, want ColorCrit 0x%04X", got, theme.ColorCrit)
+		got := ThresholdColor(80, 60, 80)
+		if got != ColorCrit {
+			t.Errorf("got 0x%04X, want ColorCrit 0x%04X", got, ColorCrit)
 		}
 	})
 	t.Run("above crit", func(t *testing.T) {
-		got := theme.ThresholdColor(90, 60, 80)
-		if got != theme.ColorCrit {
-			t.Errorf("got 0x%04X, want ColorCrit 0x%04X", got, theme.ColorCrit)
+		got := ThresholdColor(90, 60, 80)
+		if got != ColorCrit {
+			t.Errorf("got 0x%04X, want ColorCrit 0x%04X", got, ColorCrit)
 		}
 	})
 
-	// Interpolated values: must differ from both endpoints
 	t.Run("below warn is lerped", func(t *testing.T) {
-		got := theme.ThresholdColor(30, 60, 80)
-		if got == theme.ColorOK || got == theme.ColorWarn {
+		got := ThresholdColor(30, 60, 80)
+		if got == ColorOK || got == ColorWarn {
 			t.Errorf("got 0x%04X, expected interpolated between OK and Warn", got)
 		}
 	})
 	t.Run("between warn and crit is lerped", func(t *testing.T) {
-		got := theme.ThresholdColor(70, 60, 80)
-		if got == theme.ColorWarn || got == theme.ColorCrit {
+		got := ThresholdColor(70, 60, 80)
+		if got == ColorWarn || got == ColorCrit {
 			t.Errorf("got 0x%04X, expected interpolated between Warn and Crit", got)
 		}
 	})
 }
 
 func TestLerpColor(t *testing.T) {
-	// t=0 returns a
-	if got := theme.LerpColor(0x0000, 0xFFFF, 0); got != 0x0000 {
+	if got := LerpColor(0x0000, 0xFFFF, 0); got != 0x0000 {
 		t.Errorf("LerpColor(0, FFFF, 0) = 0x%04X, want 0x0000", got)
 	}
-	// t=1 returns b
-	if got := theme.LerpColor(0x0000, 0xFFFF, 1); got != 0xFFFF {
+	if got := LerpColor(0x0000, 0xFFFF, 1); got != 0xFFFF {
 		t.Errorf("LerpColor(0, FFFF, 1) = 0x%04X, want 0xFFFF", got)
 	}
-	// t=0.5 returns midpoint — should differ from both endpoints
-	mid := theme.LerpColor(0x0000, 0xFFFF, 0.5)
+	mid := LerpColor(0x0000, 0xFFFF, 0.5)
 	if mid == 0x0000 || mid == 0xFFFF {
 		t.Errorf("LerpColor(0, FFFF, 0.5) = 0x%04X, expected midpoint", mid)
 	}
-	// same color returns same regardless of t
-	if got := theme.LerpColor(0x1234, 0x1234, 0.5); got != 0x1234 {
+	if got := LerpColor(0x1234, 0x1234, 0.5); got != 0x1234 {
 		t.Errorf("LerpColor(same, same, 0.5) = 0x%04X, want 0x1234", got)
 	}
 }
 
+func TestTempRampOrdering(t *testing.T) {
+	if len(tempRamp) < 2 {
+		t.Fatal("temp ramp must have at least 2 stops")
+	}
+	for i := 1; i < len(tempRamp); i++ {
+		if tempRamp[i].celsius <= tempRamp[i-1].celsius {
+			t.Errorf("temp ramp not ascending: stop[%d]=%v <= stop[%d]=%v",
+				i, tempRamp[i].celsius, i-1, tempRamp[i-1].celsius)
+		}
+	}
+}
+
 func TestTempColor(t *testing.T) {
-	// Boundary colors from the ramp — use TempColor at exact stop temperatures.
-	cool := theme.TempColor(30)     // 30 °C
-	optimal := theme.TempColor(40)  // 40 °C
-	warm := theme.TempColor(50)     // 50 °C
-	hot := theme.TempColor(60)      // 60 °C
-	critical := theme.TempColor(70) // 70 °C
+	cool := TempColor(30)
+	optimal := TempColor(40)
+	warm := TempColor(50)
+	hot := TempColor(60)
+	critical := TempColor(70)
 
 	tests := []struct {
 		name    string
@@ -91,14 +92,13 @@ func TestTempColor(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := theme.TempColor(tt.celsius)
+			got := TempColor(tt.celsius)
 			if got != tt.want {
 				t.Errorf("TempColor(%v) = 0x%04X, want 0x%04X", tt.celsius, got, tt.want)
 			}
 		})
 	}
 
-	// Each stop should produce a distinct color.
 	stops := []uint16{cool, optimal, warm, hot, critical}
 	for i := 1; i < len(stops); i++ {
 		if stops[i] == stops[i-1] {
@@ -107,7 +107,6 @@ func TestTempColor(t *testing.T) {
 	}
 }
 
-// TestTempColorInterpolation verifies midpoints differ from both adjacent stops.
 func TestTempColorInterpolation(t *testing.T) {
 	tests := []struct {
 		celsius float64
@@ -119,9 +118,9 @@ func TestTempColorInterpolation(t *testing.T) {
 		{65, 60, 70},
 	}
 	for _, tt := range tests {
-		got := theme.TempColor(tt.celsius)
-		loColor := theme.TempColor(tt.lo)
-		hiColor := theme.TempColor(tt.hi)
+		got := TempColor(tt.celsius)
+		loColor := TempColor(tt.lo)
+		hiColor := TempColor(tt.hi)
 		if got == loColor || got == hiColor {
 			t.Errorf("TempColor(%v) = 0x%04X; expected interpolated between 0x%04X and 0x%04X", tt.celsius, got, loColor, hiColor)
 		}
@@ -129,31 +128,22 @@ func TestTempColorInterpolation(t *testing.T) {
 }
 
 func TestNetThresholds(t *testing.T) {
-	// 1 Gbps link: max = 1000 * 125_000 = 125_000_000 bytes/s
-	// warn = 40% = 50_000_000, crit = 80% = 100_000_000
 	const mbps1G = 1000
-	warn, crit := theme.NetThresholds(mbps1G)
-	wantWarn := uint64(50_000_000)
-	wantCrit := uint64(100_000_000)
-	if warn != wantWarn {
-		t.Errorf("NetThresholds(1000) warn = %d, want %d", warn, wantWarn)
+	warn, crit := NetThresholds(mbps1G)
+	if warn != 50_000_000 {
+		t.Errorf("NetThresholds(1000) warn = %d, want 50000000", warn)
 	}
-	if crit != wantCrit {
-		t.Errorf("NetThresholds(1000) crit = %d, want %d", crit, wantCrit)
+	if crit != 100_000_000 {
+		t.Errorf("NetThresholds(1000) crit = %d, want 100000000", crit)
 	}
 }
 
 func TestNetThresholdsFallback(t *testing.T) {
-	// 0 (unknown speed): fall back to 100 Mbps assumption
-	// max = 100 * 125_000 = 12_500_000 bytes/s
-	// warn = 40% = 5_000_000, crit = 80% = 10_000_000
-	warn, crit := theme.NetThresholds(0)
-	wantWarn := uint64(5_000_000)
-	wantCrit := uint64(10_000_000)
-	if warn != wantWarn {
-		t.Errorf("NetThresholds(0) warn = %d, want %d", warn, wantWarn)
+	warn, crit := NetThresholds(0)
+	if warn != 5_000_000 {
+		t.Errorf("NetThresholds(0) warn = %d, want 5000000", warn)
 	}
-	if crit != wantCrit {
-		t.Errorf("NetThresholds(0) crit = %d, want %d", crit, wantCrit)
+	if crit != 10_000_000 {
+		t.Errorf("NetThresholds(0) crit = %d, want 10000000", crit)
 	}
 }

@@ -49,6 +49,12 @@ const (
 	// APT pending upgrades
 	APTWarn = 1
 	APTCrit = 10
+
+	// Network bandwidth
+	netDefaultMbps  = 100     // assumed link speed when unknown
+	netWarnPct      = 40      // warn at 40% of link capacity
+	netCritPct      = 80      // crit at 80% of link capacity
+	mbpsToBytesPerS = 125_000 // 1 Mbps = 1_000_000 bits/s / 8
 )
 
 // Convenience color functions for common metrics.
@@ -85,16 +91,9 @@ func ThresholdColor(value, warn, crit float64) uint16 {
 // Below the first ramp stop it returns that stop's color. At or above the
 // last stop it returns that stop's color. Between stops it linearly interpolates.
 func TempColor(celsius float64) uint16 {
-	first := tempRamp[0]
-	last := tempRamp[len(tempRamp)-1]
-
-	if celsius < first.celsius {
-		return first.color
+	if celsius <= tempRamp[0].celsius {
+		return tempRamp[0].color
 	}
-	if celsius >= last.celsius {
-		return last.color
-	}
-
 	for i := 1; i < len(tempRamp); i++ {
 		if celsius < tempRamp[i].celsius {
 			lo, hi := tempRamp[i-1], tempRamp[i]
@@ -102,21 +101,20 @@ func TempColor(celsius float64) uint16 {
 			return LerpColor(lo.color, hi.color, t)
 		}
 	}
-	return last.color
+	return tempRamp[len(tempRamp)-1].color
 }
 
 // NetThresholds returns warn and crit byte-per-second thresholds for a NIC
 // with the given link speed in Mbps. The thresholds are 40% (warn) and 80%
 // (crit) of the theoretical maximum throughput. If linkSpeedMbps is 0 (speed
-// unknown) it falls back to a 100 Mbps assumption.
+// unknown) it falls back to a default assumption.
 func NetThresholds(linkSpeedMbps int) (warn, crit uint64) {
 	if linkSpeedMbps <= 0 {
-		linkSpeedMbps = 100
+		linkSpeedMbps = netDefaultMbps
 	}
-	// Convert Mbps → bytes/s: Mbps * 1_000_000 / 8 = Mbps * 125_000
-	maxBytesPerSec := uint64(linkSpeedMbps) * 125_000
-	warn = maxBytesPerSec * 40 / 100
-	crit = maxBytesPerSec * 80 / 100
+	maxBytesPerSec := uint64(linkSpeedMbps) * mbpsToBytesPerS
+	warn = maxBytesPerSec * netWarnPct / 100
+	crit = maxBytesPerSec * netCritPct / 100
 	return
 }
 
