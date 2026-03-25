@@ -206,7 +206,7 @@ func collectDiagData(c sysinfo.Collector) []diagRow {
 	switch {
 	case apt > 0:
 		aptVal = fmt.Sprintf("%d updates", apt)
-		aptColor = theme.ColorWarn
+		aptColor = theme.APTColor(apt)
 	case apt == 0:
 		aptVal = "up to date"
 		aptColor = theme.ColorOK

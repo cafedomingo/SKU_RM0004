@@ -13,6 +13,7 @@ import (
 	"github.com/cafedomingo/SKU_RM0004/internal/screen"
 	"github.com/cafedomingo/SKU_RM0004/internal/st7735"
 	"github.com/cafedomingo/SKU_RM0004/internal/sysinfo"
+	"github.com/cafedomingo/SKU_RM0004/internal/theme"
 )
 
 const (
@@ -46,6 +47,7 @@ func main() {
 		cfg := cfgLoader.Load()
 
 		if cfg.Screen != lastScreenName {
+			blankScreen(disp)
 			activeScreen = screen.New(cfg.Screen, disp, collector)
 			lastScreenName = cfg.Screen
 		}
@@ -80,4 +82,10 @@ func checkI2CSpeed(logger *slog.Logger) {
 	} else {
 		logger.Warn("I2C bus speed unexpected", "hz", freq, "expected", i2cExpectedHz)
 	}
+}
+
+func blankScreen(disp st7735.Display) {
+	var fb st7735.Framebuffer
+	fb.Fill(theme.ColorBG)
+	disp.SendFull(fb.Pixels[:])
 }
