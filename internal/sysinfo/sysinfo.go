@@ -15,7 +15,7 @@ type NetBandwidth struct {
 // DiskIO holds per-second disk throughput and IOPS.
 type DiskIO struct {
 	ReadBytesPerSec, WriteBytesPerSec uint64
-	ReadIOPS, WriteIOPS               uint32
+	ReadIOPS, WriteIOPS               uint64
 }
 
 // DietPiStatus indicates whether DietPi is installed and up to date.

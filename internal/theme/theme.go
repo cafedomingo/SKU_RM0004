@@ -19,14 +19,19 @@ const (
 	ColorCrit     uint16 = 0xFC0B // red-orange (same as alert)
 )
 
-// Temperature ramp colors (DietPi-style breakpoints).
-const (
-	TempCyan   uint16 = 0x07FF // <40 °C  (0x00,0xFF,0xFF)
-	TempGreen  uint16 = 0x07E0 // 40 °C   (0x00,0xFF,0x00)
-	TempYellow uint16 = 0xFFE0 // 50 °C   (0xFF,0xFF,0x00)
-	TempOrange uint16 = 0xFC00 // 60 °C   (0xFF,0x80,0x00)
-	TempRed    uint16 = 0xF800 // 70+ °C  (0xFF,0x00,0x00)
-)
+// Temperature ramp: color stops paired with °C thresholds (DietPi-style).
+// Below the first stop: that stop's color. At or above the last: that color.
+// Between stops: linearly interpolated.
+var tempRamp = []struct {
+	celsius float64
+	color   uint16
+}{
+	{30, 0x07FF}, // cool (cyan)
+	{40, 0x07E0}, // optimal (green)
+	{50, 0xFFE0}, // warm (yellow)
+	{60, 0xFC00}, // hot (orange)
+	{70, 0xF800}, // critical (red)
+}
 
 // Metric thresholds (warn / crit percentages or absolute values).
 const (
@@ -76,28 +81,28 @@ func ThresholdColor(value, warn, crit float64) uint16 {
 	return ColorOK
 }
 
-// tempRamp holds the four breakpoint colors for temperatures 40–70 °C.
-// Index 0 = 40 °C, index 3 = 70 °C. Values below 40 are handled as a hard
-// step (cyan), so this slice starts at 40 to avoid division by zero.
-var tempRamp = [4]uint16{TempGreen, TempYellow, TempOrange, TempRed}
-
 // TempColor returns an interpolated RGB565 color for a CPU/GPU temperature.
-// Below 40 °C it returns TempCyan. At and above 70 °C it returns TempRed.
-// Between breakpoints it linearly interpolates the RGB565 components.
+// Below the first ramp stop it returns that stop's color. At or above the
+// last stop it returns that stop's color. Between stops it linearly interpolates.
 func TempColor(celsius float64) uint16 {
-	if celsius < 40 {
-		return TempCyan
+	first := tempRamp[0]
+	last := tempRamp[len(tempRamp)-1]
+
+	if celsius < first.celsius {
+		return first.color
 	}
-	if celsius >= 70 {
-		return TempRed
+	if celsius >= last.celsius {
+		return last.color
 	}
 
-	// Map [40, 70) onto [0, 3) in 10-degree segments.
-	pos := (celsius - 40) / 10.0 // 0.0 … <3.0
-	idx := int(pos)              // segment index: 0, 1, or 2
-	t := float32(pos - float64(idx))
-
-	return LerpColor(tempRamp[idx], tempRamp[idx+1], t)
+	for i := 1; i < len(tempRamp); i++ {
+		if celsius < tempRamp[i].celsius {
+			lo, hi := tempRamp[i-1], tempRamp[i]
+			t := float32((celsius - lo.celsius) / (hi.celsius - lo.celsius))
+			return LerpColor(lo.color, hi.color, t)
+		}
+	}
+	return last.color
 }
 
 // NetThresholds returns warn and crit byte-per-second thresholds for a NIC

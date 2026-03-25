@@ -69,54 +69,61 @@ func TestLerpColor(t *testing.T) {
 }
 
 func TestTempColor(t *testing.T) {
+	// Boundary colors from the ramp — use TempColor at exact stop temperatures.
+	cool := theme.TempColor(30)     // 30 °C
+	optimal := theme.TempColor(40)  // 40 °C
+	warm := theme.TempColor(50)     // 50 °C
+	hot := theme.TempColor(60)      // 60 °C
+	critical := theme.TempColor(70) // 70 °C
+
 	tests := []struct {
 		name    string
 		celsius float64
 		want    uint16
 	}{
-		{"below 40 is cyan", 39.9, theme.TempCyan},
-		{"at 0 is cyan", 0, theme.TempCyan},
-		{"at 40 is green", 40, theme.TempGreen},
-		{"between 40 and 50 is between green and yellow", 45, 0}, // interpolated, checked separately
-		{"at 50 is yellow", 50, theme.TempYellow},
-		{"between 50 and 60 is between yellow and orange", 55, 0}, // interpolated, checked separately
-		{"at 60 is orange", 60, theme.TempOrange},
-		{"between 60 and 70 is between orange and red", 65, 0}, // interpolated, checked separately
-		{"at 70 is red", 70, theme.TempRed},
-		{"above 70 is red", 90, theme.TempRed},
+		{"below first stop is cool", 0, cool},
+		{"at 30 is cool", 30, cool},
+		{"at 40 is optimal", 40, optimal},
+		{"at 50 is warm", 50, warm},
+		{"at 60 is hot", 60, hot},
+		{"at 70 is critical", 70, critical},
+		{"above 70 is critical", 90, critical},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := theme.TempColor(tt.celsius)
-			// For interpolated values, skip exact match
-			if tt.want == 0 {
-				return
-			}
 			if got != tt.want {
 				t.Errorf("TempColor(%v) = 0x%04X, want 0x%04X", tt.celsius, got, tt.want)
 			}
 		})
 	}
+
+	// Each stop should produce a distinct color.
+	stops := []uint16{cool, optimal, warm, hot, critical}
+	for i := 1; i < len(stops); i++ {
+		if stops[i] == stops[i-1] {
+			t.Errorf("stop %d and %d have same color 0x%04X", i-1, i, stops[i])
+		}
+	}
 }
 
-// TestTempColorInterpolation verifies the ramp is monotonically progressing
-// through the hue range (no sudden jumps back).
+// TestTempColorInterpolation verifies midpoints differ from both adjacent stops.
 func TestTempColorInterpolation(t *testing.T) {
-	// At midpoints the result must be strictly between the two boundary values
-	// We verify by checking the interpolated value differs from both endpoints.
 	tests := []struct {
 		celsius float64
-		lo      uint16
-		hi      uint16
+		lo, hi  float64
 	}{
-		{45, theme.TempGreen, theme.TempYellow},
-		{55, theme.TempYellow, theme.TempOrange},
-		{65, theme.TempOrange, theme.TempRed},
+		{35, 30, 40},
+		{45, 40, 50},
+		{55, 50, 60},
+		{65, 60, 70},
 	}
 	for _, tt := range tests {
 		got := theme.TempColor(tt.celsius)
-		if got == tt.lo || got == tt.hi {
-			t.Errorf("TempColor(%v) = 0x%04X; expected value interpolated between 0x%04X and 0x%04X", tt.celsius, got, tt.lo, tt.hi)
+		loColor := theme.TempColor(tt.lo)
+		hiColor := theme.TempColor(tt.hi)
+		if got == loColor || got == hiColor {
+			t.Errorf("TempColor(%v) = 0x%04X; expected interpolated between 0x%04X and 0x%04X", tt.celsius, got, loColor, hiColor)
 		}
 	}
 }

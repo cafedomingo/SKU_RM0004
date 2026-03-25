@@ -157,7 +157,7 @@ func drawSparklineGraph(fb *st7735.Framebuffer, xOff int, history []float64, war
 		barGap   = 1
 		graphY   = 37
 		graphH   = 18
-		graphEnd = 54 // graphY + graphH - 1
+		graphEnd = graphY + graphH - 1
 	)
 
 	for i, val := range history {
@@ -182,20 +182,19 @@ func drawSparklineGraph(fb *st7735.Framebuffer, xOff int, history []float64, war
 
 // drawCPURAMValues renders CPU and RAM labels (white) + values (threshold color) at y=56.
 func drawCPURAMValues(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector) {
-	const y = 56
+	const (
+		y        = 56
+		cpuX     = 0
+		ramX     = rightColX
+		cpuLabel = "CPU:"
+		ramLabel = "RAM:"
+	)
 
 	cpu := max(c.CPUPercent(), 1)
 	ram := max(c.RAMPercent(), 1)
 
 	cpuColor := theme.CPUColor(c.CPUPercent())
 	ramColor := theme.RAMColor(c.RAMPercent())
-
-	const (
-		cpuX     = 0
-		ramX     = rightColX
-		cpuLabel = "CPU:"
-		ramLabel = "RAM:"
-	)
 
 	fb.String(cpuX, y, cpuLabel, f, theme.ColorFG)
 	fb.String(cpuX+format.StringWidth(cpuLabel, f), y, format.Pct(cpu), f, cpuColor)

@@ -102,7 +102,7 @@ func (c *liveCollector) Refresh() {
 func (c *liveCollector) refreshCPU() {
 	pcts, err := cpu.Percent(0, false)
 	if err != nil {
-		c.logger.Debug("cpu percent", "err", err)
+		c.logger.Debug("failed to read CPU percent", "err", err)
 		return
 	}
 	if len(pcts) > 0 {
@@ -113,7 +113,7 @@ func (c *liveCollector) refreshCPU() {
 func (c *liveCollector) refreshRAM() {
 	v, err := mem.VirtualMemory()
 	if err != nil {
-		c.logger.Debug("virtual memory", "err", err)
+		c.logger.Debug("failed to read virtual memory", "err", err)
 		return
 	}
 	c.ram = v.UsedPercent
@@ -126,18 +126,21 @@ func (c *liveCollector) refreshDisk() {
 func (c *liveCollector) refreshTemp() {
 	data, err := os.ReadFile(thermalPath)
 	if err != nil {
+		c.logger.Debug("failed to read temperature", "err", err)
 		return
 	}
 	milliC, err := strconv.Atoi(strings.TrimSpace(string(data)))
-	if err == nil {
-		c.temp = float64(milliC) / 1000
+	if err != nil {
+		c.logger.Debug("failed to parse temperature", "err", err)
+		return
 	}
+	c.temp = float64(milliC) / 1000
 }
 
 func (c *liveCollector) refreshHostUptime() {
 	info, err := host.Info()
 	if err != nil {
-		c.logger.Debug("host info", "err", err)
+		c.logger.Debug("failed to read host info", "err", err)
 		return
 	}
 	c.hostname = info.Hostname
@@ -161,7 +164,7 @@ func (c *liveCollector) refreshNetwork(elapsed float64) {
 	// Bandwidth via gopsutil
 	counters, err := psnet.IOCounters(true)
 	if err != nil {
-		c.logger.Debug("net io counters", "err", err)
+		c.logger.Debug("failed to read net IO counters", "err", err)
 		return
 	}
 	for _, s := range counters {
@@ -183,7 +186,7 @@ func (c *liveCollector) refreshNetwork(elapsed float64) {
 func (c *liveCollector) refreshDiskIO(elapsed float64) {
 	counters, err := disk.IOCounters()
 	if err != nil {
-		c.logger.Debug("disk io counters", "err", err)
+		c.logger.Debug("failed to read disk IO counters", "err", err)
 		return
 	}
 
@@ -203,8 +206,8 @@ func (c *liveCollector) refreshDiskIO(elapsed float64) {
 		c.diskIO = DiskIO{
 			ReadBytesPerSec:  uint64(float64(totalRead-c.prevDiskRead) / elapsed),
 			WriteBytesPerSec: uint64(float64(totalWrite-c.prevDiskWrite) / elapsed),
-			ReadIOPS:         uint32(float64(totalReadOps-c.prevDiskReadOps) / elapsed),
-			WriteIOPS:        uint32(float64(totalWriteOps-c.prevDiskWriteOps) / elapsed),
+			ReadIOPS:         uint64(float64(totalReadOps-c.prevDiskReadOps) / elapsed),
+			WriteIOPS:        uint64(float64(totalWriteOps-c.prevDiskWriteOps) / elapsed),
 		}
 	}
 	c.prevDiskRead = totalRead
@@ -220,7 +223,6 @@ func (c *liveCollector) refreshPi() {
 	c.apt = readAPTUpdateCount()
 }
 
-// defaultInterface finds the network interface used for the default route.
 // defaultInterface finds the network interface used for the default route
 // by parsing /proc/net/route.
 func defaultInterface() string {
