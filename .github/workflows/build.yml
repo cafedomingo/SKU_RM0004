@@ -14,7 +14,7 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version: stable
+          go-version: "1.26.1"
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v8
@@ -31,7 +31,7 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version: stable
+          go-version: "1.26.1"
 
       - name: Run tests with coverage
         run: go test -coverpkg=./cmd/display/...,./internal/... -coverprofile=coverage.out ./...
@@ -55,7 +55,7 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version: stable
+          go-version: "1.26.1"
 
       - name: Build display binary (arm64)
         run: GOOS=linux GOARCH=arm64 go build -o display ./cmd/display
