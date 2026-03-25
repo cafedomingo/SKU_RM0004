@@ -4,7 +4,7 @@
 ![coverage](https://img.shields.io/badge/coverage-65.5%25-yellow)
 ![go](https://img.shields.io/badge/go-1.26-blue)
 
-Display driver for the [UCTRONICS SKU_RM0004](https://github.com/UCTRONICS/SKU_RM0004) 160x80 ST7735 TFT LCD on Raspberry Pi. Shows live system metrics: CPU, RAM, temperature, disk, and network.
+Display driver for the [UCTRONICS Pi Rack Pro (RM0004)](https://www.uctronics.com/raspberry-pi/uctronics-pi-rack-pro-for-raspberry-pi-4b-19-1u-rack-mount-support-for-4-2-5-ssds.html) 160x80 ST7735 TFT LCD on Raspberry Pi 4/5. Shows live system metrics: CPU, RAM, temperature, disk, and network.
 
 ## Screenshots
 
@@ -26,11 +26,11 @@ Display driver for the [UCTRONICS SKU_RM0004](https://github.com/UCTRONICS/SKU_R
 curl -sL https://github.com/cafedomingo/SKU_RM0004/releases/latest/download/install.sh | sudo bash
 ```
 
-The script handles both first install and updates. On first run it configures I2C, GPIO shutdown, and installs a systemd service. On subsequent runs it downloads the latest binary and restarts the service.
+The script is idempotent — it handles both first install and updates. On first run it configures I2C, GPIO shutdown, and installs a systemd service. On subsequent runs it downloads the latest binary and restarts the service.
 
 ## Configuration
 
-Runtime settings in `/etc/uctronics-display.conf`:
+No configuration is required — sensible defaults are built in. Optional runtime settings in `/etc/uctronics-display.conf`:
 
 ```ini
 screen=dashboard    # dashboard | diagnostic | sparkline
@@ -74,8 +74,6 @@ go build -o screenshot ./cmd/screenshot && ./screenshot
 
 ## Credits
 
+For the original C display driver, see [UCTRONICS/SKU_RM0004](https://github.com/UCTRONICS/SKU_RM0004).
+
 Spleen font by Frederic Cambus (BSD 2-Clause).
-
-## License
-
-MIT
