@@ -1,9 +1,5 @@
 # UCTRONICS LCD Display Driver
 
-![build](https://github.com/cafedomingo/SKU_RM0004/actions/workflows/build.yml/badge.svg)
-![coverage](https://img.shields.io/badge/coverage-71.9%25-yellow)
-![go](https://img.shields.io/badge/go-1.26-blue)
-
 Display driver for the [UCTRONICS Pi Rack Pro (RM0004)](https://www.uctronics.com/raspberry-pi/uctronics-pi-rack-pro-for-raspberry-pi-4b-19-1u-rack-mount-support-for-4-2-5-ssds.html) 160x80 ST7735 TFT LCD on Raspberry Pi 4/5. Shows live system metrics: CPU, RAM, temperature, disk, and network.
 
 | Dashboard | Sparkline |
