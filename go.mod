@@ -4,7 +4,6 @@ go 1.26.0
 
 require (
 	github.com/shirou/gopsutil/v4 v4.26.2
-	golang.org/x/sys v0.42.0
 	periph.io/x/conn/v3 v3.7.2
 	periph.io/x/host/v3 v3.8.5
 )
@@ -18,4 +17,5 @@ require (
 	github.com/tklauser/go-sysconf v0.3.16 // indirect
 	github.com/tklauser/numcpus v0.11.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 )
