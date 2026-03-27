@@ -5,9 +5,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"unsafe"
-
-	"golang.org/x/sys/unix"
 )
 
 const (
@@ -66,8 +65,8 @@ func readThrottleStatus() uint32 {
 		0,
 	}
 
-	_, _, errno := unix.Syscall(
-		unix.SYS_IOCTL, //nolint:staticcheck // SYS_IOCTL is only deprecated on Darwin; this runs on Linux
+	_, _, errno := syscall.Syscall(
+		syscall.SYS_IOCTL,
 		f.Fd(),
 		ioctlMailbox,
 		uintptr(unsafe.Pointer(&buf[0])),
