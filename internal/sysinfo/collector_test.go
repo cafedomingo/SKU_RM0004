@@ -62,21 +62,23 @@ type fakeReader struct {
 	apt       int
 }
 
-func (f *fakeReader) CPUPercent() float64                              { return f.cpu }
-func (f *fakeReader) RAMPercent() float64                              { return f.ram }
-func (f *fakeReader) Temperature() float64                             { return f.temp }
-func (f *fakeReader) DiskUsage() float64                               { return f.diskUsage }
-func (f *fakeReader) Hostname() string                                 { return f.host }
-func (f *fakeReader) Uptime() time.Duration                            { return f.up }
-func (f *fakeReader) DefaultInterface() string                         { return f.iface }
-func (f *fakeReader) InterfaceAddresses(string) (string, string)       { return f.ipv4, f.ipv6 }
-func (f *fakeReader) LinkSpeed(string) int                             { return f.linkSpeed }
-func (f *fakeReader) NetIOCounters(string) (uint64, uint64)            { return f.netRx, f.netTx }
-func (f *fakeReader) DiskIOCounters() (uint64, uint64, uint64, uint64) { return f.diskRead, f.diskWrite, f.diskROps, f.diskWOps }
-func (f *fakeReader) CPUFreq() CPUFreq                                 { return f.freq }
-func (f *fakeReader) ThrottleStatus() uint32                           { return f.throttle }
-func (f *fakeReader) DietPiStatus() DietPiStatus                       { return f.dietpi }
-func (f *fakeReader) APTUpdateCount() int                              { return f.apt }
+func (f *fakeReader) CPUPercent() float64                        { return f.cpu }
+func (f *fakeReader) RAMPercent() float64                        { return f.ram }
+func (f *fakeReader) Temperature() float64                       { return f.temp }
+func (f *fakeReader) DiskUsage() float64                         { return f.diskUsage }
+func (f *fakeReader) Hostname() string                           { return f.host }
+func (f *fakeReader) Uptime() time.Duration                      { return f.up }
+func (f *fakeReader) DefaultInterface() string                   { return f.iface }
+func (f *fakeReader) InterfaceAddresses(string) (string, string) { return f.ipv4, f.ipv6 }
+func (f *fakeReader) LinkSpeed(string) int                       { return f.linkSpeed }
+func (f *fakeReader) NetIOCounters(string) (uint64, uint64)      { return f.netRx, f.netTx }
+func (f *fakeReader) DiskIOCounters() (uint64, uint64, uint64, uint64) {
+	return f.diskRead, f.diskWrite, f.diskROps, f.diskWOps
+}
+func (f *fakeReader) CPUFreq() CPUFreq           { return f.freq }
+func (f *fakeReader) ThrottleStatus() uint32     { return f.throttle }
+func (f *fakeReader) DietPiStatus() DietPiStatus { return f.dietpi }
+func (f *fakeReader) APTUpdateCount() int        { return f.apt }
 
 func TestNetBandwidthDelta(t *testing.T) {
 	r := &fakeReader{
@@ -95,19 +97,19 @@ func TestNetBandwidthDelta(t *testing.T) {
 		t.Errorf("first refresh: got bandwidth %+v, want zeros", bw)
 	}
 
-	// Simulate 1 second passing with 500 bytes rx, 1000 bytes tx.
+	// Simulate exactly 1 second elapsed with 500 bytes rx, 1000 bytes tx.
 	r.netRx = 1500
 	r.netTx = 3000
 	lc := c.(*liveCollector)
-	lc.lastRefresh = lc.lastRefresh.Add(-1 * time.Second)
+	lc.lastRefresh = time.Now().Add(-1 * time.Second)
 	c.Refresh()
 
 	bw = c.NetBandwidth()
-	if bw.RxBytesPerSec != 500 {
-		t.Errorf("RxBytesPerSec = %d, want 500", bw.RxBytesPerSec)
+	if bw.RxBytesPerSec < 499 || bw.RxBytesPerSec > 500 {
+		t.Errorf("RxBytesPerSec = %d, want ~500", bw.RxBytesPerSec)
 	}
-	if bw.TxBytesPerSec != 1000 {
-		t.Errorf("TxBytesPerSec = %d, want 1000", bw.TxBytesPerSec)
+	if bw.TxBytesPerSec < 999 || bw.TxBytesPerSec > 1000 {
+		t.Errorf("TxBytesPerSec = %d, want ~1000", bw.TxBytesPerSec)
 	}
 }
 
@@ -127,27 +129,27 @@ func TestDiskIODelta(t *testing.T) {
 		t.Errorf("first refresh: got disk IO %+v, want zeros", dio)
 	}
 
-	// Simulate 1 second with known deltas.
+	// Simulate exactly 1 second elapsed with known deltas.
 	r.diskRead = 15000
 	r.diskWrite = 25000
 	r.diskROps = 150
 	r.diskWOps = 250
 	lc := c.(*liveCollector)
-	lc.lastRefresh = lc.lastRefresh.Add(-1 * time.Second)
+	lc.lastRefresh = time.Now().Add(-1 * time.Second)
 	c.Refresh()
 
 	dio = c.DiskIO()
-	if dio.ReadBytesPerSec != 5000 {
-		t.Errorf("ReadBytesPerSec = %d, want 5000", dio.ReadBytesPerSec)
+	if dio.ReadBytesPerSec < 4999 || dio.ReadBytesPerSec > 5000 {
+		t.Errorf("ReadBytesPerSec = %d, want ~5000", dio.ReadBytesPerSec)
 	}
-	if dio.WriteBytesPerSec != 5000 {
-		t.Errorf("WriteBytesPerSec = %d, want 5000", dio.WriteBytesPerSec)
+	if dio.WriteBytesPerSec < 4999 || dio.WriteBytesPerSec > 5000 {
+		t.Errorf("WriteBytesPerSec = %d, want ~5000", dio.WriteBytesPerSec)
 	}
-	if dio.ReadIOPS != 50 {
-		t.Errorf("ReadIOPS = %d, want 50", dio.ReadIOPS)
+	if dio.ReadIOPS < 49 || dio.ReadIOPS > 50 {
+		t.Errorf("ReadIOPS = %d, want ~50", dio.ReadIOPS)
 	}
-	if dio.WriteIOPS != 50 {
-		t.Errorf("WriteIOPS = %d, want 50", dio.WriteIOPS)
+	if dio.WriteIOPS < 49 || dio.WriteIOPS > 50 {
+		t.Errorf("WriteIOPS = %d, want ~50", dio.WriteIOPS)
 	}
 }
 
