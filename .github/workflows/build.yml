@@ -50,7 +50,7 @@ jobs:
           go-version: stable
 
       - name: Build display binary (arm64)
-        run: GOOS=linux GOARCH=arm64 go build -o display ./cmd/display
+        run: GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o display ./cmd/display
 
       - name: Build screenshot tool (native)
         run: go build -o screenshot ./cmd/screenshot
