@@ -33,12 +33,12 @@ func TestHostnameNonEmpty(t *testing.T) {
 
 func TestUptimePositive(t *testing.T) {
 	c := NewCollector(slog.Default())
-	if c.Uptime() <= 0 {
-		t.Errorf("Uptime() = %v, want > 0", c.Uptime())
+	v := c.Uptime()
+	if v <= 0 {
+		t.Errorf("Uptime() = %v, want > 0", v)
 	}
 }
 
-// fakeReader is a test double for SystemReader that returns configured values.
 type fakeReader struct {
 	cpu       float64
 	ram       float64

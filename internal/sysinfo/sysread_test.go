@@ -8,8 +8,11 @@ import (
 func TestCPUFreqRead(t *testing.T) {
 	r := NewSystemReader(slog.Default())
 	f := r.CPUFreq()
-	if f.Cur == 0 && f.Min == 0 && f.Max == 0 {
-		t.Log("CPUFreq() returned all zeros (expected on non-Pi)")
+	if f.Max > 0 && f.Cur > f.Max {
+		t.Errorf("CPUFreq().Cur (%d) > Max (%d)", f.Cur, f.Max)
+	}
+	if f.Max > 0 && f.Min > f.Max {
+		t.Errorf("CPUFreq().Min (%d) > Max (%d)", f.Min, f.Max)
 	}
 }
 
