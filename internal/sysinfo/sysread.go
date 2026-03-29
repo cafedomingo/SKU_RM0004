@@ -290,25 +290,13 @@ func (r *linuxReader) LinkSpeed(iface string) int {
 	return max(speed, 0)
 }
 
-// --- Pi-specific reads (moved from pi.go) ---
+// --- Pi-specific reads ---
 
 func (r *linuxReader) CPUFreq() CPUFreq {
-	read := func(path string) uint16 {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return 0
-		}
-		kHz, err := strconv.Atoi(strings.TrimSpace(string(data)))
-		if err != nil {
-			return 0
-		}
-		return uint16(kHz / 1000)
-	}
-
 	return CPUFreq{
-		Cur: read(cpuFreqCurPath),
-		Min: read(cpuFreqMinPath),
-		Max: read(cpuFreqMaxPath),
+		Cur: uint16(r.readUint64File(cpuFreqCurPath) / 1000),
+		Min: uint16(r.readUint64File(cpuFreqMinPath) / 1000),
+		Max: uint16(r.readUint64File(cpuFreqMaxPath) / 1000),
 	}
 }
 
