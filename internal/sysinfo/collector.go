@@ -6,7 +6,6 @@ import (
 )
 
 type liveCollector struct {
-	logger *slog.Logger
 	reader SystemReader
 
 	// cached values updated by Refresh()
@@ -35,13 +34,12 @@ type liveCollector struct {
 
 // NewCollector creates a live system metrics collector.
 func NewCollector(logger *slog.Logger) Collector {
-	return NewCollectorWithReader(NewSystemReader(logger), logger)
+	return NewCollectorWithReader(NewSystemReader(logger))
 }
 
-// NewCollectorWithReader creates a collector with a custom SystemReader,
-// useful for testing the delta/rate logic.
-func NewCollectorWithReader(r SystemReader, logger *slog.Logger) Collector {
-	c := &liveCollector{reader: r, logger: logger}
+// NewCollectorWithReader creates a collector with a custom SystemReader.
+func NewCollectorWithReader(r SystemReader) Collector {
+	c := &liveCollector{reader: r}
 	c.Refresh()
 	return c
 }

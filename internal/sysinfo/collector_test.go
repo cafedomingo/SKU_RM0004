@@ -89,7 +89,7 @@ func TestNetBandwidthDelta(t *testing.T) {
 		netTx: 2000,
 	}
 
-	c := NewCollectorWithReader(r, slog.Default())
+	c := NewCollectorWithReader(r)
 
 	// First refresh happened in constructor — no rates yet (no previous sample).
 	bw := c.NetBandwidth()
@@ -121,7 +121,7 @@ func TestDiskIODelta(t *testing.T) {
 		diskWOps:  200,
 	}
 
-	c := NewCollectorWithReader(r, slog.Default())
+	c := NewCollectorWithReader(r)
 
 	// First refresh — no rates.
 	dio := c.DiskIO()
@@ -156,7 +156,7 @@ func TestDiskIODelta(t *testing.T) {
 func TestNoNetworkInterface(t *testing.T) {
 	r := &fakeReader{iface: ""}
 
-	c := NewCollectorWithReader(r, slog.Default())
+	c := NewCollectorWithReader(r)
 
 	if c.IPv4Address() != "no network" {
 		t.Errorf("IPv4Address() = %q, want %q", c.IPv4Address(), "no network")
@@ -180,7 +180,7 @@ func TestSimpleReaderPassthrough(t *testing.T) {
 		apt:       3,
 	}
 
-	c := NewCollectorWithReader(r, slog.Default())
+	c := NewCollectorWithReader(r)
 
 	if c.CPUPercent() != 42.5 {
 		t.Errorf("CPUPercent() = %f, want 42.5", c.CPUPercent())
