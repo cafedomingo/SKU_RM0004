@@ -187,6 +187,7 @@ func (r *linuxReader) DiskIOCounters() (read, write, readOps, writeOps uint64) {
 func (r *linuxReader) readUint64File(path string) uint64 {
 	data, err := os.ReadFile(path)
 	if err != nil {
+		r.logger.Debug("failed to read file", "path", path, "err", err)
 		return 0
 	}
 	v, _ := strconv.ParseUint(strings.TrimSpace(string(data)), 10, 64)
@@ -225,6 +226,7 @@ func (r *linuxReader) DiskUsage() float64 {
 func (r *linuxReader) DefaultInterface() string {
 	f, err := os.Open(procRoutePath)
 	if err != nil {
+		r.logger.Debug("failed to open /proc/net/route", "err", err)
 		return ""
 	}
 	defer func() { _ = f.Close() }()
@@ -241,10 +243,12 @@ func (r *linuxReader) DefaultInterface() string {
 func (r *linuxReader) InterfaceAddresses(name string) (ipv4, ipv6suffix string) {
 	iface, err := net.InterfaceByName(name)
 	if err != nil {
+		r.logger.Debug("failed to get interface", "name", name, "err", err)
 		return "", NoIPv6
 	}
 	addrs, err := iface.Addrs()
 	if err != nil {
+		r.logger.Debug("failed to get interface addresses", "name", name, "err", err)
 		return "", NoIPv6
 	}
 
@@ -275,10 +279,12 @@ func (r *linuxReader) InterfaceAddresses(name string) (ipv4, ipv6suffix string) 
 func (r *linuxReader) LinkSpeed(iface string) int {
 	data, err := os.ReadFile(fmt.Sprintf(linkSpeedPath, iface))
 	if err != nil {
+		r.logger.Debug("failed to read link speed", "iface", iface, "err", err)
 		return 0
 	}
 	speed, err := strconv.Atoi(strings.TrimSpace(string(data)))
 	if err != nil {
+		r.logger.Debug("failed to parse link speed", "iface", iface, "err", err)
 		return 0
 	}
 	return max(speed, 0)
