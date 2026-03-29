@@ -13,11 +13,6 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/shirou/gopsutil/v4/cpu"
-	"github.com/shirou/gopsutil/v4/disk"
-	"github.com/shirou/gopsutil/v4/host"
-	"github.com/shirou/gopsutil/v4/mem"
-	psnet "github.com/shirou/gopsutil/v4/net"
 )
 
 const (
@@ -26,6 +21,13 @@ const (
 	defaultRouteDest = "00000000"
 	procMountsPath   = "/proc/mounts"
 	linkSpeedPath    = "/sys/class/net/%s/speed"
+
+	procStatPath      = "/proc/stat"
+	procMeminfoPath   = "/proc/meminfo"
+	procUptimePath    = "/proc/uptime"
+	netStatPath       = "/sys/class/net/%s/statistics/%s"
+	procDiskstatsPath = "/proc/diskstats"
+	sectorSize        = 512
 
 	cpuFreqPath      = "/sys/devices/system/cpu/cpu0/cpufreq/"
 	cpuFreqCurPath   = cpuFreqPath + "scaling_cur_freq"
@@ -41,85 +43,164 @@ const (
 )
 
 type linuxReader struct {
-	logger *slog.Logger
+	logger    *slog.Logger
+	prevIdle  uint64
+	prevTotal uint64
 }
 
-// NewSystemReader creates a SystemReader that reads from Linux system files
-// and gopsutil (temporarily).
+// NewSystemReader creates a SystemReader that reads from Linux system files.
 func NewSystemReader(logger *slog.Logger) SystemReader {
 	return &linuxReader{logger: logger}
 }
 
-// --- gopsutil-backed stubs (temporary) ---
-
 func (r *linuxReader) CPUPercent() float64 {
-	pcts, err := cpu.Percent(0, false)
+	f, err := os.Open(procStatPath)
 	if err != nil {
-		r.logger.Debug("failed to read CPU percent", "err", err)
+		r.logger.Debug("failed to open /proc/stat", "err", err)
 		return 0
 	}
-	if len(pcts) > 0 {
-		return pcts[0]
+	defer func() { _ = f.Close() }()
+
+	scanner := bufio.NewScanner(f)
+	if !scanner.Scan() {
+		return 0
 	}
-	return 0
+	fields := strings.Fields(scanner.Text())
+	if len(fields) < 5 || fields[0] != "cpu" {
+		return 0
+	}
+
+	var idle, total uint64
+	for i, s := range fields[1:] {
+		v, err := strconv.ParseUint(s, 10, 64)
+		if err != nil {
+			continue
+		}
+		total += v
+		if i == 3 || i == 4 { // idle and iowait
+			idle += v
+		}
+	}
+
+	deltaIdle := idle - r.prevIdle
+	deltaTotal := total - r.prevTotal
+	r.prevIdle = idle
+	r.prevTotal = total
+
+	if deltaTotal == 0 {
+		return 0
+	}
+	return (1 - float64(deltaIdle)/float64(deltaTotal)) * 100
 }
 
 func (r *linuxReader) RAMPercent() float64 {
-	v, err := mem.VirtualMemory()
+	f, err := os.Open(procMeminfoPath)
 	if err != nil {
-		r.logger.Debug("failed to read virtual memory", "err", err)
+		r.logger.Debug("failed to open /proc/meminfo", "err", err)
 		return 0
 	}
-	return v.UsedPercent
+	defer func() { _ = f.Close() }()
+
+	var total, available uint64
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		switch {
+		case strings.HasPrefix(line, "MemTotal:"):
+			total = parseKBLine(line)
+		case strings.HasPrefix(line, "MemAvailable:"):
+			available = parseKBLine(line)
+		}
+		if total > 0 && available > 0 {
+			break
+		}
+	}
+	if total == 0 {
+		return 0
+	}
+	return float64(total-available) / float64(total) * 100
 }
 
 func (r *linuxReader) Hostname() string {
-	info, err := host.Info()
+	name, err := os.Hostname()
 	if err != nil {
-		r.logger.Debug("failed to read host info", "err", err)
+		r.logger.Debug("failed to read hostname", "err", err)
 		return ""
 	}
-	return info.Hostname
+	return name
 }
 
 func (r *linuxReader) Uptime() time.Duration {
-	info, err := host.Info()
+	data, err := os.ReadFile(procUptimePath)
 	if err != nil {
-		r.logger.Debug("failed to read host info", "err", err)
+		r.logger.Debug("failed to read /proc/uptime", "err", err)
 		return 0
 	}
-	return time.Duration(info.Uptime) * time.Second
+	fields := strings.Fields(string(data))
+	if len(fields) == 0 {
+		return 0
+	}
+	secs, err := strconv.ParseFloat(fields[0], 64)
+	if err != nil {
+		r.logger.Debug("failed to parse uptime", "err", err)
+		return 0
+	}
+	return time.Duration(secs * float64(time.Second))
 }
 
 func (r *linuxReader) NetIOCounters(iface string) (rx, tx uint64) {
-	counters, err := psnet.IOCounters(true)
-	if err != nil {
-		r.logger.Debug("failed to read net IO counters", "err", err)
-		return 0, 0
-	}
-	for _, s := range counters {
-		if s.Name == iface {
-			return s.BytesRecv, s.BytesSent
-		}
-	}
-	return 0, 0
+	rx = r.readUint64File(fmt.Sprintf(netStatPath, iface, "rx_bytes"))
+	tx = r.readUint64File(fmt.Sprintf(netStatPath, iface, "tx_bytes"))
+	return rx, tx
 }
 
 func (r *linuxReader) DiskIOCounters() (read, write, readOps, writeOps uint64) {
-	counters, err := disk.IOCounters()
+	f, err := os.Open(procDiskstatsPath)
 	if err != nil {
-		r.logger.Debug("failed to read disk IO counters", "err", err)
+		r.logger.Debug("failed to open /proc/diskstats", "err", err)
 		return 0, 0, 0, 0
 	}
-	for name, s := range counters {
-		if isWholeDisk(name) {
-			read += s.ReadBytes
-			write += s.WriteBytes
-			readOps += s.ReadCount
-			writeOps += s.WriteCount
+	defer func() { _ = f.Close() }()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < 10 {
+			continue
 		}
+		name := fields[2]
+		if !isWholeDisk(name) {
+			continue
+		}
+		rOps, _ := strconv.ParseUint(fields[3], 10, 64)
+		rSectors, _ := strconv.ParseUint(fields[5], 10, 64)
+		wOps, _ := strconv.ParseUint(fields[7], 10, 64)
+		wSectors, _ := strconv.ParseUint(fields[9], 10, 64)
+
+		read += rSectors * sectorSize
+		write += wSectors * sectorSize
+		readOps += rOps
+		writeOps += wOps
 	}
 	return read, write, readOps, writeOps
+}
+
+func (r *linuxReader) readUint64File(path string) uint64 {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return 0
+	}
+	v, _ := strconv.ParseUint(strings.TrimSpace(string(data)), 10, 64)
+	return v
+}
+
+func parseKBLine(line string) uint64 {
+	fields := strings.Fields(line)
+	if len(fields) < 2 {
+		return 0
+	}
+	v, _ := strconv.ParseUint(fields[1], 10, 64)
+	return v
 }
 
 // --- Direct system reads ---
