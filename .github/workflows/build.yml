@@ -42,6 +42,8 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v6
 
@@ -49,8 +51,12 @@ jobs:
         with:
           go-version: stable
 
+      - name: Compute release tag
+        id: tag
+        run: echo "tag=$(date -u +%Y.%m.%d.%H%M)" >> "$GITHUB_OUTPUT"
+
       - name: Build display binary (arm64)
-        run: GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o display ./cmd/display
+        run: GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }}" -o display ./cmd/display
 
       - name: Build screenshot tool (native)
         run: go build -o screenshot ./cmd/screenshot
@@ -93,7 +99,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           chmod +x display install.sh
-          TAG=$(date -u +%Y.%m.%d.%H%M)
+          TAG="${{ needs.build.outputs.tag }}"
           gh release create "$TAG" display install.sh \
             --title "$TAG" \
             --notes "Built from commit ${GITHUB_SHA::7}."
