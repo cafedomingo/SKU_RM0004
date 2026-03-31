@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -16,14 +17,21 @@ import (
 	"github.com/cafedomingo/SKU_RM0004/internal/theme"
 )
 
+var version = "dev"
+
 const (
 	i2cClockFreqPath = "/proc/device-tree/soc/i2c@7e804000/clock-frequency"
 	i2cExpectedHz    = 400000
 )
 
 func main() {
+	if len(os.Args) == 2 && os.Args[1] == "-version" {
+		fmt.Println(version)
+		os.Exit(0)
+	}
+
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	logger.Info("starting")
+	logger.Info("starting", "version", version)
 
 	checkI2CSpeed(logger)
 
