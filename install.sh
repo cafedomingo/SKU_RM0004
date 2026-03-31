@@ -160,17 +160,6 @@ log "Detected Raspberry Pi: ${pi_model}"
 
 configure_boot "$pi_model"
 
-# --- Version check ---
-
-latest=$(curl -fsSo /dev/null -w '%{redirect_url}' "https://github.com/${REPO}/releases/latest" < /dev/null) || true
-latest="${latest##*/}"
-[ -n "$latest" ] || die "Failed to fetch latest release tag"
-current=$("${INSTALL_DIR}/${BINARY}" -version 2>/dev/null || echo "none")
-if [ "$latest" = "$current" ]; then
-    log "Already up to date (${current})"
-    exit 0
-fi
-
 service_was_running=false
 if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
     service_was_running=true
