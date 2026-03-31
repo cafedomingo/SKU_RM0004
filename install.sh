@@ -162,8 +162,8 @@ configure_boot "$pi_model"
 
 # --- Version check ---
 
-latest=$(curl -fsSI "https://github.com/${REPO}/releases/latest" \
-    | grep -i ^location: | grep -o '[^/]*$' | tr -d '\r\n') || true
+latest=$(curl -fsSLo /dev/null -w '%{url_effective}' "https://github.com/${REPO}/releases/latest") || true
+latest="${latest##*/}"
 [ -n "$latest" ] || die "Failed to fetch latest release tag"
 current=$("${INSTALL_DIR}/${BINARY}" -version 2>/dev/null || echo "none")
 if [ "$latest" = "$current" ]; then
