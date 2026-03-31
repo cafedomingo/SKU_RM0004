@@ -162,7 +162,7 @@ configure_boot "$pi_model"
 
 # --- Version check ---
 
-current=$("${INSTALL_DIR}/${BINARY}" -version 2>/dev/null || echo "none")
+current=$(timeout 2 "${INSTALL_DIR}/${BINARY}" -version 2>/dev/null || echo "none")
 latest=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest" \
     | grep '"tag_name"' | cut -d'"' -f4) || true
 if [ -n "$latest" ] && [ "$latest" = "$current" ]; then
