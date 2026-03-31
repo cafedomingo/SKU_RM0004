@@ -162,11 +162,10 @@ configure_boot "$pi_model"
 
 # --- Version check ---
 
-latest=$(curl -fsSI "https://github.com/${REPO}/releases/latest" \
-    | grep -i ^location: | grep -o '[^/]*$' | tr -d '\r\n') || true
-[ -n "$latest" ] || die "Failed to fetch latest release tag"
 current=$("${INSTALL_DIR}/${BINARY}" -version 2>/dev/null || echo "none")
-if [ "$latest" = "$current" ]; then
+latest=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest" \
+    | grep '"tag_name"' | cut -d'"' -f4) || true
+if [ -n "$latest" ] && [ "$latest" = "$current" ]; then
     log "Already up to date (${current})"
     exit 0
 fi
