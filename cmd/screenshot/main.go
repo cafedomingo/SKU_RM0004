@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"image/png"
 	"os"
 	"slices"
@@ -58,8 +59,14 @@ func writePNG(path string, fb *st7735.Framebuffer) {
 	w := st7735.Width * scale
 	h := st7735.Height * scale
 
-	palette := collectPalette(fb)
-	img := image.NewPaletted(image.Rect(0, 0, w, h), palette)
+	// Paletted images index colors with a uint8, so fall back to RGBA when a
+	// frame uses more than 256 distinct colors (possible with lerped colors).
+	var img draw.Image
+	if palette := collectPalette(fb); len(palette) <= 256 {
+		img = image.NewPaletted(image.Rect(0, 0, w, h), palette)
+	} else {
+		img = image.NewRGBA(image.Rect(0, 0, w, h))
+	}
 
 	for y := 0; y < st7735.Height; y++ {
 		for x := 0; x < st7735.Width; x++ {
