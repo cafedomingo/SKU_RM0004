@@ -112,8 +112,7 @@ install_binary() {
     # Developer path: use local binary if run from a repo clone
     if [ -f "./${BINARY}" ] && [ -f "./go.mod" ]; then
         log "Installing local ./${BINARY} to ${INSTALL_DIR}/${BINARY} (no checksum for local builds)"
-        cp "./${BINARY}" "${INSTALL_DIR}/${BINARY}"
-        chmod +x "${INSTALL_DIR}/${BINARY}"
+        place_binary "./${BINARY}"
         return
     fi
 
@@ -145,7 +144,16 @@ install_binary() {
     fi
     log "Checksum verified"
 
-    install -m 755 "${tmpdir}/${BINARY}" "${INSTALL_DIR}/${BINARY}"
+    place_binary "${tmpdir}/${BINARY}"
+}
+
+# place_binary stages src next to the final path and swaps it in with an
+# atomic rename, so a crash or dropped connection can never leave a
+# truncated executable for the service to crash-loop on.
+place_binary() {
+    local src="$1"
+    install -m 755 "$src" "${INSTALL_DIR}/${BINARY}.new"
+    mv -f "${INSTALL_DIR}/${BINARY}.new" "${INSTALL_DIR}/${BINARY}"
 }
 
 # --- Systemd service ---
