@@ -14,6 +14,7 @@ INSTALL_DIR="/opt/uctronics-lcd"
 BINARY="display"
 SERVICE_NAME="uctronics-display.service"
 SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}"
+SERVICE_USER="uctronics"
 
 needs_reboot=false
 
@@ -149,6 +150,26 @@ install_binary() {
 
 # --- Systemd service ---
 
+# The daemon only needs to read /proc and /sys and to write to the LCD via
+# /dev/i2c-1 (group i2c) and the VideoCore mailbox via /dev/vcio (group
+# video), so it runs as an unprivileged system user rather than root.
+create_service_user() {
+    if ! getent passwd "$SERVICE_USER" >/dev/null; then
+        log "Creating service user '${SERVICE_USER}'"
+        useradd --system --no-create-home --home-dir /nonexistent \
+            --shell /usr/sbin/nologin "$SERVICE_USER"
+    fi
+
+    local grp
+    for grp in i2c video; do
+        if getent group "$grp" >/dev/null; then
+            usermod -aG "$grp" "$SERVICE_USER"
+        else
+            log "WARNING: group '${grp}' not found — the display service may not be able to access its device"
+        fi
+    done
+}
+
 install_service() {
     cat > "$SERVICE_PATH" <<EOF
 [Unit]
@@ -159,6 +180,33 @@ After=multi-user.target
 ExecStart=${INSTALL_DIR}/${BINARY}
 Restart=on-failure
 RestartSec=5
+User=${SERVICE_USER}
+Group=${SERVICE_USER}
+
+# Sandboxing: the process reads /proc and /sys, and writes only to
+# /dev/i2c-1 and /dev/vcio. Everything else is locked down.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6
+DevicePolicy=closed
+DeviceAllow=/dev/i2c-1 rw
+DeviceAllow=/dev/vcio rw
+UMask=0077
 
 [Install]
 WantedBy=multi-user.target
@@ -195,6 +243,7 @@ if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
 fi
 
 install_binary
+create_service_user
 install_service
 
 if [ "$needs_reboot" = true ]; then
