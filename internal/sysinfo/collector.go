@@ -26,6 +26,7 @@ type liveCollector struct {
 	apt       int
 
 	// state for delta calculations
+	prevIface                         string
 	prevNetRx, prevNetTx              uint64
 	prevDiskRead, prevDiskWrite       uint64
 	prevDiskReadOps, prevDiskWriteOps uint64
@@ -89,8 +90,12 @@ func (c *liveCollector) Refresh() {
 func (c *liveCollector) refreshNetwork(elapsed float64) {
 	iface := c.reader.DefaultInterface()
 	if iface == "" {
-		c.ipv4 = "no network"
+		c.ipv4 = NoNetwork
 		c.ipv6 = NoIPv6
+		c.linkSpeed = 0
+		c.net = NetBandwidth{}
+		c.prevNetRx, c.prevNetTx = 0, 0
+		c.prevIface = ""
 		return
 	}
 
@@ -98,15 +103,19 @@ func (c *liveCollector) refreshNetwork(elapsed float64) {
 	c.linkSpeed = c.reader.LinkSpeed(iface)
 
 	rx, tx := c.reader.NetIOCounters(iface)
-	if (c.prevNetRx > 0 || c.prevNetTx > 0) &&
-		rx >= c.prevNetRx && tx >= c.prevNetTx {
+	// Rates are only meaningful against a previous sample from the same
+	// interface with monotonic counters; otherwise show no rate this cycle.
+	if iface == c.prevIface && rx >= c.prevNetRx && tx >= c.prevNetTx {
 		c.net = NetBandwidth{
 			RxBytesPerSec: uint64(float64(rx-c.prevNetRx) / elapsed),
 			TxBytesPerSec: uint64(float64(tx-c.prevNetTx) / elapsed),
 		}
+	} else {
+		c.net = NetBandwidth{}
 	}
 	c.prevNetRx = rx
 	c.prevNetTx = tx
+	c.prevIface = iface
 }
 
 func (c *liveCollector) refreshDiskIO(elapsed float64) {
