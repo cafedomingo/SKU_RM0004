@@ -99,7 +99,8 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           chmod +x display install.sh
+          sha256sum display install.sh > sha256sums.txt
           TAG="${{ needs.build.outputs.tag }}"
-          gh release create "$TAG" display install.sh \
+          gh release create "$TAG" display install.sh sha256sums.txt \
             --title "$TAG" \
             --notes "Built from commit ${GITHUB_SHA::7}."

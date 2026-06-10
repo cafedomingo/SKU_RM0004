@@ -110,24 +110,41 @@ install_binary() {
 
     # Developer path: use local binary if run from a repo clone
     if [ -f "./${BINARY}" ] && [ -f "./go.mod" ]; then
-        log "Installing local ./${BINARY} to ${INSTALL_DIR}/${BINARY}"
+        log "Installing local ./${BINARY} to ${INSTALL_DIR}/${BINARY} (no checksum for local builds)"
         cp "./${BINARY}" "${INSTALL_DIR}/${BINARY}"
-    else
-        if [ -f "./go.mod" ]; then
-            log "No local binary — downloading from release (run 'go build -o display ./cmd/display' first to install a local build)"
-        else
-            log "Downloading ${BINARY} from latest release"
-        fi
-        if ! curl -fsSL "https://github.com/${REPO}/releases/latest/download/${BINARY}" \
-            -o "${INSTALL_DIR}/${BINARY}"; then
-            die "Failed to download ${BINARY} from GitHub releases"
-        fi
-        if [ ! -s "${INSTALL_DIR}/${BINARY}" ]; then
-            die "Downloaded ${BINARY} is empty"
-        fi
+        chmod +x "${INSTALL_DIR}/${BINARY}"
+        return
     fi
 
-    chmod +x "${INSTALL_DIR}/${BINARY}"
+    if [ -f "./go.mod" ]; then
+        log "No local binary — downloading from release (run 'go build -o display ./cmd/display' first to install a local build)"
+    else
+        log "Downloading ${BINARY} from latest release"
+    fi
+
+    local tmpdir
+    tmpdir=$(mktemp -d)
+    # shellcheck disable=SC2064  # expand $tmpdir now, not at trap time
+    trap "rm -rf '$tmpdir'" EXIT
+
+    local base="https://github.com/${REPO}/releases/latest/download"
+    if ! curl -fsSL "${base}/${BINARY}" -o "${tmpdir}/${BINARY}"; then
+        die "Failed to download ${BINARY} from GitHub releases"
+    fi
+    if [ ! -s "${tmpdir}/${BINARY}" ]; then
+        die "Downloaded ${BINARY} is empty"
+    fi
+    if ! curl -fsSL "${base}/sha256sums.txt" -o "${tmpdir}/sha256sums.txt"; then
+        die "Failed to download sha256sums.txt from GitHub releases"
+    fi
+
+    # Verify against the release manifest before anything reaches the install directory.
+    if ! (cd "$tmpdir" && sha256sum --check --ignore-missing --status sha256sums.txt); then
+        die "Checksum verification failed for ${BINARY} — refusing to install"
+    fi
+    log "Checksum verified"
+
+    install -m 755 "${tmpdir}/${BINARY}" "${INSTALL_DIR}/${BINARY}"
 }
 
 # --- Systemd service ---
