@@ -17,6 +17,8 @@ SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}"
 SERVICE_USER="uctronics"
 
 needs_reboot=false
+binary_updated=false
+unit_changed=false
 
 log() {
     echo "[$(hostname)] $*"
@@ -179,6 +181,11 @@ create_service_user() {
 }
 
 install_service() {
+    local before=""
+    if [ -f "$SERVICE_PATH" ]; then
+        before=$(sha256sum "$SERVICE_PATH" | cut -d' ' -f1)
+    fi
+
     cat > "$SERVICE_PATH" <<EOF
 [Unit]
 Description=UCTRONICS LCD Display
@@ -220,6 +227,10 @@ UMask=0077
 WantedBy=multi-user.target
 EOF
 
+    if [ "$(sha256sum "$SERVICE_PATH" | cut -d' ' -f1)" != "$before" ]; then
+        unit_changed=true
+    fi
+
     systemctl daemon-reload
     systemctl enable "$SERVICE_NAME"
 }
@@ -234,34 +245,31 @@ log "Detected Raspberry Pi: ${pi_model}"
 configure_boot "$pi_model"
 
 # --- Version check ---
+# Only gates the binary download; the service user and unit file are always
+# (re)applied below so a re-run repairs a partially failed install.
 
 current=$(timeout 2 "${INSTALL_DIR}/${BINARY}" -version 2>/dev/null || echo "none")
 latest=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest" \
     | grep '"tag_name"' | cut -d'"' -f4) || true
 if [ -n "$latest" ] && [ "$latest" = "$current" ]; then
-    log "Already up to date (${current})"
-    exit 0
+    log "Binary already up to date (${current})"
+else
+    install_binary
+    binary_updated=true
 fi
 
-service_was_running=false
-if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
-    service_was_running=true
-    log "Stopping ${SERVICE_NAME}"
-    systemctl stop "$SERVICE_NAME"
-fi
-
-install_binary
 create_service_user
 install_service
 
+# The binary swap is atomic; the service keeps running on the old binary
+# until this restart.
 if [ "$needs_reboot" = true ]; then
     log "Install complete. Reboot required for boot config changes — the display service will start automatically after reboot."
+elif [ "$binary_updated" = true ] || [ "$unit_changed" = true ] \
+    || ! systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
+    log "Restarting ${SERVICE_NAME}"
+    systemctl restart "$SERVICE_NAME"
+    log "Install complete"
 else
-    log "Starting ${SERVICE_NAME}"
-    systemctl start "$SERVICE_NAME"
-    if [ "$service_was_running" = true ]; then
-        log "Updated successfully"
-    else
-        log "Install complete"
-    fi
+    log "Already up to date — nothing to do"
 fi
