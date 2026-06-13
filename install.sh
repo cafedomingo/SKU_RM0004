@@ -133,14 +133,14 @@ install_binary() {
 
     local tmpfile
     tmpfile=$(mktemp "${INSTALL_DIR}/${BINARY}.XXXXXX")
-    # shellcheck disable=SC2064  # expand $tmpfile now, not at trap time
-    trap "rm -f '$tmpfile'" EXIT
 
     if ! curl -fsSL "https://github.com/${REPO}/releases/latest/download/${BINARY}" \
         -o "$tmpfile"; then
+        rm -f "$tmpfile"
         die "Failed to download ${BINARY} from GitHub releases"
     fi
     if [ ! -s "$tmpfile" ]; then
+        rm -f "$tmpfile"
         die "Downloaded ${BINARY} is empty"
     fi
 
