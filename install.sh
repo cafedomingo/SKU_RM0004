@@ -212,5 +212,5 @@ elif [ "$binary_updated" = true ] || [ "$unit_changed" = true ] \
     systemctl restart "$SERVICE_NAME"
     log "Install complete"
 else
-    log "Already up to date — nothing to do"
+    log "Already up to date, nothing to do"
 fi
