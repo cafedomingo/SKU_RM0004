@@ -3,20 +3,20 @@ package st7735
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
 	"log/slog"
+	"os"
+	"syscall"
 	"time"
-
-	"periph.io/x/conn/v3/i2c"
-	"periph.io/x/conn/v3/i2c/i2creg"
-	"periph.io/x/host/v3"
 )
 
 const (
-	i2cBus       = "/dev/i2c-1"
+	i2cBusPath   = "/dev/i2c-1"
 	i2cAddress   = 0x18
-	burstMaxLen  = 160 // hardware limit, do NOT increase
-	burstDelayUS = 450 // empirically tuned at 400kHz
-	yOffset      = 24  // controller is 160x160, our 160x80 starts at row 24
+	i2cSlave     = 0x0703 // I2C_SLAVE ioctl from <linux/i2c-dev.h>
+	burstMaxLen  = 160    // hardware limit, do NOT increase
+	burstDelayUS = 450    // empirically tuned at 400kHz
+	yOffset      = 24     // controller is 160x160, our 160x80 starts at row 24
 
 	regWriteData  = 0x00
 	regBurstWrite = 0x01
@@ -33,32 +33,51 @@ type Display interface {
 	Close() error
 }
 
+// i2cConn talks to an I2C device through the kernel's i2c-dev interface:
+// one I2C_SLAVE ioctl to latch the address, then plain write(2) for each
+// transaction.
+type i2cConn struct {
+	f *os.File
+}
+
+func openI2C(path string, addr uint8) (*i2cConn, error) {
+	f, err := os.OpenFile(path, os.O_RDWR, 0)
+	if err != nil {
+		return nil, err
+	}
+	if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, f.Fd(), i2cSlave, uintptr(addr)); errno != 0 {
+		_ = f.Close()
+		return nil, fmt.Errorf("ioctl I2C_SLAVE 0x%02x: %w", addr, errno)
+	}
+	return &i2cConn{f: f}, nil
+}
+
+func (c *i2cConn) Write(p []byte) (int, error) {
+	return c.f.Write(p)
+}
+
+func (c *i2cConn) Close() error {
+	return c.f.Close()
+}
+
 type display struct {
-	dev    *i2c.Dev
-	bus    i2c.BusCloser
+	dev    io.WriteCloser
 	logger *slog.Logger
 }
 
-// NewDisplay initializes the I2C bus and returns a Display backed by the
+// NewDisplay opens the I2C bus and returns a Display backed by the
 // UCTRONICS SKU_RM0004 ST7735 controller at address 0x18.
 func NewDisplay(logger *slog.Logger) (Display, error) {
-	if _, err := host.Init(); err != nil {
-		return nil, fmt.Errorf("st7735: host init: %w", err)
-	}
-
-	bus, err := i2creg.Open(i2cBus)
+	dev, err := openI2C(i2cBusPath, i2cAddress)
 	if err != nil {
-		return nil, fmt.Errorf("st7735: open i2c bus %s: %w", i2cBus, err)
+		return nil, fmt.Errorf("st7735: open i2c bus %s: %w", i2cBusPath, err)
 	}
-
-	dev := &i2c.Dev{Bus: bus, Addr: i2cAddress}
-
-	return &display{dev: dev, bus: bus, logger: logger}, nil
+	return &display{dev: dev, logger: logger}, nil
 }
 
 // writeCommand sends a 3-byte I2C command: [register, high, low].
 func (d *display) writeCommand(reg, hi, lo byte) {
-	if err := d.dev.Tx([]byte{reg, hi, lo}, nil); err != nil {
+	if _, err := d.dev.Write([]byte{reg, hi, lo}); err != nil {
 		d.logger.Warn("i2c write failed", "register", reg, "error", err)
 	}
 }
@@ -90,7 +109,7 @@ func (d *display) burstSend(data []byte) {
 		if chunk > burstMaxLen {
 			chunk = burstMaxLen
 		}
-		if err := d.dev.Tx(data[offset:offset+chunk], nil); err != nil {
+		if _, err := d.dev.Write(data[offset : offset+chunk]); err != nil {
 			d.logger.Warn("burst send failed", "offset", offset, "error", err)
 		}
 		offset += chunk
@@ -125,5 +144,5 @@ func (d *display) SendFull(pixels []uint16) {
 
 // Close releases the I2C bus.
 func (d *display) Close() error {
-	return d.bus.Close()
+	return d.dev.Close()
 }
