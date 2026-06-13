@@ -17,7 +17,6 @@ SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}"
 
 needs_reboot=false
 binary_updated=false
-unit_changed=false
 
 log() {
     echo "[$(hostname)] $*"
@@ -151,11 +150,6 @@ install_binary() {
 # --- Systemd service ---
 
 install_service() {
-    local before=""
-    if [ -f "$SERVICE_PATH" ]; then
-        before=$(sha256sum "$SERVICE_PATH" | cut -d' ' -f1)
-    fi
-
     cat > "$SERVICE_PATH" <<EOF
 [Unit]
 Description=UCTRONICS LCD Display
@@ -169,10 +163,6 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-
-    if [ "$(sha256sum "$SERVICE_PATH" | cut -d' ' -f1)" != "$before" ]; then
-        unit_changed=true
-    fi
 
     systemctl daemon-reload
     systemctl enable "$SERVICE_NAME"
@@ -206,7 +196,7 @@ install_service
 # The binary swap is atomic; no need to stop the service before installing.
 if [ "$needs_reboot" = true ]; then
     log "Install complete. Reboot required for boot config changes — the display service will start automatically after reboot."
-elif [ "$binary_updated" = true ] || [ "$unit_changed" = true ] \
+elif [ "$binary_updated" = true ] \
     || ! systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
     log "Restarting ${SERVICE_NAME}"
     systemctl restart "$SERVICE_NAME"
