@@ -41,7 +41,7 @@ func main() {
 	dash.Update(cfg)
 	writePNG("docs/dashboard.png", dash.Buffer())
 
-	// Sparkline — render 13 frames to fill history with varying values
+	// Sparkline: render 13 frames to fill history with varying values
 	spark := screen.New(config.ScreenSparkline, nil, mock)
 	cpuSamples := []float64{22, 35, 28, 45, 52, 38, 61, 73, 55, 42, 68, 50, 47}
 	ramSamples := []float64{40, 42, 45, 48, 50, 53, 55, 57, 58, 60, 61, 62, 63}

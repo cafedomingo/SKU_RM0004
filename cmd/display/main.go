@@ -23,8 +23,8 @@ const (
 	i2cExpectedHz = 400000
 
 	// i2cClockFreqPath is the clock-frequency property of the I2C bus the
-	// display sits on, via the adapter's of_node link — the node's
-	// device-tree path differs per SoC.
+	// display sits on, resolved via the adapter's of_node link so it works
+	// on any SoC without hardcoding the device-tree path.
 	i2cClockFreqPath = "/sys/bus/i2c/devices/i2c-1/of_node/clock-frequency"
 )
 
