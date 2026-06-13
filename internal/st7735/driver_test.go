@@ -54,9 +54,15 @@ func TestSendRegionFraming(t *testing.T) {
 		}
 	}
 
+	// Two rows × 160 pixels × 2 bytes = 640 bytes → exactly 4 burst chunks.
+	wantBurstCount := 4
+	if got, want := len(fake.writes), len(want)+wantBurstCount+2; got != want {
+		t.Fatalf("got %d writes, want %d", got, want)
+	}
+
 	// Pixel bursts: every chunk must respect the hardware limit and the
 	// total must equal the region's byte size.
-	burst := fake.writes[len(want) : len(fake.writes)-2]
+	burst := fake.writes[len(want) : len(want)+wantBurstCount]
 	total := 0
 	for i, chunk := range burst {
 		if len(chunk) > burstMaxLen {
@@ -69,12 +75,15 @@ func TestSendRegionFraming(t *testing.T) {
 	}
 
 	// Trailing writes: burst off, then sync.
-	last := fake.writes[len(fake.writes)-2:]
-	if last[0][0] != regBurstWrite || last[0][2] != 0x00 {
-		t.Errorf("expected burst-off command, got %v", last[0])
+	wantTail := [][]byte{
+		{regBurstWrite, 0x00, 0x00},
+		{regSync, 0x00, 0x01},
 	}
-	if last[1][0] != regSync {
-		t.Errorf("expected sync command, got %v", last[1])
+	last := fake.writes[len(want)+wantBurstCount:]
+	for i, w := range wantTail {
+		if got := last[i]; len(got) != len(w) || got[0] != w[0] || got[1] != w[1] || got[2] != w[2] {
+			t.Errorf("trailing write[%d] = %v, want %v", i, got, w)
+		}
 	}
 }
 
