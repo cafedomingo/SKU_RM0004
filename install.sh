@@ -107,8 +107,8 @@ configure_boot() {
 # --- Binary install ---
 
 # place_binary stages src next to the final path and swaps it in with an
-# atomic rename, so a crash or dropped connection can never leave a
-# truncated executable for the service to crash-loop on.
+# atomic rename, so a failed or interrupted download never overwrites the
+# live executable with a partial file.
 place_binary() {
     local src="$1"
     install -m 755 "$src" "${INSTALL_DIR}/${BINARY}.new"
@@ -126,7 +126,7 @@ install_binary() {
     fi
 
     if [ -f "./go.mod" ]; then
-        log "No local binary — downloading from release (run 'go build -o display ./cmd/display' first to install a local build)"
+        log "No local binary; downloading from release (run 'go build -o display ./cmd/display' first to install a local build)"
     else
         log "Downloading ${BINARY} from latest release"
     fi
@@ -195,7 +195,7 @@ install_service
 
 # The binary swap is atomic; no need to stop the service before installing.
 if [ "$needs_reboot" = true ]; then
-    log "Install complete. Reboot required for boot config changes — the display service will start automatically after reboot."
+    log "Install complete. Reboot required for boot config changes; the display service will start automatically after reboot."
 elif [ "$binary_updated" = true ] \
     || ! systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
     log "Restarting ${SERVICE_NAME}"
