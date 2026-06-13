@@ -3,6 +3,7 @@ package st7735
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"syscall"
@@ -32,12 +33,6 @@ type Display interface {
 	Close() error
 }
 
-// i2cDev is a write-only connection to a fixed-address I2C device.
-type i2cDev interface {
-	write(p []byte) error
-	Close() error
-}
-
 // i2cConn talks to an I2C device through the kernel's i2c-dev interface:
 // one I2C_SLAVE ioctl to latch the address, then plain write(2) for each
 // transaction.
@@ -57,9 +52,8 @@ func openI2C(path string, addr uint8) (*i2cConn, error) {
 	return &i2cConn{f: f}, nil
 }
 
-func (c *i2cConn) write(p []byte) error {
-	_, err := c.f.Write(p)
-	return err
+func (c *i2cConn) Write(p []byte) (int, error) {
+	return c.f.Write(p)
 }
 
 func (c *i2cConn) Close() error {
@@ -67,7 +61,7 @@ func (c *i2cConn) Close() error {
 }
 
 type display struct {
-	dev    i2cDev
+	dev    io.WriteCloser
 	logger *slog.Logger
 }
 
@@ -83,7 +77,7 @@ func NewDisplay(logger *slog.Logger) (Display, error) {
 
 // writeCommand sends a 3-byte I2C command: [register, high, low].
 func (d *display) writeCommand(reg, hi, lo byte) {
-	if err := d.dev.write([]byte{reg, hi, lo}); err != nil {
+	if _, err := d.dev.Write([]byte{reg, hi, lo}); err != nil {
 		d.logger.Warn("i2c write failed", "register", reg, "error", err)
 	}
 }
@@ -115,7 +109,7 @@ func (d *display) burstSend(data []byte) {
 		if chunk > burstMaxLen {
 			chunk = burstMaxLen
 		}
-		if err := d.dev.write(data[offset : offset+chunk]); err != nil {
+		if _, err := d.dev.Write(data[offset : offset+chunk]); err != nil {
 			d.logger.Warn("burst send failed", "offset", offset, "error", err)
 		}
 		offset += chunk

@@ -11,11 +11,11 @@ type fakeI2C struct {
 	closed bool
 }
 
-func (f *fakeI2C) write(p []byte) error {
+func (f *fakeI2C) Write(p []byte) (int, error) {
 	cp := make([]byte, len(p))
 	copy(cp, p)
 	f.writes = append(f.writes, cp)
-	return nil
+	return len(p), nil
 }
 
 func (f *fakeI2C) Close() error {
