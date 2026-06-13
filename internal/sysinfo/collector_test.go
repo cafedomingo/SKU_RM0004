@@ -158,11 +158,74 @@ func TestNoNetworkInterface(t *testing.T) {
 
 	c := NewCollectorWithReader(r)
 
-	if c.IPv4Address() != "no network" {
-		t.Errorf("IPv4Address() = %q, want %q", c.IPv4Address(), "no network")
+	if c.IPv4Address() != NoNetwork {
+		t.Errorf("IPv4Address() = %q, want %q", c.IPv4Address(), NoNetwork)
 	}
 	if c.IPv6Suffix() != NoIPv6 {
 		t.Errorf("IPv6Suffix() = %q, want %q", c.IPv6Suffix(), NoIPv6)
+	}
+}
+
+func TestNetworkInterfaceChangeResetsRates(t *testing.T) {
+	r := &fakeReader{iface: "eth0", ipv4: "10.0.0.1", ipv6: NoIPv6, netRx: 1000, netTx: 2000}
+	c := NewCollectorWithReader(r)
+	lc := c.(*liveCollector)
+
+	// Establish a rate on eth0.
+	r.netRx, r.netTx = 1500, 3000
+	lc.lastRefresh = time.Now().Add(-1 * time.Second)
+	c.Refresh()
+	if c.NetBandwidth() == (NetBandwidth{}) {
+		t.Fatal("expected nonzero bandwidth on eth0")
+	}
+
+	// Default route flips to wlan0 with unrelated counters: the first
+	// sample on the new interface must not produce a rate.
+	r.iface = "wlan0"
+	r.netRx, r.netTx = 100, 200
+	lc.lastRefresh = time.Now().Add(-1 * time.Second)
+	c.Refresh()
+	if bw := c.NetBandwidth(); bw != (NetBandwidth{}) {
+		t.Errorf("after interface change: got %+v, want zeros", bw)
+	}
+
+	// Second sample on wlan0 computes rates normally again.
+	r.netRx, r.netTx = 600, 1200
+	lc.lastRefresh = time.Now().Add(-1 * time.Second)
+	c.Refresh()
+	bw := c.NetBandwidth()
+	if bw.RxBytesPerSec < 499 || bw.RxBytesPerSec > 500 {
+		t.Errorf("RxBytesPerSec = %d, want ~500", bw.RxBytesPerSec)
+	}
+	if bw.TxBytesPerSec < 999 || bw.TxBytesPerSec > 1000 {
+		t.Errorf("TxBytesPerSec = %d, want ~1000", bw.TxBytesPerSec)
+	}
+}
+
+func TestNetworkDisappearClearsStats(t *testing.T) {
+	r := &fakeReader{iface: "eth0", ipv4: "10.0.0.1", ipv6: NoIPv6, netRx: 1000, netTx: 2000, linkSpeed: 1000}
+	c := NewCollectorWithReader(r)
+	lc := c.(*liveCollector)
+
+	r.netRx, r.netTx = 2000, 4000
+	lc.lastRefresh = time.Now().Add(-1 * time.Second)
+	c.Refresh()
+	if c.NetBandwidth() == (NetBandwidth{}) {
+		t.Fatal("expected nonzero bandwidth before interface loss")
+	}
+
+	// Default route goes away: bandwidth and link speed must not stay stale.
+	r.iface = ""
+	lc.lastRefresh = time.Now().Add(-1 * time.Second)
+	c.Refresh()
+	if bw := c.NetBandwidth(); bw != (NetBandwidth{}) {
+		t.Errorf("after interface loss: got %+v, want zeros", bw)
+	}
+	if c.LinkSpeedMbps() != 0 {
+		t.Errorf("LinkSpeedMbps() = %d, want 0", c.LinkSpeedMbps())
+	}
+	if c.IPv4Address() != NoNetwork {
+		t.Errorf("IPv4Address() = %q, want %q", c.IPv4Address(), NoNetwork)
 	}
 }
 

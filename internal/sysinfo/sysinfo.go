@@ -2,7 +2,11 @@ package sysinfo
 
 import "time"
 
-const NoIPv6 = "no IPv6"
+// Placeholder values shown when no network information is available.
+const (
+	NoIPv6    = "no IPv6"
+	NoNetwork = "no network"
+)
 
 // CPUFreq holds current, minimum, and maximum CPU frequency in MHz.
 type CPUFreq struct {

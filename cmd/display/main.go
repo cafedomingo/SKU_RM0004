@@ -20,8 +20,12 @@ import (
 var version = "dev"
 
 const (
-	i2cClockFreqPath = "/proc/device-tree/soc/i2c@7e804000/clock-frequency"
-	i2cExpectedHz    = 400000
+	i2cExpectedHz = 400000
+
+	// i2cClockFreqPath is the clock-frequency property of the I2C bus the
+	// display sits on, resolved via the adapter's of_node link so it works
+	// on any SoC without hardcoding the device-tree path.
+	i2cClockFreqPath = "/sys/bus/i2c/devices/i2c-1/of_node/clock-frequency"
 )
 
 func main() {
@@ -77,7 +81,7 @@ func main() {
 func checkI2CSpeed(logger *slog.Logger) {
 	data, err := os.ReadFile(i2cClockFreqPath)
 	if err != nil {
-		logger.Warn("could not read I2C clock frequency", "error", err)
+		logger.Info("could not determine I2C bus speed", "error", err)
 		return
 	}
 	if len(data) < 4 {
