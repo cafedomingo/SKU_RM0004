@@ -15,6 +15,10 @@ BINARY="display"
 SERVICE_NAME="uctronics-display.service"
 SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}"
 
+# Reboot-pending marker on tmpfs: survives re-runs within a boot, cleared by the
+# reboot itself, so a re-run still knows a reboot is due.
+REBOOT_MARKER="/run/uctronics-display.reboot-required"
+
 needs_reboot=false
 binary_updated=false
 
@@ -106,22 +110,25 @@ configure_boot() {
 
 # --- Binary install ---
 
-# place_binary stages src next to the final path and swaps it in with an
-# atomic rename, so a failed or interrupted download never overwrites the
-# live executable with a partial file.
+# Atomically swap a staged file (already under INSTALL_DIR) onto the final
+# path, so an interrupted write never leaves a partial live executable.
 place_binary() {
-    local src="$1"
-    install -m 755 "$src" "${INSTALL_DIR}/${BINARY}.new"
-    mv -f "${INSTALL_DIR}/${BINARY}.new" "${INSTALL_DIR}/${BINARY}"
+    local staged="$1"
+    chmod 755 "$staged"
+    mv -f "$staged" "${INSTALL_DIR}/${BINARY}"
 }
 
 install_binary() {
     mkdir -p "$INSTALL_DIR"
 
+    local staged
+    staged=$(mktemp "${INSTALL_DIR}/${BINARY}.XXXXXX")
+
     # Developer path: use local binary if run from a repo clone
     if [ -f "./${BINARY}" ] && [ -f "./go.mod" ]; then
         log "Installing local ./${BINARY} to ${INSTALL_DIR}/${BINARY}"
-        place_binary "./${BINARY}"
+        cp "./${BINARY}" "$staged"
+        place_binary "$staged"
         return
     fi
 
@@ -131,20 +138,17 @@ install_binary() {
         log "Downloading ${BINARY} from latest release"
     fi
 
-    local tmpfile
-    tmpfile=$(mktemp "${INSTALL_DIR}/${BINARY}.XXXXXX")
-
     if ! curl -fsSL "https://github.com/${REPO}/releases/latest/download/${BINARY}" \
-        -o "$tmpfile"; then
-        rm -f "$tmpfile"
+        -o "$staged"; then
+        rm -f "$staged"
         die "Failed to download ${BINARY} from GitHub releases"
     fi
-    if [ ! -s "$tmpfile" ]; then
-        rm -f "$tmpfile"
+    if [ ! -s "$staged" ]; then
+        rm -f "$staged"
         die "Downloaded ${BINARY} is empty"
     fi
 
-    place_binary "$tmpfile"
+    place_binary "$staged"
 }
 
 # --- Systemd service ---
@@ -177,6 +181,11 @@ log "Detected Raspberry Pi: ${pi_model}"
 
 configure_boot "$pi_model"
 
+# Persist the pending reboot so a later re-run still waits for it.
+if [ "$needs_reboot" = true ]; then
+    touch "$REBOOT_MARKER"
+fi
+
 # --- Version check ---
 # Only gates the binary download; the unit file is always (re)applied below
 # so a re-run repairs a partially failed install.
@@ -193,8 +202,8 @@ fi
 
 install_service
 
-# The binary swap is atomic; no need to stop the service before installing.
-if [ "$needs_reboot" = true ]; then
+# Binary swap is atomic, so no stop needed. If a reboot is pending, wait for it.
+if [ -f "$REBOOT_MARKER" ]; then
     log "Install complete. Reboot required for boot config changes; the display service will start automatically after reboot."
 elif [ "$binary_updated" = true ] \
     || ! systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
