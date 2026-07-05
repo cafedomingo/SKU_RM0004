@@ -56,6 +56,11 @@ func (s *sparklineScreen) Draw() {
 	drawChanged(s.disp, &s.front, &s.back)
 }
 
+func (s *sparklineScreen) Redraw() {
+	drawAll(s.disp, &s.back)
+	s.front = s.back
+}
+
 // drawTicker renders the cycling ticker row at y=0.
 // All phases use the same color since they share the row.
 // Phase 0 = hostname, phase 1 = IPv4, phase 2 = IPv6.

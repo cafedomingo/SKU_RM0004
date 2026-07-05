@@ -37,6 +37,11 @@ func (d *dashboardScreen) Draw() {
 	drawChanged(d.disp, &d.front, &d.back)
 }
 
+func (d *dashboardScreen) Redraw() {
+	drawAll(d.disp, &d.back)
+	d.front = d.back
+}
+
 func (d *dashboardScreen) render(fb *st7735.Framebuffer, cfg config.Config) {
 	const (
 		margin = 2

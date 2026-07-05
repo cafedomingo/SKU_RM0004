@@ -10,6 +10,9 @@ import (
 type Screen interface {
 	Update(cfg config.Config)
 	Draw()
+	// Redraw sends the full back buffer, resyncing a panel that may have
+	// silently diverged from the software front buffer.
+	Redraw()
 	Buffer() *st7735.Framebuffer
 }
 

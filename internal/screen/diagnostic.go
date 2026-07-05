@@ -68,6 +68,11 @@ func (d *diagnosticScreen) Draw() {
 	drawAll(d.disp, &d.back)
 }
 
+// Redraw is identical to Draw: the diagnostic screen always sends the full frame.
+func (d *diagnosticScreen) Redraw() {
+	drawAll(d.disp, &d.back)
+}
+
 func collectDiagData(c sysinfo.Collector) []diagRow {
 	rows := make([]diagRow, 0, 15)
 

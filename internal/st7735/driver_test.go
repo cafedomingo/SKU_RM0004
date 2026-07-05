@@ -1,6 +1,7 @@
 package st7735
 
 import (
+	"bytes"
 	"log/slog"
 	"testing"
 )
@@ -83,6 +84,65 @@ func TestSendRegionFraming(t *testing.T) {
 	for i, w := range wantTail {
 		if got := last[i]; len(got) != len(w) || got[0] != w[0] || got[1] != w[1] || got[2] != w[2] {
 			t.Errorf("trailing write[%d] = %v, want %v", i, got, w)
+		}
+	}
+}
+
+// A partial rectangle (non-zero X, non-full W) through the real send path:
+// window bytes, payload size, short final chunk, and row-strided order.
+func TestSendRegionPartialFraming(t *testing.T) {
+	fake := &fakeI2C{}
+	d := &display{dev: fake, logger: slog.Default()}
+
+	var fb Framebuffer
+	fb.SetPixel(82, 37, 0xAAAA)  // region's first pixel
+	fb.SetPixel(159, 37, 0xBBBB) // end of first region row
+	fb.SetPixel(82, 38, 0xCCCC)  // start of second region row
+	fb.SetPixel(81, 37, 0xDDDD)  // left of region, must not appear
+
+	r := Region{X: 82, Y: 37, W: 78, H: 18}
+	d.SendRegion(r, &fb)
+
+	if got, want := fake.writes[0], []byte{regXCoord, 82, 159}; !bytes.Equal(got, want) {
+		t.Errorf("column window = %v, want %v", got, want)
+	}
+	if got, want := fake.writes[1], []byte{regYCoord, 37 + yOffset, 54 + yOffset}; !bytes.Equal(got, want) {
+		t.Errorf("row window = %v, want %v", got, want)
+	}
+
+	// 78*18*2 = 2808 payload bytes: 17 full chunks and an 88-byte final chunk.
+	var payload []byte
+	for _, w := range fake.writes[5 : len(fake.writes)-2] {
+		if len(w) > burstMaxLen {
+			t.Errorf("chunk of %d bytes exceeds burstMaxLen", len(w))
+		}
+		payload = append(payload, w...)
+	}
+	if len(payload) != r.W*r.H*bytesPerPixel {
+		t.Fatalf("payload = %d bytes, want %d", len(payload), r.W*r.H*bytesPerPixel)
+	}
+	if got := len(fake.writes[len(fake.writes)-3]); got != 88 {
+		t.Errorf("final chunk = %d bytes, want 88", got)
+	}
+
+	// Row striding: byte offsets within the payload are region-relative.
+	checks := []struct {
+		off  int
+		want [2]byte
+	}{
+		{0, [2]byte{0xAA, 0xAA}},                    // (82,37)
+		{77 * bytesPerPixel, [2]byte{0xBB, 0xBB}},   // (159,37)
+		{r.W * bytesPerPixel, [2]byte{0xCC, 0xCC}},  // (82,38)
+	}
+	for _, c := range checks {
+		if payload[c.off] != c.want[0] || payload[c.off+1] != c.want[1] {
+			t.Errorf("payload[%d:%d] = %02X%02X, want %02X%02X",
+				c.off, c.off+2, payload[c.off], payload[c.off+1], c.want[0], c.want[1])
+		}
+	}
+	for i := 0; i < len(payload); i += 2 {
+		if payload[i] == 0xDD {
+			t.Errorf("pixel left of region leaked into payload at offset %d", i)
 		}
 	}
 }
