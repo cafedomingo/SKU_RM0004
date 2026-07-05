@@ -54,8 +54,8 @@ One `SendRegion` on the wire:
 - The bridge MCU clock-stretches SCL ~26µs/byte while it processes pixels, on top of
   the 22.5µs/byte transfer. Effective throughput is ~19 kB/s and is set by the MCU,
   not by anything host-side.
-- Per-region fixed overhead: 6 command writes + trailing delay ≈ 2.35ms,
-  equivalent to ~24px of pixel data. This calibrates `splitGapMinPixels`.
+- Per-region fixed overhead: 7 command writes + trailing delay ≈ 2.55ms,
+  equivalent to ~26px of pixel data. This calibrates `splitGapMinPixels`.
 
 ## Burst tuning (do not change without hardware testing)
 
