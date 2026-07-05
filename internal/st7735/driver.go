@@ -119,7 +119,7 @@ func (d *display) burstSend(data []byte) {
 // regionToBytes serializes the framebuffer pixels inside r to big-endian
 // RGB565 bytes (MSB first) as expected by the ST7735 controller.
 func regionToBytes(r Region, fb *Framebuffer) []byte {
-	buf := make([]byte, 0, r.W*r.H*2)
+	buf := make([]byte, 0, r.W*r.H*bytesPerPixel)
 	for row := r.Y; row < r.Y+r.H; row++ {
 		start := row*Width + r.X
 		for _, px := range fb.Pixels[start : start+r.W] {

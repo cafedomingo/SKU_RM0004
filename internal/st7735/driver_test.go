@@ -70,8 +70,8 @@ func TestSendRegionFraming(t *testing.T) {
 		}
 		total += len(chunk)
 	}
-	if total != 2*Width*2 {
-		t.Errorf("burst total = %d bytes, want %d", total, 2*Width*2)
+	if total != 2*Width*bytesPerPixel {
+		t.Errorf("burst total = %d bytes, want %d", total, 2*Width*bytesPerPixel)
 	}
 
 	// Trailing writes: burst off, then sync.
