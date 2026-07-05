@@ -29,8 +29,8 @@ func TestSendRegionFraming(t *testing.T) {
 
 	// Two rows of 160 pixels starting at y=10: 640 bytes of pixel data,
 	// which must be split into 160-byte burst chunks.
-	pixels := make([]uint16, 2*Width)
-	d.SendRegion(0, 10, Width, 2, pixels)
+	var fb Framebuffer
+	d.SendRegion(Region{X: 0, Y: 10, W: Width, H: 2}, &fb)
 
 	want := [][]byte{
 		{regXCoord, 0, Width - 1},               // column window
@@ -98,29 +98,28 @@ func TestDisplayClose(t *testing.T) {
 	}
 }
 
-func TestPixelsToBytes(t *testing.T) {
-	tests := []struct {
-		name   string
-		pixels []uint16
-		want   []byte
-	}{
-		{"empty", nil, []byte{}},
-		{"single pixel", []uint16{0xF800}, []byte{0xF8, 0x00}},
-		{"two pixels", []uint16{0xF800, 0x07E0}, []byte{0xF8, 0x00, 0x07, 0xE0}},
-		{"zero pixel", []uint16{0x0000}, []byte{0x00, 0x00}},
-		{"max pixel", []uint16{0xFFFF}, []byte{0xFF, 0xFF}},
+func TestRegionToBytes(t *testing.T) {
+	var fb Framebuffer
+	fb.SetPixel(3, 5, 0xF800)
+	fb.SetPixel(4, 5, 0x07E0)
+	fb.SetPixel(3, 6, 0xFFFF)
+	fb.SetPixel(4, 6, 0x0000)
+	// Pixel outside the region on the same rows: must not be serialized.
+	fb.SetPixel(5, 5, 0x1234)
+
+	// A 2x2 region not touching the framebuffer edge exercises the row
+	// striding: source rows are 160 pixels apart, output is contiguous.
+	got := regionToBytes(Region{X: 3, Y: 5, W: 2, H: 2}, &fb)
+	want := []byte{
+		0xF8, 0x00, 0x07, 0xE0, // row 5: big-endian RGB565
+		0xFF, 0xFF, 0x00, 0x00, // row 6
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := pixelsToBytes(tt.pixels)
-			if len(got) != len(tt.want) {
-				t.Fatalf("len = %d, want %d", len(got), len(tt.want))
-			}
-			for i := range got {
-				if got[i] != tt.want[i] {
-					t.Errorf("byte[%d] = 0x%02X, want 0x%02X", i, got[i], tt.want[i])
-				}
-			}
-		})
+	if len(got) != len(want) {
+		t.Fatalf("len = %d, want %d", len(got), len(want))
+	}
+	for i := range got {
+		if got[i] != want[i] {
+			t.Errorf("byte[%d] = 0x%02X, want 0x%02X", i, got[i], want[i])
+		}
 	}
 }

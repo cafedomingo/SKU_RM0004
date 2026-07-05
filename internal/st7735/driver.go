@@ -1,7 +1,6 @@
 package st7735
 
 import (
-	"encoding/binary"
 	"fmt"
 	"io"
 	"log/slog"
@@ -28,8 +27,8 @@ const (
 
 // Display sends pixel data to the ST7735 LCD over I2C.
 type Display interface {
-	SendRegion(x, y, w, h int, pixels []uint16)
-	SendFull(pixels []uint16)
+	SendRegion(r Region, fb *Framebuffer)
+	SendFull(fb *Framebuffer)
 	Close() error
 }
 
@@ -117,29 +116,30 @@ func (d *display) burstSend(data []byte) {
 	}
 }
 
-// pixelsToBytes converts RGB565 pixel values to big-endian bytes (MSB first)
-// as expected by the ST7735 controller.
-func pixelsToBytes(pixels []uint16) []byte {
-	buf := make([]byte, len(pixels)*2)
-	for i, px := range pixels {
-		binary.BigEndian.PutUint16(buf[i*2:], px)
+// regionToBytes serializes the framebuffer pixels inside r to big-endian
+// RGB565 bytes (MSB first) as expected by the ST7735 controller.
+func regionToBytes(r Region, fb *Framebuffer) []byte {
+	buf := make([]byte, 0, r.W*r.H*2)
+	for row := r.Y; row < r.Y+r.H; row++ {
+		start := row*Width + r.X
+		for _, px := range fb.Pixels[start : start+r.W] {
+			buf = append(buf, byte(px>>8), byte(px))
+		}
 	}
 	return buf
 }
 
-// SendRegion sends a rectangular region of pixels to the display.
-// The caller provides the contiguous pixel slice for the region.
-func (d *display) SendRegion(x, y, w, h int, pixels []uint16) {
-	d.setAddressWindow(x, y, x+w-1, y+h-1)
-	data := pixelsToBytes(pixels)
+// SendRegion sends the rectangle r of the framebuffer to the display.
+func (d *display) SendRegion(r Region, fb *Framebuffer) {
+	d.setAddressWindow(r.X, r.Y, r.X+r.W-1, r.Y+r.H-1)
 	d.burstBegin()
-	d.burstSend(data)
+	d.burstSend(regionToBytes(r, fb))
 	d.burstEnd()
 }
 
 // SendFull sends the entire 160x80 framebuffer to the display.
-func (d *display) SendFull(pixels []uint16) {
-	d.SendRegion(0, 0, Width, Height, pixels)
+func (d *display) SendFull(fb *Framebuffer) {
+	d.SendRegion(Region{X: 0, Y: 0, W: Width, H: Height}, fb)
 }
 
 // Close releases the I2C bus.
