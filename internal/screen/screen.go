@@ -33,8 +33,18 @@ func drawChanged(disp st7735.Display, front, back *st7735.Framebuffer) {
 		return
 	}
 	for _, r := range st7735.DiffRegions(front, back) {
-		disp.SendRegion(0, r.Y, st7735.Width, r.H,
-			back.Pixels[r.Y*st7735.Width:(r.Y+r.H)*st7735.Width])
+		if r.X == 0 && r.W == st7735.Width {
+			// Full-width regions are contiguous in the framebuffer.
+			disp.SendRegion(0, r.Y, r.W, r.H,
+				back.Pixels[r.Y*st7735.Width:(r.Y+r.H)*st7735.Width])
+			continue
+		}
+		pixels := make([]uint16, r.W*r.H)
+		for row := 0; row < r.H; row++ {
+			src := (r.Y+row)*st7735.Width + r.X
+			copy(pixels[row*r.W:(row+1)*r.W], back.Pixels[src:src+r.W])
+		}
+		disp.SendRegion(r.X, r.Y, r.W, r.H, pixels)
 	}
 	*front = *back
 }
