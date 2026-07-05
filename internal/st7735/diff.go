@@ -62,10 +62,8 @@ func appendStripRegions(regions []Region, front, back *Framebuffer, y, h int) []
 			continue
 		}
 		if runStart == -1 {
-			runStart, runEnd = x, x
-			continue
-		}
-		if (x-runEnd-1)*h >= splitGapMinPixels {
+			runStart = x
+		} else if (x-runEnd-1)*h >= splitGapMinPixels {
 			regions = append(regions, Region{X: runStart, Y: y, W: runEnd - runStart + 1, H: h})
 			runStart = x
 		}
