@@ -130,9 +130,9 @@ func TestSendRegionPartialFraming(t *testing.T) {
 		off  int
 		want [2]byte
 	}{
-		{0, [2]byte{0xAA, 0xAA}},                    // (82,37)
-		{77 * bytesPerPixel, [2]byte{0xBB, 0xBB}},   // (159,37)
-		{r.W * bytesPerPixel, [2]byte{0xCC, 0xCC}},  // (82,38)
+		{0, [2]byte{0xAA, 0xAA}},                   // (82,37)
+		{77 * bytesPerPixel, [2]byte{0xBB, 0xBB}},  // (159,37)
+		{r.W * bytesPerPixel, [2]byte{0xCC, 0xCC}}, // (82,38)
 	}
 	for _, c := range checks {
 		if payload[c.off] != c.want[0] || payload[c.off+1] != c.want[1] {
