@@ -8,16 +8,13 @@ type Region struct {
 	H int // number of rows
 }
 
-// splitGapMinPixels is the minimum clean-gap area (gap width x strip height,
-// in pixels) worth splitting a strip into two regions. Each extra region
-// costs ~30 bytes of command traffic on the wire; a gap is only skipped when
-// not sending it saves more than that (one pixel = 2 bytes).
+// splitGapMinPixels is the minimum clean-gap area (gap width x strip height)
+// worth splitting a strip: smaller gaps cost less to resend than an extra
+// region's command overhead.
 const splitGapMinPixels = 32
 
 // DiffRegions compares two framebuffers and returns coalesced dirty
-// rectangles. Consecutive dirty rows form a strip; within each strip the
-// dirty x-extent is trimmed, and clean vertical gaps large enough to pay for
-// the extra region overhead split the strip into side-by-side regions.
+// rectangles: strips of dirty rows, trimmed and split by dirty column runs.
 func DiffRegions(front, back *Framebuffer) []Region {
 	var regions []Region
 	dirtyStart := -1
@@ -41,9 +38,8 @@ func DiffRegions(front, back *Framebuffer) []Region {
 	return regions
 }
 
-// appendStripRegions splits the strip of rows [y, y+h) into regions trimmed
-// to the dirty columns, keeping clean gaps only when they are too small to
-// be worth a separate region.
+// appendStripRegions appends the strip of rows [y, y+h) as regions trimmed
+// to its dirty columns, splitting at gaps of at least splitGapMinPixels.
 func appendStripRegions(regions []Region, front, back *Framebuffer, y, h int) []Region {
 	var colDirty [Width]bool
 	for row := y; row < y+h; row++ {
@@ -69,8 +65,7 @@ func appendStripRegions(regions []Region, front, back *Framebuffer, y, h int) []
 		}
 		runEnd = x
 	}
-	// A strip only exists because at least one row differed, so there is
-	// always a final run to emit.
+	// The strip has at least one dirty row, so a final run always exists.
 	return append(regions, Region{X: runStart, Y: y, W: runEnd - runStart + 1, H: h})
 }
 

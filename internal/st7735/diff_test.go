@@ -5,8 +5,7 @@ import (
 	"testing"
 )
 
-// assertRegions fails the test unless DiffRegions(front, back) returns
-// exactly want, in order.
+// assertRegions fails unless DiffRegions(front, back) returns exactly want.
 func assertRegions(t *testing.T, front, back *Framebuffer, want ...Region) {
 	t.Helper()
 	got := DiffRegions(front, back)
@@ -56,9 +55,7 @@ func TestDiffFullScreen(t *testing.T) {
 	assertRegions(t, &front, &back, Region{X: 0, Y: 0, W: Width, H: Height})
 }
 
-// TestDiffSplitsColumns mirrors the two-column screen layouts: a strip dirty
-// on both sides of the x=78..81 gutter must split into two regions when the
-// gap is worth the extra region overhead.
+// A strip dirty on both sides of the two-column gutter must split in two.
 func TestDiffSplitsColumns(t *testing.T) {
 	var front, back Framebuffer
 	back.Rect(0, 37, 78, 18, 0xF800)
@@ -68,18 +65,16 @@ func TestDiffSplitsColumns(t *testing.T) {
 		Region{X: 82, Y: 37, W: 78, H: 18})
 }
 
-// TestDiffKeepsSmallGap verifies a gap too small to pay for another region's
-// command overhead does not split the strip.
+// A gap too small to pay for another region's overhead must not split.
 func TestDiffKeepsSmallGap(t *testing.T) {
 	var front, back Framebuffer
-	// Single row, 10px gap: gap area 10 px < splitGapMinPixels.
+	// Single row, 10px gap: area below splitGapMinPixels.
 	back.Rect(0, 40, 21, 1, 0xFFFF)
 	back.Rect(31, 40, 20, 1, 0xFFFF)
 	assertRegions(t, &front, &back, Region{X: 0, Y: 40, W: 51, H: 1})
 }
 
-// TestDiffUnionExtents verifies rows with different dirty extents coalesce
-// into runs covering their union.
+// Rows with different dirty extents coalesce into their union.
 func TestDiffUnionExtents(t *testing.T) {
 	var front, back Framebuffer
 	back.Rect(5, 10, 5, 1, 0xFFFF)

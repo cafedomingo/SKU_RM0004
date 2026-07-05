@@ -104,11 +104,9 @@ func TestRegionToBytes(t *testing.T) {
 	fb.SetPixel(4, 5, 0x07E0)
 	fb.SetPixel(3, 6, 0xFFFF)
 	fb.SetPixel(4, 6, 0x0000)
-	// Pixel outside the region on the same rows: must not be serialized.
-	fb.SetPixel(5, 5, 0x1234)
+	fb.SetPixel(5, 5, 0x1234) // outside the region, must not be serialized
 
-	// A 2x2 region not touching the framebuffer edge exercises the row
-	// striding: source rows are 160 pixels apart, output is contiguous.
+	// A 2x2 region away from the framebuffer edge exercises row striding.
 	got := regionToBytes(Region{X: 3, Y: 5, W: 2, H: 2}, &fb)
 	want := []byte{
 		0xF8, 0x00, 0x07, 0xE0, // row 5: big-endian RGB565
