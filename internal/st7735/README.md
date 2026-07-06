@@ -75,8 +75,11 @@ One `SendRegion` on the wire:
   deferring or omitting all `0x03` writes changes nothing visually and produces no
   I2C errors. Atomic (tear-free) updates are impossible with this firmware.
 - **The delay cannot be tightened.** See timing above; clock stretching dominates.
-- **The bridge cannot be read.** I2C read transactions at 0x18 time out unACKed,
-  and the vendor driver is write-only. Panel state can never be verified from the host.
+- **The bridge cannot be read, and attempting it crashes it.** I2C read
+  transactions at 0x18 time out unACKed, then the bridge MCU hangs: it drops off
+  the bus entirely (all subsequent writes time out, i2cdetect shows nothing at
+  0x18) until power-cycled. **Never issue an I2C read to the bridge.** The vendor
+  driver is write-only. Panel state can never be verified from the host.
 
 ## Rare silent mis-latch
 
