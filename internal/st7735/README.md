@@ -75,6 +75,18 @@ One `SendRegion` on the wire:
   deferring or omitting all `0x03` writes changes nothing visually and produces no
   I2C errors. Atomic (tear-free) updates are impossible with this firmware.
 - **The delay cannot be tightened.** See timing above; clock stretching dominates.
+- **The bridge cannot be read.** I2C read transactions at 0x18 time out unACKed,
+  and the vendor driver is write-only. Panel state can never be verified from the host.
+
+## Rare silent mis-latch
+
+About once per day of normal traffic the bridge misapplies a write (observed:
+pixels landing 12px above their window) with no I2C error. A 12h soak of 2.55M
+region sends could not reproduce it, so it is condition-dependent, not caused by
+any particular window geometry or by the host send path. Because diffed sends
+assume the panel matches the front buffer, such damage would otherwise persist
+forever; cmd/display resends the full frame hourly (`fullRefreshInterval`) to
+bound it.
 
 Consequence: redraws are visibly progressive. The only lever is sending fewer bytes,
 which is what `DiffRegions` is for.
