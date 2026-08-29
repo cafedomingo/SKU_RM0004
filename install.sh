@@ -15,7 +15,12 @@ BINARY="display"
 SERVICE_NAME="uctronics-display.service"
 SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}"
 
+# Reboot-pending marker on tmpfs: survives re-runs within a boot, cleared by the
+# reboot itself, so a re-run still knows a reboot is due.
+REBOOT_MARKER="/run/uctronics-display.reboot-required"
+
 needs_reboot=false
+binary_updated=false
 
 log() {
     echo "[$(hostname)] $*"
@@ -105,29 +110,45 @@ configure_boot() {
 
 # --- Binary install ---
 
+# Atomically swap a staged file (already under INSTALL_DIR) onto the final
+# path, so an interrupted write never leaves a partial live executable.
+place_binary() {
+    local staged="$1"
+    chmod 755 "$staged"
+    mv -f "$staged" "${INSTALL_DIR}/${BINARY}"
+}
+
 install_binary() {
     mkdir -p "$INSTALL_DIR"
+
+    local staged
+    staged=$(mktemp "${INSTALL_DIR}/${BINARY}.XXXXXX")
 
     # Developer path: use local binary if run from a repo clone
     if [ -f "./${BINARY}" ] && [ -f "./go.mod" ]; then
         log "Installing local ./${BINARY} to ${INSTALL_DIR}/${BINARY}"
-        cp "./${BINARY}" "${INSTALL_DIR}/${BINARY}"
-    else
-        if [ -f "./go.mod" ]; then
-            log "No local binary — downloading from release (run 'go build -o display ./cmd/display' first to install a local build)"
-        else
-            log "Downloading ${BINARY} from latest release"
-        fi
-        if ! curl -fsSL "https://github.com/${REPO}/releases/latest/download/${BINARY}" \
-            -o "${INSTALL_DIR}/${BINARY}"; then
-            die "Failed to download ${BINARY} from GitHub releases"
-        fi
-        if [ ! -s "${INSTALL_DIR}/${BINARY}" ]; then
-            die "Downloaded ${BINARY} is empty"
-        fi
+        cp "./${BINARY}" "$staged"
+        place_binary "$staged"
+        return
     fi
 
-    chmod +x "${INSTALL_DIR}/${BINARY}"
+    if [ -f "./go.mod" ]; then
+        log "No local binary; downloading from release (run 'go build -o display ./cmd/display' first to install a local build)"
+    else
+        log "Downloading ${BINARY} from latest release"
+    fi
+
+    if ! curl -fsSL "https://github.com/${REPO}/releases/latest/download/${BINARY}" \
+        -o "$staged"; then
+        rm -f "$staged"
+        die "Failed to download ${BINARY} from GitHub releases"
+    fi
+    if [ ! -s "$staged" ]; then
+        rm -f "$staged"
+        die "Downloaded ${BINARY} is empty"
+    fi
+
+    place_binary "$staged"
 }
 
 # --- Systemd service ---
@@ -160,34 +181,35 @@ log "Detected Raspberry Pi: ${pi_model}"
 
 configure_boot "$pi_model"
 
+# Persist the pending reboot so a later re-run still waits for it.
+if [ "$needs_reboot" = true ]; then
+    touch "$REBOOT_MARKER"
+fi
+
 # --- Version check ---
+# Only gates the binary download; the unit file is always (re)applied below
+# so a re-run repairs a partially failed install.
 
 current=$(timeout 2 "${INSTALL_DIR}/${BINARY}" -version 2>/dev/null || echo "none")
 latest=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest" \
     | grep '"tag_name"' | cut -d'"' -f4) || true
 if [ -n "$latest" ] && [ "$latest" = "$current" ]; then
-    log "Already up to date (${current})"
-    exit 0
+    log "Binary already up to date (${current})"
+else
+    install_binary
+    binary_updated=true
 fi
 
-service_was_running=false
-if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
-    service_was_running=true
-    log "Stopping ${SERVICE_NAME}"
-    systemctl stop "$SERVICE_NAME"
-fi
-
-install_binary
 install_service
 
-if [ "$needs_reboot" = true ]; then
-    log "Install complete. Reboot required for boot config changes — the display service will start automatically after reboot."
+# Binary swap is atomic, so no stop needed. If a reboot is pending, wait for it.
+if [ -f "$REBOOT_MARKER" ]; then
+    log "Install complete. Reboot required for boot config changes; the display service will start automatically after reboot."
+elif [ "$binary_updated" = true ] \
+    || ! systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
+    log "Restarting ${SERVICE_NAME}"
+    systemctl restart "$SERVICE_NAME"
+    log "Install complete"
 else
-    log "Starting ${SERVICE_NAME}"
-    systemctl start "$SERVICE_NAME"
-    if [ "$service_was_running" = true ]; then
-        log "Updated successfully"
-    else
-        log "Install complete"
-    fi
+    log "Already up to date, nothing to do"
 fi
