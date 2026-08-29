@@ -11,6 +11,13 @@ linters:
     - unconvert
     - unused
 
+  exclusions:
+    rules:
+      # Repeated fixture strings in tests are not worth extracting into constants.
+      - path: _test\.go
+        linters:
+          - goconst
+
 formatters:
   enable:
     - gofmt

@@ -8,12 +8,6 @@ import (
 	"time"
 )
 
-// Placeholder network identifiers shared by the collector tests.
-const (
-	testIface = "eth0"
-	testIPv4  = "10.0.0.1"
-)
-
 func TestCPUPercentRange(t *testing.T) {
 	c := NewCollector(slog.Default())
 	v := c.CPUPercent()
@@ -88,8 +82,8 @@ func (f *fakeReader) APTUpdateCount() int        { return f.apt }
 
 func TestNetBandwidthDelta(t *testing.T) {
 	r := &fakeReader{
-		iface: testIface,
-		ipv4:  testIPv4,
+		iface: "eth0",
+		ipv4:  "10.0.0.1",
 		ipv6:  NoIPv6,
 		netRx: 1000,
 		netTx: 2000,
@@ -173,7 +167,7 @@ func TestNoNetworkInterface(t *testing.T) {
 }
 
 func TestNetworkInterfaceChangeResetsRates(t *testing.T) {
-	r := &fakeReader{iface: testIface, ipv4: testIPv4, ipv6: NoIPv6, netRx: 1000, netTx: 2000}
+	r := &fakeReader{iface: "eth0", ipv4: "10.0.0.1", ipv6: NoIPv6, netRx: 1000, netTx: 2000}
 	c := NewCollectorWithReader(r)
 	lc := c.(*liveCollector)
 
@@ -209,7 +203,7 @@ func TestNetworkInterfaceChangeResetsRates(t *testing.T) {
 }
 
 func TestNetworkDisappearClearsStats(t *testing.T) {
-	r := &fakeReader{iface: testIface, ipv4: testIPv4, ipv6: NoIPv6, netRx: 1000, netTx: 2000, linkSpeed: 1000}
+	r := &fakeReader{iface: "eth0", ipv4: "10.0.0.1", ipv6: NoIPv6, netRx: 1000, netTx: 2000, linkSpeed: 1000}
 	c := NewCollectorWithReader(r)
 	lc := c.(*liveCollector)
 

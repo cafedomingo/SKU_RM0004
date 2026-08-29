@@ -12,7 +12,7 @@ import (
 func sparkMock() *sysinfo.MockCollector {
 	return &sysinfo.MockCollector{
 		Host: "sparkhost",
-		IPv4: testIPv4,
+		IPv4: "10.0.0.1",
 		IPv6: "::a8f1:23bc:abcd",
 		CPU:  theme.CPUWarn,
 		RAM:  theme.RAMCrit,

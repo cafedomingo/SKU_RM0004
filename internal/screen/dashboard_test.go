@@ -9,9 +9,6 @@ import (
 	"github.com/cafedomingo/SKU_RM0004/internal/theme"
 )
 
-// testIPv4 is the placeholder address shared by the screen tests.
-const testIPv4 = "10.0.0.1"
-
 func defaultMock() *sysinfo.MockCollector {
 	return &sysinfo.MockCollector{
 		Host: "dietpi",
@@ -78,7 +75,7 @@ func TestDashboardThresholds(t *testing.T) {
 	// Test at exact boundaries where colors are deterministic
 	t.Run("at_crit", func(t *testing.T) {
 		m := &sysinfo.MockCollector{
-			Host: "pi", IPv4: testIPv4,
+			Host: "pi", IPv4: "10.0.0.1",
 			CPU: theme.CPUCrit, RAM: theme.RAMCrit, Disk: theme.DiskCrit, Temp: 45,
 		}
 		d := &dashboardScreen{collector: m}
@@ -92,7 +89,7 @@ func TestDashboardThresholds(t *testing.T) {
 	// At warn thresholds, colors should be exactly ColorWarn
 	t.Run("at_warn", func(t *testing.T) {
 		m := &sysinfo.MockCollector{
-			Host: "pi", IPv4: testIPv4,
+			Host: "pi", IPv4: "10.0.0.1",
 			CPU: theme.CPUWarn, RAM: theme.RAMWarn, Disk: theme.DiskWarn, Temp: 45,
 		}
 		d := &dashboardScreen{collector: m}
@@ -112,7 +109,7 @@ func TestDashboardThresholds(t *testing.T) {
 func TestDashboardDisplayFloor(t *testing.T) {
 	m := &sysinfo.MockCollector{
 		Host: "pi",
-		IPv4: testIPv4,
+		IPv4: "10.0.0.1",
 		CPU:  0,
 		RAM:  0,
 		Disk: 0,
