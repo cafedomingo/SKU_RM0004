@@ -14,12 +14,12 @@ jobs:
 
       - uses: actions/setup-go@v7
         with:
-          go-version: stable
+          go-version-file: go.mod
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.11
+          version: v2.13
 
       - name: Lint shell scripts
         run: shellcheck install.sh
@@ -31,7 +31,7 @@ jobs:
 
       - uses: actions/setup-go@v7
         with:
-          go-version: stable
+          go-version-file: go.mod
 
       - name: Run tests with coverage
         run: go test -coverpkg=./cmd/display/...,./internal/... -coverprofile=coverage.out ./...
@@ -49,7 +49,7 @@ jobs:
 
       - uses: actions/setup-go@v7
         with:
-          go-version: stable
+          go-version-file: go.mod
 
       - name: Compute release tag
         id: tag
