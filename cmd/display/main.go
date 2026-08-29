@@ -22,6 +22,9 @@ var version = "dev"
 const (
 	i2cExpectedHz = 400000
 
+	// fullRefreshInterval bounds a silent panel desync; see internal/st7735/README.md.
+	fullRefreshInterval = time.Hour
+
 	// i2cClockFreqPath is the clock-frequency property of the I2C bus the
 	// display sits on, resolved via the adapter's of_node link so it works
 	// on any SoC without hardcoding the device-tree path.
@@ -50,6 +53,7 @@ func main() {
 	cfgLoader := config.NewLoader(config.ConfigPath, logger)
 	var activeScreen screen.Screen
 	lastScreenName := ""
+	lastFullRefresh := time.Now()
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
@@ -66,7 +70,12 @@ func main() {
 
 		collector.Refresh()
 		activeScreen.Update(cfg)
-		activeScreen.Draw()
+		if time.Since(lastFullRefresh) >= fullRefreshInterval {
+			activeScreen.Redraw()
+			lastFullRefresh = time.Now()
+		} else {
+			activeScreen.Draw()
+		}
 
 		// Sleep until next refresh, or exit on shutdown signal
 		select {
@@ -99,5 +108,5 @@ func checkI2CSpeed(logger *slog.Logger) {
 func blankScreen(disp st7735.Display) {
 	var fb st7735.Framebuffer
 	fb.Fill(theme.ColorBG)
-	disp.SendFull(fb.Pixels[:])
+	disp.SendFull(&fb)
 }
