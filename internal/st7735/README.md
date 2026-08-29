@@ -119,7 +119,7 @@ Screen.Draw()   ──► DiffRegions(front, back) ──► []Region ──► 
 
 2. Columns, per strip: dirty columns form runs; a clean gap splits the strip
    when gapWidth x stripHeight >= splitGapMinPixels (32), i.e. when skipping
-   the gap saves more than another region's ~2.35ms overhead.
+   the gap saves more than another region's ~2.55ms overhead.
 
    columns:   0........77  78..81  82........159
    strip:     ██████████    gap    ████████████

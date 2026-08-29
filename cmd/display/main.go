@@ -22,10 +22,7 @@ var version = "dev"
 const (
 	i2cExpectedHz = 400000
 
-	// fullRefreshInterval bounds how long a silent panel desync can persist:
-	// diffed sends assume the panel matches the front buffer, but the bridge
-	// can misapply a write without any I2C error, so the full frame is resent
-	// periodically. Costs one ~1.3s progressive repaint per interval.
+	// fullRefreshInterval bounds a silent panel desync; see internal/st7735/README.md.
 	fullRefreshInterval = time.Hour
 
 	// i2cClockFreqPath is the clock-frequency property of the I2C bus the
