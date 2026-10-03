@@ -1,8 +1,10 @@
 package st7735
 
-// Region describes a full-width horizontal strip of the display.
+// Region describes a rectangle of the display.
 type Region struct {
+	X int // start column
 	Y int // start row
+	W int // number of columns
 	H int // number of rows
 }
 
@@ -19,13 +21,13 @@ func DiffRegions(front, back *Framebuffer) []Region {
 		if dirty && dirtyStart == -1 {
 			dirtyStart = y
 		} else if !dirty && dirtyStart != -1 {
-			regions = append(regions, Region{Y: dirtyStart, H: y - dirtyStart})
+			regions = append(regions, Region{X: 0, Y: dirtyStart, W: Width, H: y - dirtyStart})
 			dirtyStart = -1
 		}
 	}
 
 	if dirtyStart != -1 {
-		regions = append(regions, Region{Y: dirtyStart, H: Height - dirtyStart})
+		regions = append(regions, Region{X: 0, Y: dirtyStart, W: Width, H: Height - dirtyStart})
 	}
 
 	return regions
