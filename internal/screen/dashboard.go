@@ -21,9 +21,10 @@ import (
 //	y=56:  RAM:NNN% (6x12, left)           DSK:NNN% (6x12, right)
 //	y=68:  [RAM bar]                       [Disk bar] (6px tall)
 type dashboardScreen struct {
-	disp        st7735.Display
-	collector   sysinfo.Collector
-	front, back st7735.Framebuffer
+	disp      st7735.Display
+	collector sysinfo.Collector
+	panel     panelSync
+	back      st7735.Framebuffer
 }
 
 func (d *dashboardScreen) Buffer() *st7735.Framebuffer { return &d.back }
@@ -34,7 +35,7 @@ func (d *dashboardScreen) Update(cfg config.Config) {
 }
 
 func (d *dashboardScreen) Draw() {
-	drawChanged(d.disp, &d.front, &d.back)
+	d.panel.drawChanged(d.disp, &d.back)
 }
 
 func (d *dashboardScreen) render(fb *st7735.Framebuffer, cfg config.Config) {

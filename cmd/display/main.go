@@ -99,5 +99,5 @@ func checkI2CSpeed(logger *slog.Logger) {
 func blankScreen(disp st7735.Display) {
 	var fb st7735.Framebuffer
 	fb.Fill(theme.ColorBG)
-	disp.SendFull(fb.Pixels[:])
+	disp.SendFull(&fb)
 }

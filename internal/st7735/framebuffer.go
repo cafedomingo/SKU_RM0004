@@ -5,6 +5,9 @@ import "github.com/cafedomingo/SKU_RM0004/internal/font"
 const (
 	Width  = 160
 	Height = 80
+
+	// bytesPerPixel is the wire size of one RGB565 pixel.
+	bytesPerPixel = 2
 )
 
 // Framebuffer holds a 160x80 RGB565 pixel buffer.

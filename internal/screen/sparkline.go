@@ -22,7 +22,8 @@ const (
 type sparklineScreen struct {
 	disp        st7735.Display
 	collector   sysinfo.Collector
-	front, back st7735.Framebuffer
+	panel       panelSync
+	back        st7735.Framebuffer
 	cpuHistory  [SparklineHistory]float64
 	ramHistory  [SparklineHistory]float64
 	tickerPhase int
@@ -53,7 +54,7 @@ func (s *sparklineScreen) Update(cfg config.Config) {
 }
 
 func (s *sparklineScreen) Draw() {
-	drawChanged(s.disp, &s.front, &s.back)
+	s.panel.drawChanged(s.disp, &s.back)
 }
 
 // drawTicker renders the cycling ticker row at y=0.

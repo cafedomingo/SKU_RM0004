@@ -27,16 +27,29 @@ func New(name string, disp st7735.Display, collector sysinfo.Collector) Screen {
 	}
 }
 
-// drawChanged compares front and back buffers and sends only changed regions.
-func drawChanged(disp st7735.Display, front, back *st7735.Framebuffer) {
+// scrubRows is the height of the band resent each tick to repair silent
+// mis-latches; see internal/st7735/README.md.
+const scrubRows = 4
+
+// panelSync tracks what the panel shows and keeps it in step with a back buffer.
+type panelSync struct {
+	front  st7735.Framebuffer
+	scrubY int
+}
+
+// drawChanged sends the regions that differ from the front buffer, then
+// resends the next scrub band.
+func (p *panelSync) drawChanged(disp st7735.Display, back *st7735.Framebuffer) {
 	if disp == nil {
 		return
 	}
-	for _, r := range st7735.DiffRegions(front, back) {
-		disp.SendRegion(0, r.Y, st7735.Width, r.H,
-			back.Pixels[r.Y*st7735.Width:(r.Y+r.H)*st7735.Width])
+	for _, r := range st7735.DiffRegions(&p.front, back) {
+		disp.SendRegion(r, back)
 	}
-	*front = *back
+	h := min(scrubRows, st7735.Height-p.scrubY)
+	disp.SendRegion(st7735.Region{X: 0, Y: p.scrubY, W: st7735.Width, H: h}, back)
+	p.scrubY = (p.scrubY + h) % st7735.Height
+	p.front = *back
 }
 
 // drawAll sends the entire back buffer to the display.
@@ -44,5 +57,5 @@ func drawAll(disp st7735.Display, back *st7735.Framebuffer) {
 	if disp == nil {
 		return
 	}
-	disp.SendFull(back.Pixels[:])
+	disp.SendFull(back)
 }
