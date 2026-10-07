@@ -13,15 +13,21 @@ REPO="cafedomingo/SKU_RM0004"
 INSTALL_DIR="/opt/uctronics-lcd"
 BINARY="display"
 VERSION_FILE="${INSTALL_DIR}/VERSION"
+
 SERVICE_NAME="uctronics-display.service"
 SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}"
 MODULES_PATH="/etc/modules-load.d/uctronics-lcd.conf"
+
 BOOT_CONFIG="/boot/firmware/config.txt"
 [ -f "$BOOT_CONFIG" ] || BOOT_CONFIG="/boot/config.txt"
 
 I2C_BUS="/sys/bus/i2c/devices/i2c-1"
 I2C_HZ=400000
 I2C_LINE="dtparam=i2c_arm=on,i2c_arm_baudrate=${I2C_HZ}"
+I2C_PATTERN='^(dtparam=.*i2c_arm|i2c_arm_baudrate)'
+
+SHUTDOWN_LINE="dtoverlay=gpio-shutdown,gpio_pin=4,active_low=1,gpio_pull=up"
+SHUTDOWN_PATTERN='^dtoverlay=gpio-shutdown'
 
 log() {
     echo "[$(hostname)] $*"
@@ -52,14 +58,6 @@ detect_pi_model() {
 }
 
 # --- Boot config check ---
-
-shutdown_overlay_line() {
-    if [ "$1" = "pi5" ]; then
-        echo "dtoverlay=gpio-shutdown,gpio_pin=4,active_low=1,gpio_pull=up,debounce=1000"
-    else
-        echo "dtoverlay=gpio-shutdown,gpio_pin=4,active_low=1,gpio_pull=up"
-    fi
-}
 
 i2c_bus_hz() {
     od -An -tu4 --endian=big "${I2C_BUS}/of_node/clock-frequency" 2>/dev/null | tr -d ' ' || true
@@ -98,20 +96,22 @@ check_boot_config() {
 
     if [ ! -e "$I2C_BUS" ]; then
         log "I2C is not enabled"
-        need_line "$I2C_LINE" '^(dtparam=.*i2c_arm|i2c_arm_baudrate)'
+        need_line "$I2C_LINE" "$I2C_PATTERN"
     else
         i2c_ready=true
         local hz
         hz=$(i2c_bus_hz)
         if [ "$hz" != "$I2C_HZ" ]; then
             log "I2C bus runs at ${hz:-?} Hz; the display needs ${I2C_HZ} Hz"
-            need_line "$I2C_LINE" '^(dtparam=.*i2c_arm|i2c_arm_baudrate)'
+            need_line "$I2C_LINE" "$I2C_PATTERN"
         fi
     fi
 
     if [ -z "$(find /proc/device-tree/ -maxdepth 4 -name 'shutdown_button@4' 2>/dev/null)" ]; then
         log "Shutdown overlay for the case's power button not detected"
-        need_line "$(shutdown_overlay_line "$pi_model")" '^dtoverlay=gpio-shutdown'
+        local line="$SHUTDOWN_LINE"
+        [ "$pi_model" = "pi5" ] && line+=",debounce=1000"
+        need_line "$line" "$SHUTDOWN_PATTERN"
     fi
 }
 
