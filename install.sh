@@ -16,6 +16,8 @@ VERSION_FILE="${INSTALL_DIR}/VERSION"
 SERVICE_NAME="uctronics-display.service"
 SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}"
 MODULES_PATH="/etc/modules-load.d/uctronics-lcd.conf"
+BOOT_CONFIG="/boot/firmware/config.txt"
+[ -f "$BOOT_CONFIG" ] || BOOT_CONFIG="/boot/config.txt"
 
 I2C_BUS="/sys/bus/i2c/devices/i2c-1"
 I2C_HZ=400000
@@ -51,14 +53,6 @@ detect_pi_model() {
 
 # --- Boot config check ---
 
-boot_config_path() {
-    if [ -f /boot/firmware/config.txt ]; then
-        echo "/boot/firmware/config.txt"
-    else
-        echo "/boot/config.txt"
-    fi
-}
-
 shutdown_overlay_line() {
     if [ "$1" = "pi5" ]; then
         echo "dtoverlay=gpio-shutdown,gpio_pin=4,active_low=1,gpio_pull=up,debounce=1000"
@@ -74,7 +68,7 @@ i2c_bus_hz() {
 # Prints "N: line" for uncommented config lines matching an ERE.
 config_lines_matching() {
     awk -v pat="$1" '{ l = $0; sub(/#.*/, "", l); gsub(/^[ \t]+|[ \t]+$/, "", l)
-        if (l ~ pat) print NR ": " l }' "$(boot_config_path)" 2>/dev/null || true
+        if (l ~ pat) print NR ": " l }' "$BOOT_CONFIG" 2>/dev/null || true
 }
 
 # Collects needed config.txt lines (want) and existing lines that conflict.
@@ -216,7 +210,7 @@ fi
 log "Install complete"
 if [ ${#want[@]} -gt 0 ] || [ ${#pending[@]} -gt 0 ]; then
     echo
-    log "Boot config changes needed in $(boot_config_path):"
+    log "Boot config changes needed in ${BOOT_CONFIG}:"
     if [ ${#conflicts[@]} -gt 0 ]; then
         log "Remove or comment out these lines:"
         printf '    line %s\n' "${conflicts[@]}"
