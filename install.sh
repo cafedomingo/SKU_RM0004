@@ -5,17 +5,21 @@
 # Install:  curl -sL https://github.com/cafedomingo/SKU_RM0004/releases/latest/download/install.sh | sudo bash
 # Update:   (same command)
 #
-# Idempotent — safe to re-run after partial failures.
+# Idempotent. Reports needed boot config changes instead of making them.
 
 set -euo pipefail
 
 REPO="cafedomingo/SKU_RM0004"
 INSTALL_DIR="/opt/uctronics-lcd"
 BINARY="display"
+VERSION_FILE="${INSTALL_DIR}/VERSION"
 SERVICE_NAME="uctronics-display.service"
 SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}"
+MODULES_PATH="/etc/modules-load.d/uctronics-lcd.conf"
 
-needs_reboot=false
+I2C_BUS="/sys/bus/i2c/devices/i2c-1"
+I2C_HZ=400000
+I2C_LINE="dtparam=i2c_arm=on,i2c_arm_baudrate=${I2C_HZ}"
 
 log() {
     echo "[$(hostname)] $*"
@@ -45,89 +49,101 @@ detect_pi_model() {
     fi
 }
 
-# --- Boot config ---
+# --- Boot config check ---
 
-get_boot_config_path() {
-    local version
-    version=$(grep "VERSION_ID" /etc/os-release | cut -d= -f2 | tr -d '"')
-    if [ "${version}" -ge 12 ] 2>/dev/null; then
+boot_config_path() {
+    if [ -f /boot/firmware/config.txt ]; then
         echo "/boot/firmware/config.txt"
     else
         echo "/boot/config.txt"
     fi
 }
 
-configure_boot() {
-    local pi_model="$1"
-    local boot_config
-    boot_config=$(get_boot_config_path)
-
-    [ -f "$boot_config" ] || die "Boot config not found: ${boot_config}"
-
-    # GPIO shutdown overlay
-    if ! grep -q "gpio-shutdown,gpio_pin=4" "$boot_config"; then
-        log "Adding GPIO shutdown overlay to ${boot_config}"
-        if [ "$pi_model" = "pi5" ]; then
-            echo "dtoverlay=gpio-shutdown,gpio_pin=4,active_low=1,gpio_pull=up,debounce=1000" >> "$boot_config"
-        else
-            echo "dtoverlay=gpio-shutdown,gpio_pin=4,active_low=1,gpio_pull=up" >> "$boot_config"
-        fi
-        needs_reboot=true
-    fi
-
-    # I2C with 400kHz baud rate (must use dtparam= prefix for baudrate to take effect)
-    if grep -q "i2c_arm_baudrate=400000" "$boot_config"; then
-        # Fix bare i2c_arm_baudrate lines (missing dtparam= prefix) left by older installs
-        if grep -q "^i2c_arm_baudrate=" "$boot_config"; then
-            sed -i '/^i2c_arm_baudrate=/d' "$boot_config"
-            sed -i 's/^dtparam=i2c_arm=on.*/dtparam=i2c_arm=on,i2c_arm_baudrate=400000/' "$boot_config"
-            needs_reboot=true
-        fi
-    elif grep -q "^#dtparam=i2c_arm=on" "$boot_config"; then
-        sed -i "s/^#dtparam=i2c_arm=on.*/dtparam=i2c_arm=on,i2c_arm_baudrate=400000/" "$boot_config"
-        needs_reboot=true
-    elif grep -q "^dtparam=i2c_arm=on" "$boot_config"; then
-        sed -i "s/^dtparam=i2c_arm=on.*/dtparam=i2c_arm=on,i2c_arm_baudrate=400000/" "$boot_config"
-        needs_reboot=true
+shutdown_overlay_line() {
+    if [ "$1" = "pi5" ]; then
+        echo "dtoverlay=gpio-shutdown,gpio_pin=4,active_low=1,gpio_pull=up,debounce=1000"
     else
-        echo "" >> "$boot_config"
-        echo "dtparam=i2c_arm=on,i2c_arm_baudrate=400000" >> "$boot_config"
-        needs_reboot=true
+        echo "dtoverlay=gpio-shutdown,gpio_pin=4,active_low=1,gpio_pull=up"
+    fi
+}
+
+i2c_bus_hz() {
+    od -An -tu4 --endian=big "${I2C_BUS}/of_node/clock-frequency" 2>/dev/null | tr -d ' ' || true
+}
+
+# Collects the config.txt lines the running system still needs.
+missing_lines=()
+i2c_ready=false
+check_boot_config() {
+    local pi_model="$1"
+
+    if [ ! -e "$I2C_BUS" ]; then
+        log "I2C is not enabled"
+        missing_lines+=("$I2C_LINE")
+    else
+        i2c_ready=true
+        local hz
+        hz=$(i2c_bus_hz)
+        if [ "$hz" != "$I2C_HZ" ]; then
+            log "I2C bus runs at ${hz:-an unknown speed}Hz; the display needs ${I2C_HZ}Hz"
+            missing_lines+=("$I2C_LINE")
+        fi
     fi
 
-    # i2c-dev kernel module (provides /dev/i2c-* device nodes for userspace access)
-    if ! grep -q "^i2c-dev" /etc/modules; then
-        log "Adding i2c-dev to /etc/modules"
-        echo "i2c-dev" >> /etc/modules
-        needs_reboot=true
+    if [ -z "$(find /proc/device-tree/ -maxdepth 4 -name 'shutdown_button@4' 2>/dev/null)" ]; then
+        log "Shutdown overlay for the case's power button not detected"
+        missing_lines+=("$(shutdown_overlay_line "$pi_model")")
     fi
+}
+
+# --- i2c-dev module ---
+
+load_i2c_dev() {
+    echo "i2c-dev" > "$MODULES_PATH"
+    modprobe i2c-dev || log "Could not load i2c-dev now; it will load on next boot"
 }
 
 # --- Binary install ---
 
+latest_version() {
+    curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" 2>/dev/null \
+        | grep '"tag_name"' | cut -d'"' -f4 || true
+}
+
+# Downloads beside the live binary so a failed download leaves it untouched.
+binary_updated=false
 install_binary() {
     mkdir -p "$INSTALL_DIR"
+    local tmp="${INSTALL_DIR}/${BINARY}.new"
+    local version
 
     # Developer path: use local binary if run from a repo clone
     if [ -f "./${BINARY}" ] && [ -f "./go.mod" ]; then
-        log "Installing local ./${BINARY} to ${INSTALL_DIR}/${BINARY}"
-        cp "./${BINARY}" "${INSTALL_DIR}/${BINARY}"
+        log "Installing local ./${BINARY}"
+        cp "./${BINARY}" "$tmp"
+        version="local"
     else
+        version=$(latest_version)
+        if [ -n "$version" ] && [ "$version" = "$(cat "$VERSION_FILE" 2>/dev/null)" ] \
+            && [ -x "${INSTALL_DIR}/${BINARY}" ]; then
+            log "Binary already up to date (${version})"
+            return
+        fi
         if [ -f "./go.mod" ]; then
-            log "No local binary — downloading from release (run 'go build -o display ./cmd/display' first to install a local build)"
+            log "No local binary, downloading from release (run 'go build -o display ./cmd/display' first to install a local build)"
         else
-            log "Downloading ${BINARY} from latest release"
+            log "Downloading ${BINARY} ${version:-latest} from release"
         fi
-        if ! curl -fsSL "https://github.com/${REPO}/releases/latest/download/${BINARY}" \
-            -o "${INSTALL_DIR}/${BINARY}"; then
-            die "Failed to download ${BINARY} from GitHub releases"
-        fi
-        if [ ! -s "${INSTALL_DIR}/${BINARY}" ]; then
-            die "Downloaded ${BINARY} is empty"
-        fi
+        curl -fsSL "https://github.com/${REPO}/releases/latest/download/${BINARY}" -o "$tmp" \
+            || { rm -f "$tmp"; die "Failed to download ${BINARY} from GitHub releases"; }
+        [ -s "$tmp" ] || { rm -f "$tmp"; die "Downloaded ${BINARY} is empty"; }
     fi
 
-    chmod +x "${INSTALL_DIR}/${BINARY}"
+    chmod +x "$tmp"
+    systemctl stop "$SERVICE_NAME" 2>/dev/null || true
+    mv -f "$tmp" "${INSTALL_DIR}/${BINARY}"
+    echo "$version" > "$VERSION_FILE"
+    binary_updated=true
 }
 
 # --- Systemd service ---
@@ -148,7 +164,7 @@ WantedBy=multi-user.target
 EOF
 
     systemctl daemon-reload
-    systemctl enable "$SERVICE_NAME"
+    systemctl enable --quiet "$SERVICE_NAME"
 }
 
 # --- Main ---
@@ -158,36 +174,28 @@ log "Starting install"
 pi_model=$(detect_pi_model)
 log "Detected Raspberry Pi: ${pi_model}"
 
-configure_boot "$pi_model"
-
-# --- Version check ---
-
-current=$(timeout 2 "${INSTALL_DIR}/${BINARY}" -version 2>/dev/null || echo "none")
-latest=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest" \
-    | grep '"tag_name"' | cut -d'"' -f4) || true
-if [ -n "$latest" ] && [ "$latest" = "$current" ]; then
-    log "Already up to date (${current})"
-    exit 0
-fi
-
-service_was_running=false
-if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
-    service_was_running=true
-    log "Stopping ${SERVICE_NAME}"
-    systemctl stop "$SERVICE_NAME"
-fi
-
+check_boot_config "$pi_model"
+load_i2c_dev
 install_binary
 install_service
 
-if [ "$needs_reboot" = true ]; then
-    log "Install complete. Reboot required for boot config changes — the display service will start automatically after reboot."
-else
-    log "Starting ${SERVICE_NAME}"
-    systemctl start "$SERVICE_NAME"
-    if [ "$service_was_running" = true ]; then
-        log "Updated successfully"
-    else
-        log "Install complete"
+if [ "$i2c_ready" = true ]; then
+    if [ "$binary_updated" = true ] || ! systemctl is-active --quiet "$SERVICE_NAME"; then
+        log "Starting ${SERVICE_NAME}"
+        systemctl restart "$SERVICE_NAME"
     fi
+else
+    log "Not starting ${SERVICE_NAME} until I2C is enabled; it starts on boot"
+fi
+
+if [ ${#missing_lines[@]} -eq 0 ]; then
+    log "Install complete"
+else
+    echo
+    log "Install complete, but the boot config needs changes."
+    log "Add these lines to the end of $(boot_config_path), replacing any existing"
+    log "i2c_arm or gpio-shutdown lines, then reboot:"
+    echo
+    printf '    %s\n' "[all]" "${missing_lines[@]}"
+    echo
 fi
