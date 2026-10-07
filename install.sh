@@ -13,13 +13,14 @@ REPO="cafedomingo/SKU_RM0004"
 INSTALL_DIR="/opt/uctronics-lcd"
 BINARY="display"
 VERSION_FILE="${INSTALL_DIR}/VERSION"
+TMP_BINARY="${INSTALL_DIR}/${BINARY}.new"
 
 SERVICE_NAME="uctronics-display.service"
 SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}"
 MODULES_PATH="/etc/modules-load.d/uctronics-lcd.conf"
 
 BOOT_CONFIG="/boot/firmware/config.txt"
-[ -f "$BOOT_CONFIG" ] || BOOT_CONFIG="/boot/config.txt"
+[[ -f "$BOOT_CONFIG" ]] || BOOT_CONFIG="/boot/config.txt"
 
 I2C_BUS="/sys/bus/i2c/devices/i2c-1"
 I2C_HZ=400000
@@ -28,6 +29,12 @@ I2C_PATTERN='^(dtparam=.*i2c_arm|i2c_arm_baudrate)'
 
 SHUTDOWN_LINE="dtoverlay=gpio-shutdown,gpio_pin=4,active_low=1,gpio_pull=up"
 SHUTDOWN_PATTERN='^dtoverlay=gpio-shutdown'
+
+want=()           # config.txt lines to add
+conflicts=()      # existing lines to remove, as "N: line"
+pending=()        # correct lines awaiting a reboot
+i2c_ready=false
+binary_updated=false
 
 log() {
     echo "[$(hostname)] $*"
@@ -38,9 +45,11 @@ die() {
     exit 1
 }
 
-if [ "$(id -u)" -ne 0 ]; then
+if (( EUID != 0 )); then
     die "This script must be run as root (use sudo)"
 fi
+
+trap 'rm -f "$TMP_BINARY"' EXIT
 
 # --- Pi model detection ---
 
@@ -69,22 +78,17 @@ config_lines_matching() {
         if (l ~ pat) print NR ": " l }' "$BOOT_CONFIG" 2>/dev/null || true
 }
 
-# Collects needed config.txt lines (want) and existing lines that conflict.
-want=()
-conflicts=()
-pending=()
-i2c_ready=false
+# Sorts a required line into want or pending and collects conflicting lines.
 need_line() {
     local line="$1" pattern="$2" found=false entry
     while IFS= read -r entry; do
-        [ -n "$entry" ] || continue
-        if [ "${entry#*: }" = "$line" ]; then
+        if [[ "${entry#*: }" == "$line" ]]; then
             found=true
         else
             conflicts+=("$entry")
         fi
-    done <<<"$(config_lines_matching "$pattern")"
-    if [ "$found" = true ]; then
+    done < <(config_lines_matching "$pattern")
+    if [[ "$found" == true ]]; then
         pending+=("$line")
     else
         want+=("$line")
@@ -94,23 +98,25 @@ need_line() {
 check_boot_config() {
     local pi_model="$1"
 
-    if [ ! -e "$I2C_BUS" ]; then
+    if [[ ! -e "$I2C_BUS" ]]; then
         log "I2C is not enabled"
         need_line "$I2C_LINE" "$I2C_PATTERN"
     else
         i2c_ready=true
         local hz
         hz=$(i2c_bus_hz)
-        if [ "$hz" != "$I2C_HZ" ]; then
+        if [[ "$hz" != "$I2C_HZ" ]]; then
             log "I2C bus runs at ${hz:-?} Hz; the display needs ${I2C_HZ} Hz"
             need_line "$I2C_LINE" "$I2C_PATTERN"
         fi
     fi
 
-    if [ -z "$(find /proc/device-tree/ -maxdepth 4 -name 'shutdown_button@4' 2>/dev/null)" ]; then
+    if [[ -z "$(find /proc/device-tree/ -maxdepth 4 -name 'shutdown_button@4' 2>/dev/null)" ]]; then
         log "Shutdown overlay for the case's power button not detected"
         local line="$SHUTDOWN_LINE"
-        [ "$pi_model" = "pi5" ] && line+=",debounce=1000"
+        if [[ "$pi_model" == "pi5" ]]; then
+            line+=",debounce=1000"
+        fi
         need_line "$line" "$SHUTDOWN_PATTERN"
     fi
 }
@@ -130,37 +136,35 @@ latest_version() {
 }
 
 # Downloads beside the live binary so a failed download leaves it untouched.
-binary_updated=false
 install_binary() {
     mkdir -p "$INSTALL_DIR"
-    local tmp="${INSTALL_DIR}/${BINARY}.new"
     local version
 
     # Developer path: use local binary if run from a repo clone
-    if [ -f "./${BINARY}" ] && [ -f "./go.mod" ]; then
+    if [[ -f "./${BINARY}" && -f "./go.mod" ]]; then
         log "Installing local ./${BINARY}"
-        cp "./${BINARY}" "$tmp"
+        cp "./${BINARY}" "$TMP_BINARY"
         version="local"
     else
         version=$(latest_version)
-        if [ -n "$version" ] && [ "$version" = "$(cat "$VERSION_FILE" 2>/dev/null)" ] \
-            && [ -x "${INSTALL_DIR}/${BINARY}" ]; then
+        if [[ -n "$version" && "$version" == "$(cat "$VERSION_FILE" 2>/dev/null)" \
+            && -x "${INSTALL_DIR}/${BINARY}" ]]; then
             log "Binary already up to date (${version})"
             return
         fi
-        if [ -f "./go.mod" ]; then
+        if [[ -f "./go.mod" ]]; then
             log "No local binary, downloading from release (run 'go build -o display ./cmd/display' first to install a local build)"
         else
             log "Downloading ${BINARY} ${version:-latest} from release"
         fi
-        curl -fsSL "https://github.com/${REPO}/releases/latest/download/${BINARY}" -o "$tmp" \
-            || { rm -f "$tmp"; die "Failed to download ${BINARY} from GitHub releases"; }
-        [ -s "$tmp" ] || { rm -f "$tmp"; die "Downloaded ${BINARY} is empty"; }
+        curl -fsSL "https://github.com/${REPO}/releases/latest/download/${BINARY}" -o "$TMP_BINARY" \
+            || die "Failed to download ${BINARY} from GitHub releases"
+        [[ -s "$TMP_BINARY" ]] || die "Downloaded ${BINARY} is empty"
     fi
 
-    chmod +x "$tmp"
+    chmod +x "$TMP_BINARY"
     systemctl stop "$SERVICE_NAME" 2>/dev/null || true
-    mv -f "$tmp" "${INSTALL_DIR}/${BINARY}"
+    mv -f "$TMP_BINARY" "${INSTALL_DIR}/${BINARY}"
     echo "$version" > "$VERSION_FILE"
     binary_updated=true
 }
@@ -198,8 +202,8 @@ load_i2c_dev
 install_binary
 install_service
 
-if [ "$i2c_ready" = true ]; then
-    if [ "$binary_updated" = true ] || ! systemctl is-active --quiet "$SERVICE_NAME"; then
+if [[ "$i2c_ready" == true ]]; then
+    if [[ "$binary_updated" == true ]] || ! systemctl is-active --quiet "$SERVICE_NAME"; then
         log "Starting ${SERVICE_NAME}"
         systemctl restart "$SERVICE_NAME"
     fi
@@ -208,18 +212,18 @@ else
 fi
 
 log "Install complete"
-if [ ${#want[@]} -gt 0 ] || [ ${#pending[@]} -gt 0 ]; then
+if (( ${#want[@]} + ${#pending[@]} )); then
     echo
     log "Boot config changes needed in ${BOOT_CONFIG}:"
-    if [ ${#conflicts[@]} -gt 0 ]; then
+    if (( ${#conflicts[@]} )); then
         log "Remove or comment out these lines:"
         printf '    line %s\n' "${conflicts[@]}"
     fi
-    if [ ${#want[@]} -gt 0 ]; then
+    if (( ${#want[@]} )); then
         log "Add these lines at the end of the file:"
         printf '    %s\n' "[all]" "${want[@]}"
     fi
-    if [ ${#pending[@]} -gt 0 ]; then
+    if (( ${#pending[@]} )); then
         log "Already present, but not active yet (or inside a section that excludes this Pi):"
         printf '    %s\n' "${pending[@]}"
     fi
