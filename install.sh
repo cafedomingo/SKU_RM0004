@@ -71,28 +71,53 @@ i2c_bus_hz() {
     od -An -tu4 --endian=big "${I2C_BUS}/of_node/clock-frequency" 2>/dev/null | tr -d ' ' || true
 }
 
-# Collects the config.txt lines the running system still needs.
-missing_lines=()
+# Prints "N: line" for uncommented config lines matching an ERE.
+config_lines_matching() {
+    awk -v pat="$1" '{ l = $0; sub(/#.*/, "", l); gsub(/^[ \t]+|[ \t]+$/, "", l)
+        if (l ~ pat) print NR ": " l }' "$(boot_config_path)" 2>/dev/null || true
+}
+
+# Collects needed config.txt lines (want) and existing lines that conflict.
+want=()
+conflicts=()
+pending=()
 i2c_ready=false
+need_line() {
+    local line="$1" pattern="$2" found=false entry
+    while IFS= read -r entry; do
+        [ -n "$entry" ] || continue
+        if [ "${entry#*: }" = "$line" ]; then
+            found=true
+        else
+            conflicts+=("$entry")
+        fi
+    done <<<"$(config_lines_matching "$pattern")"
+    if [ "$found" = true ]; then
+        pending+=("$line")
+    else
+        want+=("$line")
+    fi
+}
+
 check_boot_config() {
     local pi_model="$1"
 
     if [ ! -e "$I2C_BUS" ]; then
         log "I2C is not enabled"
-        missing_lines+=("$I2C_LINE")
+        need_line "$I2C_LINE" '^(dtparam=.*i2c_arm|i2c_arm_baudrate)'
     else
         i2c_ready=true
         local hz
         hz=$(i2c_bus_hz)
         if [ "$hz" != "$I2C_HZ" ]; then
-            log "I2C bus runs at ${hz:-an unknown speed}Hz; the display needs ${I2C_HZ}Hz"
-            missing_lines+=("$I2C_LINE")
+            log "I2C bus runs at ${hz:-?} Hz; the display needs ${I2C_HZ} Hz"
+            need_line "$I2C_LINE" '^(dtparam=.*i2c_arm|i2c_arm_baudrate)'
         fi
     fi
 
     if [ -z "$(find /proc/device-tree/ -maxdepth 4 -name 'shutdown_button@4' 2>/dev/null)" ]; then
         log "Shutdown overlay for the case's power button not detected"
-        missing_lines+=("$(shutdown_overlay_line "$pi_model")")
+        need_line "$(shutdown_overlay_line "$pi_model")" '^dtoverlay=gpio-shutdown'
     fi
 }
 
@@ -188,14 +213,21 @@ else
     log "Not starting ${SERVICE_NAME} until I2C is enabled; it starts on boot"
 fi
 
-if [ ${#missing_lines[@]} -eq 0 ]; then
-    log "Install complete"
-else
+log "Install complete"
+if [ ${#want[@]} -gt 0 ] || [ ${#pending[@]} -gt 0 ]; then
     echo
-    log "Install complete, but the boot config needs changes."
-    log "Add these lines to the end of $(boot_config_path), replacing any existing"
-    log "i2c_arm or gpio-shutdown lines, then reboot:"
-    echo
-    printf '    %s\n' "[all]" "${missing_lines[@]}"
-    echo
+    log "Boot config changes needed in $(boot_config_path):"
+    if [ ${#conflicts[@]} -gt 0 ]; then
+        log "Remove or comment out these lines:"
+        printf '    line %s\n' "${conflicts[@]}"
+    fi
+    if [ ${#want[@]} -gt 0 ]; then
+        log "Add these lines at the end of the file:"
+        printf '    %s\n' "[all]" "${want[@]}"
+    fi
+    if [ ${#pending[@]} -gt 0 ]; then
+        log "Already present, but not active yet (or inside a section that excludes this Pi):"
+        printf '    %s\n' "${pending[@]}"
+    fi
+    log "Then reboot."
 fi
