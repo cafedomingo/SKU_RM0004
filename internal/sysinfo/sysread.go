@@ -34,12 +34,16 @@ const (
 	cpuFreqMaxPath   = cpuFreqPath + "cpuinfo_max_freq"
 	vcioPath         = "/dev/vcio"
 	tagGetThrottled  = 0x00030046
-	ioctlMailbox     = 0xC0046400
+	vcioIoctlMagic   = 100
 	mailboxSuccess   = 0x80000000
 	dietpiRunPath    = "/run/dietpi"
 	dietpiUpdatePath = dietpiRunPath + "/.update_available"
 	dietpiAPTPath    = dietpiRunPath + "/.apt_updates"
 )
+
+// ioctlMailbox is the kernel's IOCTL_MBOX_PROPERTY, _IOWR(100, 0, char *).
+// Its size field is the pointer size, so it differs between 32- and 64-bit.
+const ioctlMailbox = 3<<30 | unsafe.Sizeof(uintptr(0))<<16 | vcioIoctlMagic<<8
 
 type linuxReader struct {
 	logger    *slog.Logger

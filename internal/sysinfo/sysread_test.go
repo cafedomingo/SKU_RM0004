@@ -3,6 +3,7 @@ package sysinfo
 import (
 	"log/slog"
 	"testing"
+	"unsafe"
 )
 
 func TestCPUFreqRead(t *testing.T) {
@@ -11,6 +12,17 @@ func TestCPUFreqRead(t *testing.T) {
 	// Min <= Max when both are available (Cur can exceed Max with turbo boost).
 	if f.Min > 0 && f.Max > 0 && f.Min > f.Max {
 		t.Errorf("CPUFreq().Min (%d) > Max (%d)", f.Min, f.Max)
+	}
+}
+
+func TestIoctlMailbox(t *testing.T) {
+	// IOCTL_MBOX_PROPERTY's size field follows the pointer size of the build.
+	want := uintptr(0xC0046400)
+	if unsafe.Sizeof(uintptr(0)) == 8 {
+		want = 0xC0086400
+	}
+	if ioctlMailbox != want {
+		t.Errorf("ioctlMailbox = %#x, want %#x", ioctlMailbox, want)
 	}
 }
 
