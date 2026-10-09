@@ -122,7 +122,7 @@ func drawFreqRow(fb *st7735.Framebuffer, f *font.Font, c sysinfo.Collector, cfg 
 	fb.String(0, y, freqStr, f, theme.ColorFG)
 
 	// Throttle indicator right after freq
-	throttle := c.ThrottleStatus()
+	throttle, _ := c.ThrottleStatus()
 	if throttle&sysinfo.ThrottleCurrentMask != 0 {
 		throttleX := format.StringWidth(freqStr, f)
 		fb.String(throttleX, y, "!", f, theme.ColorAlert)

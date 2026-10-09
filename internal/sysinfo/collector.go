@@ -9,21 +9,22 @@ type liveCollector struct {
 	reader SystemReader
 
 	// cached values updated by Refresh()
-	cpu       float64
-	ram       float64
-	disk      float64
-	temp      float64
-	hostname  string
-	uptime    time.Duration
-	ipv4      string
-	ipv6      string
-	net       NetBandwidth
-	linkSpeed int
-	diskIO    DiskIO
-	freq      CPUFreq
-	throttle  uint32
-	dietpi    DietPiStatus
-	apt       int
+	cpu        float64
+	ram        float64
+	disk       float64
+	temp       float64
+	hostname   string
+	uptime     time.Duration
+	ipv4       string
+	ipv6       string
+	net        NetBandwidth
+	linkSpeed  int
+	diskIO     DiskIO
+	freq       CPUFreq
+	throttle   uint32
+	throttleOK bool
+	dietpi     DietPiStatus
+	apt        int
 
 	// state for delta calculations
 	prevIface                         string
@@ -45,21 +46,21 @@ func NewCollectorWithReader(r SystemReader) Collector {
 	return c
 }
 
-func (c *liveCollector) CPUPercent() float64        { return c.cpu }
-func (c *liveCollector) RAMPercent() float64        { return c.ram }
-func (c *liveCollector) DiskPercent() float64       { return c.disk }
-func (c *liveCollector) Temperature() float64       { return c.temp }
-func (c *liveCollector) Hostname() string           { return c.hostname }
-func (c *liveCollector) Uptime() time.Duration      { return c.uptime }
-func (c *liveCollector) IPv4Address() string        { return c.ipv4 }
-func (c *liveCollector) IPv6Suffix() string         { return c.ipv6 }
-func (c *liveCollector) NetBandwidth() NetBandwidth { return c.net }
-func (c *liveCollector) LinkSpeedMbps() int         { return c.linkSpeed }
-func (c *liveCollector) DiskIO() DiskIO             { return c.diskIO }
-func (c *liveCollector) CPUFreq() CPUFreq           { return c.freq }
-func (c *liveCollector) ThrottleStatus() uint32     { return c.throttle }
-func (c *liveCollector) DietPiStatus() DietPiStatus { return c.dietpi }
-func (c *liveCollector) APTUpdateCount() int        { return c.apt }
+func (c *liveCollector) CPUPercent() float64            { return c.cpu }
+func (c *liveCollector) RAMPercent() float64            { return c.ram }
+func (c *liveCollector) DiskPercent() float64           { return c.disk }
+func (c *liveCollector) Temperature() float64           { return c.temp }
+func (c *liveCollector) Hostname() string               { return c.hostname }
+func (c *liveCollector) Uptime() time.Duration          { return c.uptime }
+func (c *liveCollector) IPv4Address() string            { return c.ipv4 }
+func (c *liveCollector) IPv6Suffix() string             { return c.ipv6 }
+func (c *liveCollector) NetBandwidth() NetBandwidth     { return c.net }
+func (c *liveCollector) LinkSpeedMbps() int             { return c.linkSpeed }
+func (c *liveCollector) DiskIO() DiskIO                 { return c.diskIO }
+func (c *liveCollector) CPUFreq() CPUFreq               { return c.freq }
+func (c *liveCollector) ThrottleStatus() (uint32, bool) { return c.throttle, c.throttleOK }
+func (c *liveCollector) DietPiStatus() DietPiStatus     { return c.dietpi }
+func (c *liveCollector) APTUpdateCount() int            { return c.apt }
 
 // Refresh collects all system metrics.
 func (c *liveCollector) Refresh() {
@@ -80,7 +81,7 @@ func (c *liveCollector) Refresh() {
 	c.refreshDiskIO(elapsed)
 
 	c.freq = c.reader.CPUFreq()
-	c.throttle = c.reader.ThrottleStatus()
+	c.throttle, c.throttleOK = c.reader.ThrottleStatus()
 	c.dietpi = c.reader.DietPiStatus()
 	c.apt = c.reader.APTUpdateCount()
 

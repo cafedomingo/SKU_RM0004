@@ -122,7 +122,7 @@ func collectDiagData(c sysinfo.Collector) []diagRow {
 	})
 
 	// Row 7: Throttle status
-	throttle := c.ThrottleStatus()
+	throttle, _ := c.ThrottleStatus()
 	var throttleVal string
 	var throttleColor uint16
 	switch {

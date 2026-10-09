@@ -40,26 +40,27 @@ func TestUptimePositive(t *testing.T) {
 }
 
 type fakeReader struct {
-	cpu       float64
-	ram       float64
-	temp      float64
-	diskUsage float64
-	host      string
-	up        time.Duration
-	iface     string
-	ipv4      string
-	ipv6      string
-	linkSpeed int
-	netRx     uint64
-	netTx     uint64
-	diskRead  uint64
-	diskWrite uint64
-	diskROps  uint64
-	diskWOps  uint64
-	freq      CPUFreq
-	throttle  uint32
-	dietpi    DietPiStatus
-	apt       int
+	cpu        float64
+	ram        float64
+	temp       float64
+	diskUsage  float64
+	host       string
+	up         time.Duration
+	iface      string
+	ipv4       string
+	ipv6       string
+	linkSpeed  int
+	netRx      uint64
+	netTx      uint64
+	diskRead   uint64
+	diskWrite  uint64
+	diskROps   uint64
+	diskWOps   uint64
+	freq       CPUFreq
+	throttle   uint32
+	throttleOK bool
+	dietpi     DietPiStatus
+	apt        int
 }
 
 func (f *fakeReader) CPUPercent() float64                        { return f.cpu }
@@ -75,10 +76,10 @@ func (f *fakeReader) NetIOCounters(string) (uint64, uint64)      { return f.netR
 func (f *fakeReader) DiskIOCounters() (uint64, uint64, uint64, uint64) {
 	return f.diskRead, f.diskWrite, f.diskROps, f.diskWOps
 }
-func (f *fakeReader) CPUFreq() CPUFreq           { return f.freq }
-func (f *fakeReader) ThrottleStatus() uint32     { return f.throttle }
-func (f *fakeReader) DietPiStatus() DietPiStatus { return f.dietpi }
-func (f *fakeReader) APTUpdateCount() int        { return f.apt }
+func (f *fakeReader) CPUFreq() CPUFreq               { return f.freq }
+func (f *fakeReader) ThrottleStatus() (uint32, bool) { return f.throttle, f.throttleOK }
+func (f *fakeReader) DietPiStatus() DietPiStatus     { return f.dietpi }
+func (f *fakeReader) APTUpdateCount() int            { return f.apt }
 
 func TestNetBandwidthDelta(t *testing.T) {
 	r := &fakeReader{
@@ -231,16 +232,17 @@ func TestNetworkDisappearClearsStats(t *testing.T) {
 
 func TestSimpleReaderPassthrough(t *testing.T) {
 	r := &fakeReader{
-		cpu:       42.5,
-		ram:       67.3,
-		temp:      55.0,
-		diskUsage: 80.1,
-		host:      "testhost",
-		up:        3 * time.Hour,
-		freq:      CPUFreq{Cur: 1800, Min: 600, Max: 2400},
-		throttle:  0x50005,
-		dietpi:    DietPiUpToDate,
-		apt:       3,
+		cpu:        42.5,
+		ram:        67.3,
+		temp:       55.0,
+		diskUsage:  80.1,
+		host:       "testhost",
+		up:         3 * time.Hour,
+		freq:       CPUFreq{Cur: 1800, Min: 600, Max: 2400},
+		throttle:   0x50005,
+		throttleOK: true,
+		dietpi:     DietPiUpToDate,
+		apt:        3,
 	}
 
 	c := NewCollectorWithReader(r)
@@ -266,13 +268,24 @@ func TestSimpleReaderPassthrough(t *testing.T) {
 	if c.CPUFreq() != (CPUFreq{Cur: 1800, Min: 600, Max: 2400}) {
 		t.Errorf("CPUFreq() = %+v, unexpected", c.CPUFreq())
 	}
-	if c.ThrottleStatus() != 0x50005 {
-		t.Errorf("ThrottleStatus() = %d, want %d", c.ThrottleStatus(), 0x50005)
+	if v, ok := c.ThrottleStatus(); v != 0x50005 || !ok {
+		t.Errorf("ThrottleStatus() = %#x, %v, want 0x50005, true", v, ok)
 	}
 	if c.DietPiStatus() != DietPiUpToDate {
 		t.Errorf("DietPiStatus() = %d, want DietPiUpToDate", c.DietPiStatus())
 	}
 	if c.APTUpdateCount() != 3 {
 		t.Errorf("APTUpdateCount() = %d, want 3", c.APTUpdateCount())
+	}
+}
+
+func TestThrottleReadFailure(t *testing.T) {
+	r := &fakeReader{throttle: 0x50005, throttleOK: true}
+	c := NewCollectorWithReader(r)
+
+	r.throttle, r.throttleOK = 0, false
+	c.Refresh()
+	if v, ok := c.ThrottleStatus(); v != 0 || ok {
+		t.Errorf("ThrottleStatus() = %#x, %v, want 0, false", v, ok)
 	}
 }

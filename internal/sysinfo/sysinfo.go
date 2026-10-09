@@ -41,7 +41,8 @@ const (
 
 // SystemReader provides raw system metrics from /proc, /sys, and other
 // Linux interfaces. Methods return zero values on failure and log errors
-// at Debug level.
+// at Debug level, except ThrottleStatus, which reports failure with ok=false
+// and logs every failure at Warn level.
 type SystemReader interface {
 	// System vitals
 	CPUPercent() float64
@@ -64,7 +65,7 @@ type SystemReader interface {
 
 	// Pi-specific
 	CPUFreq() CPUFreq
-	ThrottleStatus() uint32
+	ThrottleStatus() (status uint32, ok bool)
 	DietPiStatus() DietPiStatus
 	APTUpdateCount() int
 }
@@ -82,7 +83,7 @@ type Collector interface {
 	NetBandwidth() NetBandwidth
 	DiskIO() DiskIO
 	Uptime() time.Duration
-	ThrottleStatus() uint32
+	ThrottleStatus() (status uint32, ok bool)
 	DietPiStatus() DietPiStatus
 	APTUpdateCount() int
 	LinkSpeedMbps() int

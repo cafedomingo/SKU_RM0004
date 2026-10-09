@@ -304,10 +304,19 @@ func (r *linuxReader) CPUFreq() CPUFreq {
 	}
 }
 
-func (r *linuxReader) ThrottleStatus() uint32 {
+func (r *linuxReader) ThrottleStatus() (uint32, bool) {
+	v, err := readThrottled()
+	if err != nil {
+		r.logger.Warn("failed to read throttle status", "err", err)
+		return 0, false
+	}
+	return v, true
+}
+
+func readThrottled() (uint32, error) {
 	f, err := os.OpenFile(vcioPath, os.O_RDWR, 0)
 	if err != nil {
-		return 0
+		return 0, err
 	}
 	defer func() { _ = f.Close() }()
 
@@ -329,12 +338,17 @@ func (r *linuxReader) ThrottleStatus() uint32 {
 		uintptr(unsafe.Pointer(&buf[0])),
 	)
 	if errno != 0 {
-		return 0
+		return 0, fmt.Errorf("ioctl %#x: %w", ioctlMailbox, errno)
 	}
+	return parseThrottled(buf)
+}
+
+// parseThrottled requires a successful mailbox response before trusting the value.
+func parseThrottled(buf [8]uint32) (uint32, error) {
 	if buf[1] != mailboxSuccess {
-		return 0
+		return 0, fmt.Errorf("mailbox response %#x", buf[1])
 	}
-	return buf[5]
+	return buf[5], nil
 }
 
 func (r *linuxReader) DietPiStatus() DietPiStatus {
