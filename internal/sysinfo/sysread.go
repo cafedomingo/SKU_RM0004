@@ -34,12 +34,16 @@ const (
 	cpuFreqMaxPath   = cpuFreqPath + "cpuinfo_max_freq"
 	vcioPath         = "/dev/vcio"
 	tagGetThrottled  = 0x00030046
-	ioctlMailbox     = 0xC0046400
+	vcioIoctlMagic   = 100
 	mailboxSuccess   = 0x80000000
 	dietpiRunPath    = "/run/dietpi"
 	dietpiUpdatePath = dietpiRunPath + "/.update_available"
 	dietpiAPTPath    = dietpiRunPath + "/.apt_updates"
 )
+
+// ioctlMailbox is the kernel's IOCTL_MBOX_PROPERTY, _IOWR(100, 0, char *).
+// Its size field is the pointer size, so it differs between 32- and 64-bit.
+const ioctlMailbox = 3<<30 | unsafe.Sizeof(uintptr(0))<<16 | vcioIoctlMagic<<8
 
 type linuxReader struct {
 	logger    *slog.Logger
@@ -300,10 +304,19 @@ func (r *linuxReader) CPUFreq() CPUFreq {
 	}
 }
 
-func (r *linuxReader) ThrottleStatus() uint32 {
+func (r *linuxReader) ThrottleStatus() (uint32, bool) {
+	v, err := readThrottled()
+	if err != nil {
+		r.logger.Warn("failed to read throttle status", "err", err)
+		return 0, false
+	}
+	return v, true
+}
+
+func readThrottled() (uint32, error) {
 	f, err := os.OpenFile(vcioPath, os.O_RDWR, 0)
 	if err != nil {
-		return 0
+		return 0, err
 	}
 	defer func() { _ = f.Close() }()
 
@@ -325,12 +338,20 @@ func (r *linuxReader) ThrottleStatus() uint32 {
 		uintptr(unsafe.Pointer(&buf[0])),
 	)
 	if errno != 0 {
-		return 0
+		return 0, fmt.Errorf("ioctl %#x: %w", ioctlMailbox, errno)
 	}
+	return parseThrottled(buf)
+}
+
+// parseThrottled requires a successful mailbox and a full 4-byte tag response before trusting the value.
+func parseThrottled(buf [8]uint32) (uint32, error) {
 	if buf[1] != mailboxSuccess {
-		return 0
+		return 0, fmt.Errorf("mailbox response %#x", buf[1])
 	}
-	return buf[5]
+	if buf[4]&mailboxSuccess == 0 || buf[4]&^mailboxSuccess < 4 {
+		return 0, fmt.Errorf("tag response %#x", buf[4])
+	}
+	return buf[5], nil
 }
 
 func (r *linuxReader) DietPiStatus() DietPiStatus {

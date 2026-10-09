@@ -119,23 +119,26 @@ func TestDiagnosticTempBothUnits(t *testing.T) {
 	}
 }
 
-// TestDiagnosticThrottleStates verifies the three throttle states produce correct colors.
+// TestDiagnosticThrottleStates verifies each throttle state produces the correct value and color.
 func TestDiagnosticThrottleStates(t *testing.T) {
 	tests := []struct {
 		name      string
 		throttle  uint32
+		unknown   bool
 		wantValue string
 		wantColor uint16
 	}{
-		{"active", 0x00000001, "ACTIVE", theme.ColorCrit},
-		{"past", 0x00010000, "past", theme.ColorWarn},
-		{"ok", 0x00000000, "OK", theme.ColorOK},
+		{"active", 0x00000001, false, "ACTIVE", theme.ColorCrit},
+		{"past", 0x00010000, false, "past", theme.ColorWarn},
+		{"ok", 0x00000000, false, "OK", theme.ColorOK},
+		{"unknown", 0x00000001, true, "N/A", theme.ColorMuted},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := diagMock()
 			m.Throttle = tt.throttle
+			m.ThrottleUnknown = tt.unknown
 			rows := collectDiagData(m)
 
 			// Row 7 is the throttle row

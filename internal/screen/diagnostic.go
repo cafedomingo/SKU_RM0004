@@ -11,7 +11,10 @@ import (
 	"github.com/cafedomingo/SKU_RM0004/internal/theme"
 )
 
-const diagRowsPerPage = 6
+const (
+	diagRowsPerPage = 6
+	diagNA          = "N/A"
+)
 
 type diagRow struct {
 	label string
@@ -122,10 +125,13 @@ func collectDiagData(c sysinfo.Collector) []diagRow {
 	})
 
 	// Row 7: Throttle status
-	throttle := c.ThrottleStatus()
+	throttle, ok := c.ThrottleStatus()
 	var throttleVal string
 	var throttleColor uint16
 	switch {
+	case !ok:
+		throttleVal = diagNA
+		throttleColor = theme.ColorMuted
 	case throttle&sysinfo.ThrottleCurrentMask != 0:
 		throttleVal = "ACTIVE"
 		throttleColor = theme.ColorCrit
@@ -190,7 +196,7 @@ func collectDiagData(c sysinfo.Collector) []diagRow {
 		dietpiVal = "OK"
 		dietpiColor = theme.ColorOK
 	default:
-		dietpiVal = "N/A"
+		dietpiVal = diagNA
 		dietpiColor = theme.ColorMuted
 	}
 	rows = append(rows, diagRow{
@@ -211,7 +217,7 @@ func collectDiagData(c sysinfo.Collector) []diagRow {
 		aptVal = "up to date"
 		aptColor = theme.ColorOK
 	default:
-		aptVal = "N/A"
+		aptVal = diagNA
 		aptColor = theme.ColorMuted
 	}
 	rows = append(rows, diagRow{
