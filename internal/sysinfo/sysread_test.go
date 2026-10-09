@@ -64,6 +64,8 @@ func TestParseThrottled(t *testing.T) {
 	}{
 		{"ok", mailboxSuccess, mailboxSuccess | 4, 0x50005, false},
 		{"mailbox error", 0x80000001, mailboxSuccess | 4, 0, true},
+		{"tag not handled", mailboxSuccess, 0, 0, true},
+		{"short response", mailboxSuccess, mailboxSuccess, 0, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -343,10 +343,13 @@ func readThrottled() (uint32, error) {
 	return parseThrottled(buf)
 }
 
-// parseThrottled requires a successful mailbox response before trusting the value.
+// parseThrottled requires a successful mailbox and a full 4-byte tag response before trusting the value.
 func parseThrottled(buf [8]uint32) (uint32, error) {
 	if buf[1] != mailboxSuccess {
 		return 0, fmt.Errorf("mailbox response %#x", buf[1])
+	}
+	if buf[4]&mailboxSuccess == 0 || buf[4]&^mailboxSuccess < 4 {
+		return 0, fmt.Errorf("tag response %#x", buf[4])
 	}
 	return buf[5], nil
 }
