@@ -6,6 +6,10 @@ updates:
       interval: monthly
     cooldown:
       default-days: 7
+    groups:
+      gomod:
+        patterns: ["*"]
+        update-types: [minor, patch]
 
   - package-ecosystem: github-actions
     directory: /
@@ -13,3 +17,7 @@ updates:
       interval: monthly
     cooldown:
       default-days: 7
+    groups:
+      github-actions:
+        patterns: ["*"]
+        update-types: [minor, patch]
