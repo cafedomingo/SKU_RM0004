@@ -15,30 +15,33 @@ import (
 )
 
 const (
-	thermalPath      = "/sys/class/thermal/thermal_zone0/temp"
-	procRoutePath    = "/proc/net/route"
-	defaultRouteDest = "00000000"
-	procMountsPath   = "/proc/mounts"
-	linkSpeedPath    = "/sys/class/net/%s/speed"
-
-	procStatPath      = "/proc/stat"
-	procMeminfoPath   = "/proc/meminfo"
-	procUptimePath    = "/proc/uptime"
-	netStatPath       = "/sys/class/net/%s/statistics/%s"
 	procDiskstatsPath = "/proc/diskstats"
-	sectorSize        = 512
+	procMeminfoPath   = "/proc/meminfo"
+	procMountsPath    = "/proc/mounts"
+	procRoutePath     = "/proc/net/route"
+	procStatPath      = "/proc/stat"
+	procUptimePath    = "/proc/uptime"
 
-	cpuFreqPath      = "/sys/devices/system/cpu/cpu0/cpufreq/"
-	cpuFreqCurPath   = cpuFreqPath + "scaling_cur_freq"
-	cpuFreqMinPath   = cpuFreqPath + "cpuinfo_min_freq"
-	cpuFreqMaxPath   = cpuFreqPath + "cpuinfo_max_freq"
-	vcioPath         = "/dev/vcio"
-	tagGetThrottled  = 0x00030046
-	vcioIoctlMagic   = 100
-	mailboxSuccess   = 0x80000000
+	linkSpeedPath = "/sys/class/net/%s/speed"
+	netStatPath   = "/sys/class/net/%s/statistics/%s"
+	thermalPath   = "/sys/class/thermal/thermal_zone0/temp"
+
+	cpuFreqPath    = "/sys/devices/system/cpu/cpu0/cpufreq/"
+	cpuFreqCurPath = cpuFreqPath + "scaling_cur_freq"
+	cpuFreqMinPath = cpuFreqPath + "cpuinfo_min_freq"
+	cpuFreqMaxPath = cpuFreqPath + "cpuinfo_max_freq"
+
 	dietpiRunPath    = "/run/dietpi"
-	dietpiUpdatePath = dietpiRunPath + "/.update_available"
 	dietpiAPTPath    = dietpiRunPath + "/.apt_updates"
+	dietpiUpdatePath = dietpiRunPath + "/.update_available"
+
+	vcioPath        = "/dev/vcio"
+	vcioIoctlMagic  = 100
+	tagGetThrottled = 0x00030046
+	mailboxSuccess  = 0x80000000
+
+	defaultRouteDest = "00000000"
+	sectorSize       = 512
 )
 
 // ioctlMailbox is the kernel's IOCTL_MBOX_PROPERTY, _IOWR(100, 0, char *).

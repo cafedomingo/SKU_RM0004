@@ -12,6 +12,7 @@ import (
 const (
 	ConfigPath      = "/etc/uctronics-display.conf"
 	DefaultRefresh  = 5 * time.Second
+	DefaultScreen   = ScreenDashboard
 	DefaultTempUnit = TempCelsius
 
 	TempCelsius    = "C"
@@ -30,8 +31,6 @@ const (
 	keyRefresh  = "refresh"
 	keyTempUnit = "temp_unit"
 )
-
-const DefaultScreen = ScreenDashboard
 
 var validScreens = map[string]bool{
 	ScreenDashboard:  true,
