@@ -9,11 +9,11 @@
 
 set -euo pipefail
 
-REPO="cafedomingo/SKU_RM0004"
-INSTALL_DIR="/opt/uctronics-lcd"
 BINARY="display"
-VERSION_FILE="${INSTALL_DIR}/VERSION"
+INSTALL_DIR="/opt/uctronics-lcd"
+REPO="cafedomingo/SKU_RM0004"
 TMP_BINARY="${INSTALL_DIR}/${BINARY}.new"
+VERSION_FILE="${INSTALL_DIR}/VERSION"
 
 SERVICE_NAME="uctronics-display.service"
 SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}"
@@ -30,11 +30,12 @@ I2C_PATTERN='^(dtparam=.*i2c_arm|i2c_arm_baudrate)'
 SHUTDOWN_LINE="dtoverlay=gpio-shutdown,gpio_pin=4,active_low=1,gpio_pull=up"
 SHUTDOWN_PATTERN='^dtoverlay=gpio-shutdown'
 
-want=()           # config.txt lines to add
 conflicts=()      # existing lines to remove, as "N: line"
 pending=()        # correct lines awaiting a reboot
-i2c_ready=false
+want=()           # config.txt lines to add
+
 binary_updated=false
+i2c_ready=false
 
 log() {
     echo "[$(hostname)] $*"
