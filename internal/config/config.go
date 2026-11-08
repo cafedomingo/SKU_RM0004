@@ -45,10 +45,11 @@ type Config struct {
 }
 
 type Loader struct {
-	path      string
-	logger    *slog.Logger
-	lastMtime time.Time
-	cached    Config
+	path       string
+	logger     *slog.Logger
+	lastMtime  time.Time
+	cached     Config
+	openFailed bool
 }
 
 func NewLoader(path string, logger *slog.Logger) *Loader {
@@ -75,10 +76,15 @@ func (l *Loader) Load() Config {
 
 	f, err := os.Open(l.path)
 	if err != nil {
-		l.logger.Warn("config: could not open file", "path", l.path, "err", err)
-		return cfg
+		// Don't record mtime on failure: fixing perms with chmod doesn't change it.
+		if !l.openFailed {
+			l.logger.Warn("config: could not open file", "path", l.path, "err", err)
+		}
+		l.openFailed = true
+		return l.cached
 	}
 	defer func() { _ = f.Close() }()
+	l.openFailed = false
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {

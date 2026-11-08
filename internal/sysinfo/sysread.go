@@ -50,9 +50,10 @@ const (
 const ioctlMailbox = 3<<30 | unsafe.Sizeof(uintptr(0))<<16 | vcioIoctlMagic<<8
 
 type linuxReader struct {
-	logger    *slog.Logger
-	prevIdle  uint64
-	prevTotal uint64
+	logger          *slog.Logger
+	prevIdle        uint64
+	prevTotal       uint64
+	throttleFailing bool
 }
 
 // NewSystemReader creates a SystemReader that reads from Linux system files.
@@ -311,9 +312,14 @@ func (r *linuxReader) CPUFreq() CPUFreq {
 func (r *linuxReader) ThrottleStatus() (uint32, bool) {
 	v, err := readThrottled()
 	if err != nil {
-		r.logger.Warn("failed to read throttle status", "err", err)
+		// Pi OS trixie and Ubuntu 26.04 keep /dev/vcio root-only (#78).
+		if !r.throttleFailing {
+			r.logger.Warn("failed to read throttle status", "err", err)
+		}
+		r.throttleFailing = true
 		return 0, false
 	}
+	r.throttleFailing = false
 	return v, true
 }
 

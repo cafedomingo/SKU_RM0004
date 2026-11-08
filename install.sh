@@ -9,15 +9,21 @@
 
 set -euo pipefail
 
-REPO="cafedomingo/SKU_RM0004"
-INSTALL_DIR="/opt/uctronics-lcd"
 BINARY="display"
-VERSION_FILE="${INSTALL_DIR}/VERSION"
+INSTALL_DIR="/opt/uctronics-lcd"
+REPO="cafedomingo/SKU_RM0004"
 TMP_BINARY="${INSTALL_DIR}/${BINARY}.new"
+VERSION_FILE="${INSTALL_DIR}/VERSION"
 
 SERVICE_NAME="uctronics-display.service"
 SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}"
+SERVICE_USER="uctronics-lcd"
 MODULES_PATH="/etc/modules-load.d/uctronics-lcd.conf"
+
+I2C_DEV="/dev/i2c-1"
+I2C_GROUPS="i2c dialout"    # Pi OS and DietPi use i2c; Ubuntu uses dialout
+VCIO_DEV="/dev/vcio"
+VCIO_GROUP="video"
 
 BOOT_CONFIG="/boot/firmware/config.txt"
 [[ -f "$BOOT_CONFIG" ]] || BOOT_CONFIG="/boot/config.txt"
@@ -30,11 +36,13 @@ I2C_PATTERN='^(dtparam=.*i2c_arm|i2c_arm_baudrate)'
 SHUTDOWN_LINE="dtoverlay=gpio-shutdown,gpio_pin=4,active_low=1,gpio_pull=up"
 SHUTDOWN_PATTERN='^dtoverlay=gpio-shutdown'
 
-want=()           # config.txt lines to add
 conflicts=()      # existing lines to remove, as "N: line"
 pending=()        # correct lines awaiting a reboot
-i2c_ready=false
+want=()           # config.txt lines to add
+
 binary_updated=false
+i2c_ready=false
+service_updated=false
 
 log() {
     echo "[$(hostname)] $*"
@@ -123,9 +131,16 @@ check_boot_config() {
 
 # --- i2c-dev module ---
 
+# DietPi's udev rules use i2c, but only i2c-tools creates it. udevd resolves group
+# names only when parsing rules, and a reload skips unchanged rule files.
 load_i2c_dev() {
+    if ! getent group i2c >/dev/null; then
+        groupadd --system i2c
+        systemctl restart systemd-udevd
+    fi
     echo "i2c-dev" > "$MODULES_PATH"
     modprobe i2c-dev || log "Could not load i2c-dev now; it will load on next boot"
+    udevadm trigger --settle --action=change --subsystem-match=i2c-dev
 }
 
 # --- Binary install ---
@@ -137,7 +152,7 @@ latest_version() {
 
 # Downloads beside the live binary so a failed download leaves it untouched.
 install_binary() {
-    mkdir -p "$INSTALL_DIR"
+    install -d -m 755 "$INSTALL_DIR"
     local version
 
     # Developer path: use local binary if run from a repo clone
@@ -150,6 +165,7 @@ install_binary() {
         if [[ -n "$version" && "$version" == "$(cat "$VERSION_FILE" 2>/dev/null)" \
             && -x "${INSTALL_DIR}/${BINARY}" ]]; then
             log "Binary already up to date (${version})"
+            chmod 755 "${INSTALL_DIR}/${BINARY}"
             return
         fi
         if [[ -f "./go.mod" ]]; then
@@ -162,7 +178,7 @@ install_binary() {
         [[ -s "$TMP_BINARY" ]] || die "Downloaded ${BINARY} is empty"
     fi
 
-    chmod +x "$TMP_BINARY"
+    chmod 755 "$TMP_BINARY"
     systemctl stop "$SERVICE_NAME" 2>/dev/null || true
     mv -f "$TMP_BINARY" "${INSTALL_DIR}/${BINARY}"
     echo "$version" > "$VERSION_FILE"
@@ -171,8 +187,38 @@ install_binary() {
 
 # --- Systemd service ---
 
+install_user() {
+    if ! id -u "$SERVICE_USER" &>/dev/null; then
+        useradd --system --user-group --no-create-home --home-dir /nonexistent \
+            --shell /usr/sbin/nologin "$SERVICE_USER"
+    fi
+}
+
+# Must run before install_binary stops the service, so a failure leaves it running.
+check_device_access() {
+    local group groups=()
+    for group in $I2C_GROUPS $VCIO_GROUP; do
+        getent group "$group" >/dev/null && groups+=("$group")
+    done
+    service_groups="${groups[*]}"
+
+    if [[ -e "$I2C_DEV" ]] && ! service_can_open "$I2C_DEV"; then
+        die "${SERVICE_USER} cannot open ${I2C_DEV} ($(stat -c "%U:%G %a" "$I2C_DEV")); expected one of: ${I2C_GROUPS}"
+    fi
+    if [[ -e "$VCIO_DEV" ]] && ! service_can_open "$VCIO_DEV"; then
+        log "${SERVICE_USER} cannot open ${VCIO_DEV} ($(stat -c "%U:%G %a" "$VCIO_DEV")); throttle status will show N/A"
+    fi
+}
+
+service_can_open() {
+    setpriv --reuid="$SERVICE_USER" --regid="$SERVICE_USER" --groups="${service_groups// /,}" \
+        test -r "$1" -a -w "$1"
+}
+
+# Not PrivateTmp=yes: its bind mounts from the root disk would count twice in disk usage.
 install_service() {
-    cat > "$SERVICE_PATH" <<EOF
+    local unit
+    unit=$(cat <<EOF
 [Unit]
 Description=UCTRONICS LCD Display
 After=multi-user.target
@@ -182,11 +228,47 @@ ExecStart=${INSTALL_DIR}/${BINARY}
 Restart=on-failure
 RestartSec=5
 
+User=${SERVICE_USER}
+Group=${SERVICE_USER}
+SupplementaryGroups=${service_groups}
+UMask=0077
+
+DeviceAllow=${I2C_DEV} rw
+DeviceAllow=${VCIO_DEV} rw
+DevicePolicy=closed
+
+CapabilityBoundingSet=
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+NoNewPrivileges=yes
+PrivateIPC=yes
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectProc=invisible
+ProtectSystem=strict
+RestrictAddressFamilies=AF_NETLINK
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+SystemCallArchitectures=native
+SystemCallErrorNumber=EPERM
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+TemporaryFileSystem=/tmp /var/tmp
+
 [Install]
 WantedBy=multi-user.target
 EOF
-
-    systemctl daemon-reload
+)
+    if [[ "$unit" != "$(cat "$SERVICE_PATH" 2>/dev/null)" ]]; then
+        echo "$unit" > "$SERVICE_PATH"
+        systemctl daemon-reload
+        service_updated=true
+    fi
     systemctl enable --quiet "$SERVICE_NAME"
 }
 
@@ -199,11 +281,13 @@ log "Detected Raspberry Pi: ${pi_model}"
 
 check_boot_config "$pi_model"
 load_i2c_dev
+install_user
+check_device_access
 install_binary
 install_service
 
 if [[ "$i2c_ready" == true ]]; then
-    if [[ "$binary_updated" == true ]] || ! systemctl is-active --quiet "$SERVICE_NAME"; then
+    if [[ "$binary_updated" == true || "$service_updated" == true ]] || ! systemctl is-active --quiet "$SERVICE_NAME"; then
         log "Starting ${SERVICE_NAME}"
         systemctl restart "$SERVICE_NAME"
     fi
