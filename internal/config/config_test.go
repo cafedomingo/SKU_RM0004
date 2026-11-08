@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -191,5 +192,43 @@ func TestMtimeReload(t *testing.T) {
 	cfg2 := l.Load()
 	if cfg2.Screen != "sparkline" {
 		t.Errorf("second load Screen = %q, want %q", cfg2.Screen, "sparkline")
+	}
+}
+
+type countHandler struct{ n int }
+
+func (h *countHandler) Enabled(context.Context, slog.Level) bool { return true }
+func (h *countHandler) Handle(context.Context, slog.Record) error {
+	h.n++
+	return nil
+}
+func (h *countHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
+func (h *countHandler) WithGroup(string) slog.Handler      { return h }
+
+func TestUnreadableWarnsOnceAndRecovers(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root can read any file")
+	}
+	path := writeConfig(t, t.TempDir(), "screen=sparkline\n")
+	if err := os.Chmod(path, 0); err != nil {
+		t.Fatalf("Chmod: %v", err)
+	}
+	h := &countHandler{}
+	l := NewLoader(path, slog.New(h))
+
+	for range 3 {
+		if cfg := l.Load(); cfg.Screen != DefaultScreen {
+			t.Fatalf("Screen = %q, want default %q", cfg.Screen, DefaultScreen)
+		}
+	}
+	if h.n != 1 {
+		t.Errorf("logged %d records, want 1", h.n)
+	}
+
+	if err := os.Chmod(path, 0o644); err != nil {
+		t.Fatalf("Chmod: %v", err)
+	}
+	if cfg := l.Load(); cfg.Screen != ScreenSparkline {
+		t.Errorf("after chmod Screen = %q, want %q", cfg.Screen, ScreenSparkline)
 	}
 }
