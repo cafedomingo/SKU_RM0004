@@ -16,6 +16,7 @@ CONFIG_PATH="/etc/${CONFIG}"
 INSTALL_DIR="/opt/uctronics-lcd"
 PACKAGE=("$BINARY" "$CONFIG" THIRD_PARTY_LICENSES)
 REPO="cafedomingo/SKU_RM0004"
+STAGING="${INSTALL_DIR}/.new"
 VERSION_FILE="${INSTALL_DIR}/VERSION"
 
 SERVICE_NAME="uctronics-display.service"
@@ -46,7 +47,6 @@ want=()           # config.txt lines to add
 binary_updated=false
 i2c_ready=false
 service_updated=false
-staging=""
 
 log() {
     echo "[$(hostname)] $*"
@@ -61,7 +61,7 @@ if (( EUID != 0 )); then
     die "This script must be run as root (use sudo)"
 fi
 
-trap 'rm -rf "$staging"' EXIT
+trap 'rm -rf "$STAGING"' EXIT
 
 # --- Pi model detection ---
 
@@ -157,13 +157,14 @@ latest_version() {
 # Stages beside the live files so a failed download leaves them untouched.
 install_binary() {
     install -d -m 755 "$INSTALL_DIR"
-    staging=$(mktemp -d "${INSTALL_DIR}/.new.XXXXXX")
+    rm -rf "$STAGING"
+    install -d -m 700 "$STAGING"
     local version
 
     # Developer path: use local files if run from a repo clone
     if [[ -f "./${BINARY}" && -f "./go.mod" ]]; then
         log "Installing local ${PACKAGE[*]}"
-        cp "${PACKAGE[@]}" "$staging"
+        cp "${PACKAGE[@]}" "$STAGING"
         version="local"
     else
         version=$(latest_version)
@@ -179,14 +180,14 @@ install_binary() {
             log "Downloading ${ARCHIVE} ${version:-latest} from release"
         fi
         curl -fsSL "https://github.com/${REPO}/releases/latest/download/${ARCHIVE}" \
-            | tar -xz --no-same-owner -C "$staging" "${PACKAGE[@]}" \
+            | tar -xz --no-same-owner -C "$STAGING" "${PACKAGE[@]}" \
             || die "Failed to download ${ARCHIVE} from GitHub releases"
     fi
 
-    chmod 644 "$staging"/*
-    chmod 755 "${staging}/${BINARY}"
+    chmod 644 "$STAGING"/*
+    chmod 755 "${STAGING}/${BINARY}"
     systemctl stop "$SERVICE_NAME" 2>/dev/null || true
-    mv -f "$staging"/* "$INSTALL_DIR"
+    mv -f "$STAGING"/* "$INSTALL_DIR"
     echo "$version" > "$VERSION_FILE"
     binary_updated=true
 }
