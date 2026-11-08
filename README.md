@@ -20,7 +20,7 @@ Display driver for the [UCTRONICS Pi Rack Pro (RM0004)](https://www.uctronics.co
 curl -sL https://github.com/cafedomingo/SKU_RM0004/releases/latest/download/install.sh | sudo bash
 ```
 
-The script is idempotent and handles both first install and updates. It installs the binary and a systemd service, and on later runs downloads a newer release if there is one. It does not edit the boot config: if I2C or the case's power-button overlay is not set up, it prints the exact lines to add to `config.txt` before rebooting.
+The script is idempotent and handles both first install and updates. It installs the binary and a sandboxed systemd service that runs as the unprivileged `uctronics-lcd` user, and on later runs downloads a newer release if there is one. It does not edit the boot config: if I2C or the case's power-button overlay is not set up, it prints the exact lines to add to `config.txt` before rebooting.
 
 ## Configuration
 
