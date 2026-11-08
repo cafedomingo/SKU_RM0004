@@ -15,12 +15,16 @@ import (
 )
 
 const (
+	procMeminfoPath = "/proc/meminfo"
+	procMountsPath  = "/proc/mounts"
+	procStatPath    = "/proc/stat"
+	procUptimePath  = "/proc/uptime"
+
 	procDiskstatsPath = "/proc/diskstats"
-	procMeminfoPath   = "/proc/meminfo"
-	procMountsPath    = "/proc/mounts"
-	procRoutePath     = "/proc/net/route"
-	procStatPath      = "/proc/stat"
-	procUptimePath    = "/proc/uptime"
+	sectorSize        = 512
+
+	procRoutePath    = "/proc/net/route"
+	defaultRouteDest = "00000000"
 
 	linkSpeedPath = "/sys/class/net/%s/speed"
 	netStatPath   = "/sys/class/net/%s/statistics/%s"
@@ -39,9 +43,6 @@ const (
 	vcioIoctlMagic  = 100
 	tagGetThrottled = 0x00030046
 	mailboxSuccess  = 0x80000000
-
-	defaultRouteDest = "00000000"
-	sectorSize       = 512
 )
 
 // ioctlMailbox is the kernel's IOCTL_MBOX_PROPERTY, _IOWR(100, 0, char *).
