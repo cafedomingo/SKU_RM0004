@@ -9,10 +9,12 @@
 
 set -euo pipefail
 
+ARCHIVE="uctronics-lcd.tar.gz"
 BINARY="display"
+CONFIG="uctronics-display.conf"
 INSTALL_DIR="/opt/uctronics-lcd"
+PACKAGE=("$BINARY" "$CONFIG" THIRD_PARTY_LICENSES)
 REPO="cafedomingo/SKU_RM0004"
-TMP_BINARY="${INSTALL_DIR}/${BINARY}.new"
 VERSION_FILE="${INSTALL_DIR}/VERSION"
 
 SERVICE_NAME="uctronics-display.service"
@@ -43,6 +45,7 @@ want=()           # config.txt lines to add
 binary_updated=false
 i2c_ready=false
 service_updated=false
+staging=""
 
 log() {
     echo "[$(hostname)] $*"
@@ -57,7 +60,7 @@ if (( EUID != 0 )); then
     die "This script must be run as root (use sudo)"
 fi
 
-trap 'rm -f "$TMP_BINARY"' EXIT
+trap 'rm -rf "$staging"' EXIT
 
 # --- Pi model detection ---
 
@@ -150,15 +153,16 @@ latest_version() {
         | grep '"tag_name"' | cut -d'"' -f4 || true
 }
 
-# Downloads beside the live binary so a failed download leaves it untouched.
+# Stages beside the live files so a failed download leaves them untouched.
 install_binary() {
     install -d -m 755 "$INSTALL_DIR"
+    staging=$(mktemp -d "${INSTALL_DIR}/.new.XXXXXX")
     local version
 
-    # Developer path: use local binary if run from a repo clone
+    # Developer path: use local files if run from a repo clone
     if [[ -f "./${BINARY}" && -f "./go.mod" ]]; then
-        log "Installing local ./${BINARY}"
-        cp "./${BINARY}" "$TMP_BINARY"
+        log "Installing local ${PACKAGE[*]}"
+        cp "${PACKAGE[@]}" "$staging"
         version="local"
     else
         version=$(latest_version)
@@ -171,16 +175,17 @@ install_binary() {
         if [[ -f "./go.mod" ]]; then
             log "No local binary, downloading from release (run 'go build -o display ./cmd/display' first to install a local build)"
         else
-            log "Downloading ${BINARY} ${version:-latest} from release"
+            log "Downloading ${ARCHIVE} ${version:-latest} from release"
         fi
-        curl -fsSL "https://github.com/${REPO}/releases/latest/download/${BINARY}" -o "$TMP_BINARY" \
-            || die "Failed to download ${BINARY} from GitHub releases"
-        [[ -s "$TMP_BINARY" ]] || die "Downloaded ${BINARY} is empty"
+        curl -fsSL "https://github.com/${REPO}/releases/latest/download/${ARCHIVE}" \
+            | tar -xz --no-same-owner -C "$staging" "${PACKAGE[@]}" \
+            || die "Failed to download ${ARCHIVE} from GitHub releases"
     fi
 
-    chmod 755 "$TMP_BINARY"
+    chmod 644 "$staging"/*
+    chmod 755 "${staging}/${BINARY}"
     systemctl stop "$SERVICE_NAME" 2>/dev/null || true
-    mv -f "$TMP_BINARY" "${INSTALL_DIR}/${BINARY}"
+    mv -f "$staging"/* "$INSTALL_DIR"
     echo "$version" > "$VERSION_FILE"
     binary_updated=true
 }

@@ -103,7 +103,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          sparse-checkout: install.sh
+          sparse-checkout: |
+            install.sh
+            uctronics-display.conf
+            THIRD_PARTY_LICENSES
           sparse-checkout-cone-mode: false
 
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -117,6 +120,7 @@ jobs:
           TAG: ${{ needs.build.outputs.tag }}
         run: |
           chmod +x display install.sh
-          gh release create "$TAG" display install.sh \
+          tar -czf uctronics-lcd.tar.gz display uctronics-display.conf THIRD_PARTY_LICENSES
+          gh release create "$TAG" install.sh uctronics-lcd.tar.gz \
             --title "$TAG" \
             --notes "Built from commit ${GITHUB_SHA::7}."
