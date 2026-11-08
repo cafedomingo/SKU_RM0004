@@ -186,7 +186,6 @@ install_binary() {
 
     chmod 644 "$STAGING"/*
     chmod 755 "${STAGING}/${BINARY}"
-    systemctl stop "$SERVICE_NAME" 2>/dev/null || true
     mv -f "$STAGING"/* "$INSTALL_DIR"
     echo "$version" > "$VERSION_FILE"
     binary_updated=true
@@ -209,7 +208,7 @@ install_user() {
     fi
 }
 
-# Must run before install_binary stops the service, so a failure leaves it running.
+# Runs before install_binary so a failure leaves the install untouched.
 check_device_access() {
     local group groups=()
     for group in $I2C_GROUPS $VCIO_GROUP; do
