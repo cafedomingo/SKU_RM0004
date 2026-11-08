@@ -36,6 +36,7 @@ want=()           # config.txt lines to add
 
 binary_updated=false
 i2c_ready=false
+service_updated=false
 
 log() {
     echo "[$(hostname)] $*"
@@ -173,7 +174,8 @@ install_binary() {
 # --- Systemd service ---
 
 install_service() {
-    cat > "$SERVICE_PATH" <<EOF
+    local unit
+    unit=$(cat <<EOF
 [Unit]
 Description=UCTRONICS LCD Display
 After=multi-user.target
@@ -186,8 +188,12 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-
-    systemctl daemon-reload
+)
+    if [[ "$unit" != "$(cat "$SERVICE_PATH" 2>/dev/null)" ]]; then
+        echo "$unit" > "$SERVICE_PATH"
+        systemctl daemon-reload
+        service_updated=true
+    fi
     systemctl enable --quiet "$SERVICE_NAME"
 }
 
@@ -204,7 +210,7 @@ install_binary
 install_service
 
 if [[ "$i2c_ready" == true ]]; then
-    if [[ "$binary_updated" == true ]] || ! systemctl is-active --quiet "$SERVICE_NAME"; then
+    if [[ "$binary_updated" == true || "$service_updated" == true ]] || ! systemctl is-active --quiet "$SERVICE_NAME"; then
         log "Starting ${SERVICE_NAME}"
         systemctl restart "$SERVICE_NAME"
     fi
