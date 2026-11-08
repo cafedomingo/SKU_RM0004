@@ -12,6 +12,7 @@ set -euo pipefail
 ARCHIVE="uctronics-lcd.tar.gz"
 BINARY="display"
 CONFIG="uctronics-display.conf"
+CONFIG_PATH="/etc/${CONFIG}"
 INSTALL_DIR="/opt/uctronics-lcd"
 PACKAGE=("$BINARY" "$CONFIG" THIRD_PARTY_LICENSES)
 REPO="cafedomingo/SKU_RM0004"
@@ -167,7 +168,7 @@ install_binary() {
     else
         version=$(latest_version)
         if [[ -n "$version" && "$version" == "$(cat "$VERSION_FILE" 2>/dev/null)" \
-            && -x "${INSTALL_DIR}/${BINARY}" ]]; then
+            && -x "${INSTALL_DIR}/${BINARY}" && -f "${INSTALL_DIR}/${CONFIG}" ]]; then
             log "Binary already up to date (${version})"
             chmod 755 "${INSTALL_DIR}/${BINARY}"
             return
@@ -188,6 +189,14 @@ install_binary() {
     mv -f "$staging"/* "$INSTALL_DIR"
     echo "$version" > "$VERSION_FILE"
     binary_updated=true
+}
+
+# Never touches an existing file: it holds the user's settings.
+install_config() {
+    if [[ ! -e "$CONFIG_PATH" ]]; then
+        install -o root -g root -m 644 "${INSTALL_DIR}/${CONFIG}" "$CONFIG_PATH"
+        log "Created ${CONFIG_PATH} with the defaults commented out"
+    fi
 }
 
 # --- Systemd service ---
@@ -289,6 +298,7 @@ load_i2c_dev
 install_user
 check_device_access
 install_binary
+install_config
 install_service
 
 if [[ "$i2c_ready" == true ]]; then
