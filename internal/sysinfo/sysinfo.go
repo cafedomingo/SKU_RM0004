@@ -42,7 +42,7 @@ const (
 // SystemReader provides raw system metrics from /proc, /sys, and other
 // Linux interfaces. Methods return zero values on failure and log errors
 // at Debug level, except ThrottleStatus, which reports failure with ok=false
-// and logs every failure at Warn level.
+// and warns once per outage.
 type SystemReader interface {
 	// System vitals
 	CPUPercent() float64

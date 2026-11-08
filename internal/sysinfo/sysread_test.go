@@ -38,7 +38,7 @@ func (h *countHandler) Handle(context.Context, slog.Record) error {
 func (h *countHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
 func (h *countHandler) WithGroup(string) slog.Handler      { return h }
 
-func TestThrottleStatusLogsEachFailure(t *testing.T) {
+func TestThrottleStatusLogsFirstFailure(t *testing.T) {
 	if _, err := os.Stat(vcioPath); err == nil {
 		t.Skip(vcioPath + " exists")
 	}
@@ -49,8 +49,8 @@ func TestThrottleStatusLogsEachFailure(t *testing.T) {
 			t.Fatalf("ThrottleStatus() = %#x, %v, want 0, false", v, ok)
 		}
 	}
-	if h.n != 3 {
-		t.Errorf("logged %d records, want 3", h.n)
+	if h.n != 1 {
+		t.Errorf("logged %d records, want 1", h.n)
 	}
 }
 
