@@ -131,10 +131,13 @@ check_boot_config() {
 
 # --- i2c-dev module ---
 
-# DietPi's udev rules give the bus to i2c, but only i2c-tools creates that group.
-# The trigger regroups a node udev created before the group existed.
+# DietPi's udev rules use i2c, but only i2c-tools creates it. udevd resolves group
+# names only when parsing rules, and a reload skips unchanged rule files.
 load_i2c_dev() {
-    getent group i2c >/dev/null || groupadd --system i2c
+    if ! getent group i2c >/dev/null; then
+        groupadd --system i2c
+        systemctl restart systemd-udevd
+    fi
     echo "i2c-dev" > "$MODULES_PATH"
     modprobe i2c-dev || log "Could not load i2c-dev now; it will load on next boot"
     udevadm trigger --settle --action=change --subsystem-match=i2c-dev
