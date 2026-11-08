@@ -9,10 +9,14 @@
 
 set -euo pipefail
 
+ARCHIVE="uctronics-lcd.tar.gz"
 BINARY="display"
+CONFIG="uctronics-display.conf"
+CONFIG_PATH="/etc/${CONFIG}"
 INSTALL_DIR="/opt/uctronics-lcd"
+PACKAGE=("$BINARY" "$CONFIG" THIRD_PARTY_LICENSES)
 REPO="cafedomingo/SKU_RM0004"
-TMP_BINARY="${INSTALL_DIR}/${BINARY}.new"
+STAGING="${INSTALL_DIR}/.new"
 VERSION_FILE="${INSTALL_DIR}/VERSION"
 
 SERVICE_NAME="uctronics-display.service"
@@ -57,7 +61,7 @@ if (( EUID != 0 )); then
     die "This script must be run as root (use sudo)"
 fi
 
-trap 'rm -f "$TMP_BINARY"' EXIT
+trap 'rm -rf "$STAGING"' EXIT
 
 # --- Pi model detection ---
 
@@ -150,20 +154,22 @@ latest_version() {
         | grep '"tag_name"' | cut -d'"' -f4 || true
 }
 
-# Downloads beside the live binary so a failed download leaves it untouched.
+# Stages beside the live files so a failed download leaves them untouched.
 install_binary() {
     install -d -m 755 "$INSTALL_DIR"
+    rm -rf "$STAGING"
+    install -d -m 700 "$STAGING"
     local version
 
-    # Developer path: use local binary if run from a repo clone
+    # Developer path: use local files if run from a repo clone
     if [[ -f "./${BINARY}" && -f "./go.mod" ]]; then
-        log "Installing local ./${BINARY}"
-        cp "./${BINARY}" "$TMP_BINARY"
+        log "Installing local ${PACKAGE[*]}"
+        cp "${PACKAGE[@]}" "$STAGING"
         version="local"
     else
         version=$(latest_version)
         if [[ -n "$version" && "$version" == "$(cat "$VERSION_FILE" 2>/dev/null)" \
-            && -x "${INSTALL_DIR}/${BINARY}" ]]; then
+            && -x "${INSTALL_DIR}/${BINARY}" && -f "${INSTALL_DIR}/${CONFIG}" ]]; then
             log "Binary already up to date (${version})"
             chmod 755 "${INSTALL_DIR}/${BINARY}"
             return
@@ -171,18 +177,26 @@ install_binary() {
         if [[ -f "./go.mod" ]]; then
             log "No local binary, downloading from release (run 'go build -o display ./cmd/display' first to install a local build)"
         else
-            log "Downloading ${BINARY} ${version:-latest} from release"
+            log "Downloading ${ARCHIVE} ${version:-latest} from release"
         fi
-        curl -fsSL "https://github.com/${REPO}/releases/latest/download/${BINARY}" -o "$TMP_BINARY" \
-            || die "Failed to download ${BINARY} from GitHub releases"
-        [[ -s "$TMP_BINARY" ]] || die "Downloaded ${BINARY} is empty"
+        curl -fsSL "https://github.com/${REPO}/releases/latest/download/${ARCHIVE}" \
+            | tar -xz --no-same-owner -C "$STAGING" "${PACKAGE[@]}" \
+            || die "Failed to download ${ARCHIVE} from GitHub releases"
     fi
 
-    chmod 755 "$TMP_BINARY"
-    systemctl stop "$SERVICE_NAME" 2>/dev/null || true
-    mv -f "$TMP_BINARY" "${INSTALL_DIR}/${BINARY}"
+    chmod 644 "$STAGING"/*
+    chmod 755 "${STAGING}/${BINARY}"
+    mv -f "$STAGING"/* "$INSTALL_DIR"
     echo "$version" > "$VERSION_FILE"
     binary_updated=true
+}
+
+# Never touches an existing file: it holds the user's settings.
+install_config() {
+    if [[ ! -e "$CONFIG_PATH" ]]; then
+        install -o root -g root -m 644 "${INSTALL_DIR}/${CONFIG}" "$CONFIG_PATH"
+        log "Created ${CONFIG_PATH} with the defaults commented out"
+    fi
 }
 
 # --- Systemd service ---
@@ -194,7 +208,7 @@ install_user() {
     fi
 }
 
-# Must run before install_binary stops the service, so a failure leaves it running.
+# Runs before install_binary so a failure leaves the install untouched.
 check_device_access() {
     local group groups=()
     for group in $I2C_GROUPS $VCIO_GROUP; do
@@ -284,6 +298,7 @@ load_i2c_dev
 install_user
 check_device_access
 install_binary
+install_config
 install_service
 
 if [[ "$i2c_ready" == true ]]; then

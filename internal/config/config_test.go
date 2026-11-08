@@ -2,12 +2,15 @@ package config
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
+	"maps"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
-
-	"log/slog"
 )
 
 func newTestLoader(t *testing.T, path string) *Loader {
@@ -230,5 +233,48 @@ func TestUnreadableWarnsOnceAndRecovers(t *testing.T) {
 	}
 	if cfg := l.Load(); cfg.Screen != ScreenSparkline {
 		t.Errorf("after chmod Screen = %q, want %q", cfg.Screen, ScreenSparkline)
+	}
+}
+
+// The installer copies this file to ConfigPath, so it must document the real defaults.
+func TestShippedConfigMatchesDefaults(t *testing.T) {
+	data, err := os.ReadFile("../../uctronics-display.conf")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	var comments strings.Builder
+	for line := range strings.Lines(string(data)) {
+		k, v, ok := strings.Cut(strings.TrimSpace(line), "=")
+		if !ok {
+			comments.WriteString(line)
+			continue
+		}
+		k, commented := strings.CutPrefix(k, "#")
+		if !commented {
+			t.Errorf("%s is set; defaults must stay commented out so later changes reach existing installs", k)
+		}
+		got[k] = v
+	}
+	want := map[string]string{
+		keyScreen:   DefaultScreen,
+		keyRefresh:  strconv.Itoa(int(DefaultRefresh / time.Second)),
+		keyTempUnit: DefaultTempUnit,
+	}
+	if !maps.Equal(got, want) {
+		t.Errorf("settings = %v, want %v", got, want)
+	}
+
+	documented := []string{
+		fmt.Sprintf("%d to %d", int(MinRefresh/time.Second), int(MaxRefresh/time.Second)),
+		TempCelsius + " or " + TempFahrenheit,
+	}
+	for s := range validScreens {
+		documented = append(documented, s)
+	}
+	for _, s := range documented {
+		if !strings.Contains(comments.String(), s) {
+			t.Errorf("comments do not mention %q", s)
+		}
 	}
 }
