@@ -242,12 +242,12 @@ func TestShippedConfigMatchesDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	text := string(data)
-
 	got := map[string]string{}
-	for line := range strings.Lines(text) {
+	var comments strings.Builder
+	for line := range strings.Lines(string(data)) {
 		k, v, ok := strings.Cut(strings.TrimSpace(line), "=")
 		if !ok {
+			comments.WriteString(line)
 			continue
 		}
 		k, commented := strings.CutPrefix(k, "#")
@@ -273,8 +273,8 @@ func TestShippedConfigMatchesDefaults(t *testing.T) {
 		documented = append(documented, s)
 	}
 	for _, s := range documented {
-		if !strings.Contains(text, s) {
-			t.Errorf("file does not mention %q", s)
+		if !strings.Contains(comments.String(), s) {
+			t.Errorf("comments do not mention %q", s)
 		}
 	}
 }
